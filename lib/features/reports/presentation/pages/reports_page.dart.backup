@@ -1,0 +1,850 @@
+import 'package:flutter/material.dart';
+import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
+import '../../providers/reports_provider.dart';
+import '../../data/models/transaction_widgets_model.dart';
+class ReportsPage extends StatefulWidget {
+  const ReportsPage({super.key});
+  @override
+  State<ReportsPage> createState() => _ReportsPageState();
+}
+class _ReportsPageState extends State<ReportsPage> {
+  String _selectedPeriod = 'Hari Ini';
+  late ReportsProvider _reportsProvider;
+  // Date ranges for different periods
+  final Map<String, Map<String, String>> _dateRanges = {
+    'Hari Ini': {
+      'date_from': DateTime.now().toIso8601String().split('T')[0],
+      'date_to': DateTime.now().toIso8601String().split('T')[0],
+    },
+    'Minggu Ini': {
+      'date_from':
+          DateTime.now()
+              .subtract(const Duration(days: 7))
+              .toIso8601String()
+              .split('T')[0],
+      'date_to': DateTime.now().toIso8601String().split('T')[0],
+    },
+    'Bulan Ini': {
+      'date_from':
+          DateTime(
+            DateTime.now().year,
+            DateTime.now().month,
+            1,
+          ).toIso8601String().split('T')[0],
+      'date_to': DateTime.now().toIso8601String().split('T')[0],
+    },
+  };
+  // Dummy data for 7 days chart (keeping for chart display)
+  final List<Map<String, dynamic>> _weeklyData = [
+    {'day': 'Sen', 'sales': 1200000.0},
+    {'day': 'Sel', 'sales': 1800000.0},
+    {'day': 'Rab', 'sales': 2100000.0},
+    {'day': 'Kam', 'sales': 1650000.0},
+    {'day': 'Jum', 'sales': 2350000.0},
+    {'day': 'Sab', 'sales': 2800000.0},
+    {'day': 'Min', 'sales': 3200000.0},
+  ];
+  @override
+  void initState() {
+    super.initState();
+    _reportsProvider = Provider.of<ReportsProvider>(context, listen: false);
+    // Schedule the API call to happen after the build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchReportsData();
+    });
+  }
+  void _fetchReportsData() {
+    final dateRange = _dateRanges[_selectedPeriod]!;
+    _reportsProvider.fetchAllReportsData(
+      dateFrom: dateRange['date_from']!,
+      dateTo: dateRange['date_to']!,
+    );
+  }
+  void _onPeriodChanged(String period) {
+    setState(() {
+      _selectedPeriod = period;
+    });
+    _fetchReportsData();
+  }
+  Map<String, dynamic> _getSalesDataFromApi(TransactionWidgetsModel? data) {
+    if (data == null) {
+      return {
+        'transactions': 0,
+        'revenue': 0,
+        'items_sold': 0,
+        'avg_transaction': 0,
+      };
+    }
+    return {
+      'transactions': data.totalTransactions,
+      'revenue': data.totalSales,
+      'items_sold': data.itemsSold,
+      'avg_transaction': data.averageTransactionAmount,
+    };
+  }
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ReportsProvider>(
+      builder: (context, reportsProvider, child) {
+        final currentData = _getSalesDataFromApi(
+          reportsProvider.transactionWidgets,
+        );
+        final maxSales = _weeklyData
+            .map((e) => e['sales'] as double)
+            .reduce((a, b) => a > b ? a : b);
+        return Scaffold(
+          appBar: AppBar(
+            title: const Text(
+              'Laporan Penjualan',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: Colors.blue[600],
+            foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(LucideIcons.download),
+                onPressed: () => _exportReport(context),
+              ),
+            ],
+          ),
+          body: RefreshIndicator(
+            onRefresh: () async {
+              _fetchReportsData();
+            },
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Period Selector
+                  _buildPeriodSelector(),
+                  const SizedBox(height: 24),
+                  // Error handling
+                  if (reportsProvider.error != null) ...[
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                LucideIcons.alertCircle,
+                                color: Colors.red.shade600,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Terjadi Kesalahan',
+                                style: TextStyle(
+                                  color: Colors.red.shade600,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            reportsProvider.error!,
+                            style: TextStyle(color: Colors.red.shade600),
+                          ),
+                          const SizedBox(height: 8),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              reportsProvider.clearError();
+                              _fetchReportsData();
+                            },
+                            icon: const Icon(LucideIcons.refreshCw, size: 16),
+                            label: const Text('Coba Lagi'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red.shade600,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                  // Summary Cards with loading state
+                  _buildSummaryCards(currentData, reportsProvider.isLoading),
+                  const SizedBox(height: 24),
+                  // Sales Chart
+                  _buildSalesChart(maxSales),
+                  const SizedBox(height: 24),
+                  // Top Products
+                  _buildTopProducts(),
+                  const SizedBox(height: 24),
+                  // Recent Transactions
+                  _buildRecentTransactions(),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+  Widget _buildPeriodSelector() {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(LucideIcons.calendar, size: 20, color: Colors.blue[600]),
+                const SizedBox(width: 8),
+                const Text(
+                  'Periode Laporan',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children:
+                  _dateRanges.keys.map((period) {
+                    final isSelected = _selectedPeriod == period;
+                    return Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 8),
+                        child: FilterChip(
+                          label: Text(period),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) {
+                              _onPeriodChanged(period);
+                            }
+                          },
+                          selectedColor: Colors.blue[100],
+                          checkmarkColor: Colors.blue[600],
+                        ),
+                      ),
+                    );
+                  }).toList(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildSummaryCards(
+    Map<String, dynamic> data, [
+    bool isLoading = false,
+  ]) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Ringkasan Penjualan',
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 12),
+        if (isLoading)
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 1.4,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            children: List.generate(4, (index) => _buildLoadingCard()),
+          )
+        else
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            childAspectRatio: 1.4,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+            children: [
+              _buildSummaryCard(
+                title: 'Total Transaksi',
+                value: '${data['transactions']}',
+                icon: LucideIcons.shoppingCart,
+                color: Colors.blue,
+                subtitle: 'transaksi',
+              ),
+              _buildSummaryCard(
+                title: 'Total Penjualan',
+                value: 'Rp ${_formatPrice(data['revenue'].toDouble())}',
+                icon: LucideIcons.banknote,
+                color: Colors.green,
+                subtitle: 'revenue',
+              ),
+              _buildSummaryCard(
+                title: 'Item Terjual',
+                value: '${data['items_sold']}',
+                icon: LucideIcons.package,
+                color: Colors.orange,
+                subtitle: 'item',
+              ),
+              _buildSummaryCard(
+                title: 'Rata-rata Transaksi',
+                value: 'Rp ${_formatPrice(data['avg_transaction'].toDouble())}',
+                icon: LucideIcons.trendingUp,
+                color: Colors.purple,
+                subtitle: 'per transaksi',
+              ),
+            ],
+          ),
+      ],
+    );
+  }
+  Widget _buildLoadingCard() {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                Container(
+                  width: 20,
+                  height: 20,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Container(
+              width: double.infinity,
+              height: 12,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              width: 80,
+              height: 16,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Container(
+              width: 60,
+              height: 10,
+              decoration: BoxDecoration(
+                color: Colors.grey[300],
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildSummaryCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required String subtitle,
+  }) {
+    return Card(
+      elevation: 2,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Icon(icon, color: color, size: 24),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Icon(LucideIcons.arrowUp, color: color, size: 12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              value,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              subtitle,
+              style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildSalesChart(double maxSales) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(LucideIcons.barChart3, size: 20, color: Colors.blue[600]),
+                const SizedBox(width: 8),
+                const Text(
+                  'Penjualan 7 Hari Terakhir',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            // Simple Bar Chart
+            SizedBox(
+              height: 200,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children:
+                    _weeklyData.map((data) {
+                      final height = (data['sales'] / maxSales) * 150;
+                      final isToday =
+                          data['day'] == 'Jum'; // Assume today is Friday
+                      return Column(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          // Sales amount
+                          Text(
+                            'Rp ${_formatPriceShort(data['sales'])}',
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          // Bar
+                          Container(
+                            width: 30,
+                            height: height,
+                            decoration: BoxDecoration(
+                              color:
+                                  isToday ? Colors.blue[600] : Colors.blue[200],
+                              borderRadius: const BorderRadius.vertical(
+                                top: Radius.circular(4),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          // Day label
+                          Text(
+                            data['day'],
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight:
+                                  isToday ? FontWeight.bold : FontWeight.normal,
+                              color:
+                                  isToday ? Colors.blue[600] : Colors.grey[600],
+                            ),
+                          ),
+                        ],
+                      );
+                    }).toList(),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  Widget _buildTopProducts() {
+    return Consumer<ReportsProvider>(
+      builder: (context, reportsProvider, child) {
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(LucideIcons.trophy, size: 20, color: Colors.orange[600]),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Produk Terlaris',
+                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (reportsProvider.isLoadingProducts)
+                  ...List.generate(5, (index) => _buildProductLoadingItem())
+                else if (reportsProvider.mostSoldProducts.isEmpty)
+                  _buildEmptyProductsState()
+                else
+                  ...reportsProvider.mostSoldProducts
+                      .take(5)
+                      .toList()
+                      .asMap()
+                      .entries
+                      .map((entry) {
+                        final index = entry.key;
+                        final product = entry.value;
+                        return _buildProductItem(index, product);
+                      }),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+  Widget _buildProductItem(int index, dynamic product) {
+    // Handle both old dummy data format and new API data format
+    final productName = product.productName ?? product['name'] ?? '';
+    final totalSold = product.totalSold ?? product['sold'] ?? 0;
+    final productSku = product.productSku ?? '';
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color:
+                  index == 0
+                      ? const Color(0xFFFFD700)
+                      : index == 1
+                      ? Colors.grey[400]
+                      : index == 2
+                      ? Colors.orange[300]
+                      : Colors.blue[100],
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '${index + 1}',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: index < 3 ? Colors.white : Colors.blue[600],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  productName,
+                  style: const TextStyle(fontWeight: FontWeight.w500),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                if (productSku.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    'SKU: $productSku',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey[600],
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Text(
+                '$totalSold',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                'terjual',
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildProductLoadingItem() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              shape: BoxShape.circle,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: double.infinity,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Container(
+                  width: 120,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 40,
+            height: 14,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  Widget _buildEmptyProductsState() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 24),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              LucideIcons.package,
+              size: 48,
+              color: Colors.grey[400],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Belum ada data produk terlaris',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  }
+  Widget _buildRecentTransactions() {
+    final recentTransactions = [
+      {
+        'id': 'TRX001',
+        'time': '15:30',
+        'items': 3,
+        'total': 45000,
+        'method': 'Tunai',
+      },
+      {
+        'id': 'TRX002',
+        'time': '15:15',
+        'items': 2,
+        'total': 28000,
+        'method': 'QRIS',
+      },
+      {
+        'id': 'TRX003',
+        'time': '14:45',
+        'items': 5,
+        'total': 72000,
+        'method': 'Debit',
+      },
+      {
+        'id': 'TRX004',
+        'time': '14:20',
+        'items': 1,
+        'total': 15000,
+        'method': 'Tunai',
+      },
+    ];
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    Icon(LucideIcons.clock, size: 20, color: Colors.green[600]),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'Transaksi Terbaru',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                TextButton(
+                  onPressed: () {
+                    // Navigate to detailed transactions
+                  },
+                  child: const Text('Lihat Semua'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ...recentTransactions.map((transaction) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.green[50],
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Icon(
+                        LucideIcons.receipt,
+                        color: Colors.green[600],
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                transaction['id'] as String,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              Text(
+                                transaction['time'] as String,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                '${transaction['items']} item • ${transaction['method']}',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              Text(
+                                'Rp ${_formatPrice((transaction['total'] as int).toDouble())}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.green,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+  void _exportReport(BuildContext context) {
+    showDialog(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            title: const Text('Export Laporan'),
+            content: const Text('Fitur export laporan akan segera tersedia.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('OK'),
+              ),
+            ],
+          ),
+    );
+  }
+  String _formatPrice(double price) {
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+  }
+  String _formatPriceShort(double price) {
+    if (price >= 1000000) {
+      return '${(price / 1000000).toStringAsFixed(1)}M';
+    } else if (price >= 1000) {
+      return '${(price / 1000).toStringAsFixed(0)}K';
+    }
+    return price.toStringAsFixed(0);
+  }
+}
