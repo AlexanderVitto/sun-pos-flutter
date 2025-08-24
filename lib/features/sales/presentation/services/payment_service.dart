@@ -3,17 +3,34 @@ import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../../../data/models/cart_item.dart';
+import '../../../../data/models/customer.dart' as CartCustomer;
+import '../../../customers/data/models/customer.dart' as DialogCustomer;
 import '../../../transactions/data/models/store.dart';
 import '../utils/pos_ui_helpers.dart';
 import '../widgets/payment_confirmation_dialog.dart';
 import '../pages/payment_success_page.dart';
 
 class PaymentService {
-  static void processPayment(
-    BuildContext context,
-    CartProvider cartProvider,
-    TextEditingController notesController,
+  // Convert CartCustomer to DialogCustomer
+  static DialogCustomer.Customer? _convertCustomer(
+    CartCustomer.Customer? cartCustomer,
   ) {
+    if (cartCustomer == null) return null;
+
+    return DialogCustomer.Customer(
+      id: int.tryParse(cartCustomer.id) ?? 0,
+      name: cartCustomer.name,
+      phone: cartCustomer.phone,
+      createdAt: cartCustomer.createdAt,
+      updatedAt: cartCustomer.updatedAt,
+    );
+  }
+
+  static Future<void> processPayment({
+    required BuildContext context,
+    required CartProvider cartProvider,
+    required TextEditingController notesController,
+  }) async {
     if (cartProvider.items.isEmpty) {
       PosUIHelpers.showErrorSnackbar(context, 'Keranjang masih kosong');
       return;
@@ -35,6 +52,9 @@ class PaymentService {
             totalAmount: cartProvider.total,
             itemCount: cartProvider.itemCount,
             notesController: notesController,
+            selectedCustomer: _convertCustomer(
+              cartProvider.selectedCustomer,
+            ), // Convert and pass selected customer
             initialCustomerName: cartProvider.customerName,
             initialCustomerPhone: cartProvider.customerPhone,
             onConfirm:

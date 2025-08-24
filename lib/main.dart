@@ -12,6 +12,7 @@ import 'features/products/presentation/viewmodels/product_detail_viewmodel.dart'
 import 'features/products/data/services/product_api_service.dart';
 import 'features/sales/providers/cart_provider.dart';
 import 'features/sales/providers/transaction_provider.dart';
+import 'features/sales/providers/pending_transaction_provider.dart';
 import 'features/sales/presentation/view_models/pos_transaction_view_model.dart';
 import 'features/transactions/providers/transaction_list_provider.dart';
 import 'features/customers/providers/customer_provider.dart';
@@ -97,6 +98,7 @@ class MyApp extends StatelessWidget {
         ),
         ChangeNotifierProvider(create: (_) => TransactionListProvider()),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
+        ChangeNotifierProvider(create: (_) => PendingTransactionProvider()),
         ChangeNotifierProvider(create: (_) => CashFlowProvider()),
         ChangeNotifierProvider(create: (_) => ReportsProvider()),
       ],

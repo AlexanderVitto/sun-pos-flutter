@@ -7,9 +7,7 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/utils/role_permissions.dart';
-import '../../../sales/presentation/pages/pos_transaction_page.dart';
 import '../../../products/providers/product_provider.dart';
-import '../../../sales/providers/cart_provider.dart';
 import '../../../products/presentation/pages/products_page_modern.dart';
 import '../../../reports/presentation/pages/reports_page.dart';
 import '../../../profile/user_profile_page.dart';
@@ -18,6 +16,7 @@ import '../../../customers/pages/customer_list_page.dart';
 import '../../../transactions/presentation/pages/transaction_list_page.dart';
 import '../../../cash_flows/presentation/pages/cash_flows_page.dart';
 import '../../../cash_flows/presentation/pages/add_cash_flow_page.dart';
+import '../../../sales/presentation/pages/pending_transaction_list_page.dart';
 
 class DashboardPage extends StatefulWidget {
   final int initialIndex;
@@ -36,7 +35,6 @@ class _DashboardPageState extends State<DashboardPage>
 
   // Persistent providers that maintain state across page switches
   late final ProductProvider _productProvider;
-  late final CartProvider _cartProvider;
 
   @override
   void initState() {
@@ -46,7 +44,6 @@ class _DashboardPageState extends State<DashboardPage>
 
     // Initialize providers once to maintain state
     _productProvider = ProductProvider();
-    _cartProvider = CartProvider();
 
     // Add observer for app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
@@ -173,15 +170,7 @@ class _DashboardPageState extends State<DashboardPage>
       pages.add(_buildDashboardContent());
     }
     if (RolePermissions.canAccessPOS(userRoles)) {
-      pages.add(
-        MultiProvider(
-          providers: [
-            ChangeNotifierProvider.value(value: _productProvider),
-            ChangeNotifierProvider.value(value: _cartProvider),
-          ],
-          child: const POSTransactionPage(),
-        ),
-      );
+      pages.add(const PendingTransactionListPage());
     }
     if (RolePermissions.canAccessProducts(userRoles)) {
       pages.add(const ProductsPage());
@@ -630,15 +619,11 @@ class _DashboardPageState extends State<DashboardPage>
         'subtitle': 'Buat penjualan baru',
         'icon': LucideIcons.plus,
         'color': const Color(0xFF3b82f6),
-        'onTap':
-            () => setState(
-              () =>
-                  _selectedIndex =
-                      userRoles.contains('owner') ||
-                              userRoles.contains('manager')
-                          ? 1
-                          : 0,
-            ),
+        'onTap': () {
+          setState(() {
+            _selectedIndex = 1; // Navigate to POS tab (index 1)
+          });
+        },
       });
     }
 
