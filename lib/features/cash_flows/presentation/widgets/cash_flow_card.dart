@@ -190,8 +190,6 @@ class CashFlowCard extends StatelessWidget {
         return Icons.trending_up;
       case 'loan':
         return Icons.account_balance;
-      case 'tax':
-        return Icons.receipt_long;
       default:
         return Icons.more_horiz;
     }
@@ -209,8 +207,6 @@ class CashFlowCard extends StatelessWidget {
         return 'Investasi';
       case 'loan':
         return 'Pinjaman';
-      case 'tax':
-        return 'Pajak';
       default:
         return 'Lainnya';
     }

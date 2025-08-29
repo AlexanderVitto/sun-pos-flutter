@@ -13,10 +13,10 @@ import '../../../reports/presentation/pages/reports_page.dart';
 import '../../../profile/user_profile_page.dart';
 import '../../../../core/events/transaction_events.dart';
 import '../../../customers/pages/customer_list_page.dart';
-import '../../../transactions/presentation/pages/transaction_list_page.dart';
 import '../../../cash_flows/presentation/pages/cash_flows_page.dart';
 import '../../../cash_flows/presentation/pages/add_cash_flow_page.dart';
 import '../../../sales/presentation/pages/pending_transaction_list_page.dart';
+import '../widgets/transaction_tab_page.dart';
 
 class DashboardPage extends StatefulWidget {
   final int initialIndex;
@@ -168,6 +168,9 @@ class _DashboardPageState extends State<DashboardPage>
 
     if (RolePermissions.canAccessDashboard(userRoles)) {
       pages.add(_buildDashboardContent());
+    }
+    if (RolePermissions.canAccessPOS(userRoles)) {
+      pages.add(const TransactionTabPage());
     }
     if (RolePermissions.canAccessPOS(userRoles)) {
       pages.add(const PendingTransactionListPage());
@@ -613,16 +616,33 @@ class _DashboardPageState extends State<DashboardPage>
 
     final quickActions = <Map<String, dynamic>>[];
 
+    // if (RolePermissions.canAccessPOS(userRoles)) {
+    //   quickActions.add({
+    //     'title': 'Transaksi Pending',
+    //     'subtitle': 'Lihat transaksi yang belum selesai',
+    //     'icon': LucideIcons.clock,
+    //     'color': const Color(0xFFf59e0b),
+    //     'onTap': () {
+    //       setState(() {
+    //         _selectedIndex = 1; // Navigate to Pending Transaction tab (index 1)
+    //       });
+    //     },
+    //   });
+    // }
+
     if (RolePermissions.canAccessPOS(userRoles)) {
       quickActions.add({
         'title': 'Transaksi Baru',
         'subtitle': 'Buat penjualan baru',
         'icon': LucideIcons.plus,
-        'color': const Color(0xFF3b82f6),
+        'color': const Color(0xFF10b981),
         'onTap': () {
-          setState(() {
-            _selectedIndex = 1; // Navigate to POS tab (index 1)
-          });
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const PendingTransactionListPage(),
+            ),
+          );
         },
       });
     }
@@ -633,7 +653,7 @@ class _DashboardPageState extends State<DashboardPage>
         'subtitle': 'Tambah & edit produk',
         'icon': LucideIcons.package,
         'color': const Color(0xFF8b5cf6),
-        'onTap': () => setState(() => _selectedIndex = 2),
+        'onTap': () => setState(() => _selectedIndex = 3),
       });
     }
 
@@ -642,24 +662,10 @@ class _DashboardPageState extends State<DashboardPage>
         'title': 'Laporan',
         'subtitle': 'Lihat performa toko',
         'icon': LucideIcons.barChart3,
-        'color': const Color(0xFF10b981),
-        'onTap': () => setState(() => _selectedIndex = 3),
+        'color': const Color(0xFFf59e0b),
+        'onTap': () => setState(() => _selectedIndex = 4),
       });
     }
-
-    // Always available actions
-    quickActions.add({
-      'title': 'Daftar Transaksi',
-      'subtitle': 'Lihat semua transaksi',
-      'icon': LucideIcons.list,
-      'color': const Color(0xFF06b6d4),
-      'onTap': () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const TransactionListPage()),
-        );
-      },
-    });
 
     // Customer management for all roles
     quickActions.add({
@@ -709,7 +715,7 @@ class _DashboardPageState extends State<DashboardPage>
       'subtitle': 'Kelola akun & profil',
       'icon': LucideIcons.settings,
       'color': const Color(0xFFf59e0b),
-      'onTap': () => setState(() => _selectedIndex = 4),
+      'onTap': () => setState(() => _selectedIndex = 5),
     });
 
     return Column(
@@ -1076,8 +1082,16 @@ class _DashboardPageState extends State<DashboardPage>
     if (RolePermissions.canAccessPOS(userRoles)) {
       items.add(
         const BottomNavigationBarItem(
-          icon: Icon(LucideIcons.shoppingCart),
-          label: 'POS',
+          icon: Icon(LucideIcons.clock),
+          label: 'Transaksi',
+        ),
+      );
+    }
+    if (RolePermissions.canAccessPOS(userRoles)) {
+      items.add(
+        const BottomNavigationBarItem(
+          icon: Icon(LucideIcons.clipboard),
+          label: 'Pesan',
         ),
       );
     }

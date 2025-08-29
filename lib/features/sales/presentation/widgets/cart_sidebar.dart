@@ -6,11 +6,13 @@ import '../../../customers/data/models/customer.dart';
 
 class CartSidebar extends StatelessWidget {
   final VoidCallback onPaymentPressed;
+  final VoidCallback? onOrderPressed;
   final VoidCallback? onClearCart;
 
   const CartSidebar({
     super.key,
     required this.onPaymentPressed,
+    this.onOrderPressed,
     this.onClearCart,
   });
 
@@ -387,27 +389,57 @@ class CartSidebar extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
 
-                    // Payment Button
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: onPaymentPressed,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green[600],
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                    // Payment Buttons Row
+                    Row(
+                      children: [
+                        // Pesan button
+                        if (onOrderPressed != null) ...[
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: onOrderPressed,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.orange[600],
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              child: const Text(
+                                'PESAN',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                        ],
+                        // Bayar button
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: onPaymentPressed,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green[600],
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                            child: const Text(
+                              'BAYAR',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ),
                         ),
-                        child: const Text(
-                          'BAYAR',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                      ],
                     ),
                   ],
                 ),

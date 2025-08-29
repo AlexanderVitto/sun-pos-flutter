@@ -9,12 +9,14 @@ class TabletLayout extends StatelessWidget {
   final POSTransactionViewModel viewModel;
   final void Function(Product) onAddToCart;
   final VoidCallback onPaymentPressed;
+  final VoidCallback? onOrderPressed;
 
   const TabletLayout({
     super.key,
     required this.viewModel,
     required this.onAddToCart,
     required this.onPaymentPressed,
+    this.onOrderPressed,
   });
 
   @override
@@ -82,7 +84,10 @@ class TabletLayout extends StatelessWidget {
                   ),
                 ],
               ),
-              child: CartSidebar(onPaymentPressed: onPaymentPressed),
+              child: CartSidebar(
+                onPaymentPressed: onPaymentPressed,
+                onOrderPressed: onOrderPressed,
+              ),
             ),
           ),
         ],

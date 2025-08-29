@@ -262,6 +262,19 @@ class TransactionListProvider with ChangeNotifier {
     setDateRange(todayStr, todayStr);
   }
 
+  /// Apply today and yesterday filter
+  void applyTodayAndYesterdayFilter() {
+    final today = DateTime.now();
+    final yesterday = today.subtract(const Duration(days: 1));
+
+    final yesterdayStr =
+        '${yesterday.year}-${yesterday.month.toString().padLeft(2, '0')}-${yesterday.day.toString().padLeft(2, '0')}';
+    final todayStr =
+        '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+
+    setDateRange(yesterdayStr, todayStr);
+  }
+
   /// Apply this week filter
   void applyThisWeekFilter() {
     final now = DateTime.now();

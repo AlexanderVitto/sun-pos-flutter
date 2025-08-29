@@ -10,7 +10,6 @@ class CartProvider extends ChangeNotifier {
   final List<CartItem> _items = [];
   final Uuid _uuid = const Uuid();
   Customer? _selectedCustomer;
-  double _taxRate = 0.1; // 10% tax
   double _discountAmount = 0.0;
   bool _isProcessing = false;
   String? _errorMessage;
@@ -20,7 +19,6 @@ class CartProvider extends ChangeNotifier {
   // Getters
   List<CartItem> get items => List.unmodifiable(_items);
   Customer? get selectedCustomer => _selectedCustomer;
-  double get taxRate => _taxRate;
   double get discountAmount => _discountAmount;
   bool get isProcessing => _isProcessing;
   String? get errorMessage => _errorMessage;
@@ -39,7 +37,6 @@ class CartProvider extends ChangeNotifier {
 
   // Calculate totals
   double get subtotal => _items.fold(0.0, (sum, item) => sum + item.subtotal);
-  double get taxAmount => subtotal * _taxRate;
   // double get total => subtotal + taxAmount - _discountAmount;
   double get total => subtotal;
 
@@ -208,13 +205,6 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Set tax rate
-  void setTaxRate(double rate) {
-    if (rate < 0 || rate > 1) return; // Tax rate should be between 0-100%
-    _taxRate = rate;
-    notifyListeners();
-  }
-
   // Set discount amount
   void setDiscountAmount(double amount) {
     if (amount < 0 || amount > subtotal) return;
@@ -295,7 +285,6 @@ class CartProvider extends ChangeNotifier {
         customerId: _selectedCustomer?.id,
         customerName: _selectedCustomer?.name,
         items: saleItems,
-        tax: taxAmount,
         discount: _discountAmount,
         paymentMethod: paymentMethod,
         createdAt: DateTime.now(),
@@ -342,7 +331,6 @@ class CartProvider extends ChangeNotifier {
     return {
       'items': _items.map((item) => item.toJson()).toList(),
       'customer': _selectedCustomer?.toJson(),
-      'taxRate': _taxRate,
       'discountAmount': _discountAmount,
       'savedAt': DateTime.now().toIso8601String(),
     };
@@ -364,7 +352,6 @@ class CartProvider extends ChangeNotifier {
         _selectedCustomer = Customer.fromJson(cartData['customer']);
       }
 
-      _taxRate = cartData['taxRate'] ?? 0.1;
       _discountAmount = cartData['discountAmount'] ?? 0.0;
 
       notifyListeners();

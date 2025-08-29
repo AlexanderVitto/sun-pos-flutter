@@ -65,7 +65,6 @@ class Sale {
   final String? customerName;
   final List<SaleItem> items;
   final double subtotal;
-  final double tax;
   final double discount;
   final double total;
   final PaymentMethod paymentMethod;
@@ -76,20 +75,17 @@ class Sale {
     this.customerId,
     this.customerName,
     required this.items,
-    required this.tax,
     required this.discount,
     required this.paymentMethod,
     required this.createdAt,
   }) : subtotal = items.fold(0.0, (sum, item) => sum + item.subtotal),
-       total =
-           items.fold(0.0, (sum, item) => sum + item.subtotal) + tax - discount;
+       total = items.fold(0.0, (sum, item) => sum + item.subtotal) - discount;
 
   Sale copyWith({
     String? id,
     String? customerId,
     String? customerName,
     List<SaleItem>? items,
-    double? tax,
     double? discount,
     PaymentMethod? paymentMethod,
     DateTime? createdAt,
@@ -99,7 +95,6 @@ class Sale {
       customerId: customerId ?? this.customerId,
       customerName: customerName ?? this.customerName,
       items: items ?? this.items,
-      tax: tax ?? this.tax,
       discount: discount ?? this.discount,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       createdAt: createdAt ?? this.createdAt,
@@ -113,7 +108,6 @@ class Sale {
       'customerName': customerName,
       'items': items.map((item) => item.toJson()).toList(),
       'subtotal': subtotal,
-      'tax': tax,
       'discount': discount,
       'total': total,
       'paymentMethod': paymentMethod.name,
@@ -130,7 +124,6 @@ class Sale {
           (json['items'] as List)
               .map((item) => SaleItem.fromJson(item))
               .toList(),
-      tax: json['tax'].toDouble(),
       discount: json['discount'].toDouble(),
       paymentMethod: PaymentMethod.values.firstWhere(
         (method) => method.name == json['paymentMethod'],

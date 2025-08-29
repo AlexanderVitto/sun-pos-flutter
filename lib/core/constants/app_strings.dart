@@ -41,7 +41,6 @@ class AppStrings {
   static const String quantity = 'Quantity';
   static const String total = 'Total';
   static const String subtotal = 'Subtotal';
-  static const String tax = 'Tax';
   static const String discount = 'Discount';
   static const String checkout = 'Checkout';
   static const String paymentMethod = 'Payment Method';

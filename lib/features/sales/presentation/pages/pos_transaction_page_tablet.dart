@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../products/providers/product_provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/pending_transaction_provider.dart';
 import '../../../../data/models/product.dart';
 import '../../../../data/models/cart_item.dart';
 import 'payment_success_page.dart';
+import 'pending_transaction_list_page.dart';
 import '../../../transactions/data/services/transaction_api_service.dart';
 import '../../../transactions/data/models/create_transaction_request.dart';
 import '../../../transactions/data/models/transaction_detail.dart';
@@ -1365,10 +1367,27 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
               style: TextButton.styleFrom(foregroundColor: Colors.grey[600]),
               child: const Text('Batal'),
             ),
+            // Pesan button - creates order with status=payment
             ElevatedButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Close dialog
-                _confirmPayment(context); // Process payment
+                _confirmOrder(context); // Process order (status=payment)
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange[600],
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Pesan'),
+            ),
+            const SizedBox(width: 8),
+            // Bayar Sekarang button - creates transaction with status=completed
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                _confirmPayment(context); // Process payment (status=completed)
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green[600],
@@ -1426,6 +1445,33 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
         // Save cart data before clearing
         final cartItems = List<CartItem>.from(_cartProvider!.items);
         final totalAmount = _cartProvider!.total;
+
+        // Delete pending transaction if it exists
+        final pendingProvider = Provider.of<PendingTransactionProvider>(
+          context,
+          listen: false,
+        );
+
+        // Check if this is from a pending transaction by customer name
+        final customerName = _cartProvider!.customerName;
+        if (customerName != null && customerName.isNotEmpty) {
+          // Find and delete pending transaction for this customer
+          final pendingTransactions = pendingProvider.pendingTransactionsList;
+          try {
+            final matchingTransaction = pendingTransactions.firstWhere(
+              (transaction) => transaction.customerName == customerName,
+            );
+
+            await pendingProvider.deletePendingTransaction(
+              matchingTransaction.customerId,
+            );
+          } catch (e) {
+            // No matching pending transaction found, continue normally
+            debugPrint(
+              'No pending transaction found for customer: $customerName',
+            );
+          }
+        }
 
         // Clear cart after successful payment
         _cartProvider!.clearCart();
@@ -1488,7 +1534,127 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
     }
   }
 
+  void _confirmOrder(BuildContext context) async {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Memproses pesanan...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      // Create transaction request with status=pending
+      final transactionRequest = await _createTransactionRequestWithStatus(
+        'pending',
+      );
+      if (!mounted) return;
+
+      // Call API to create transaction
+      final transactionService = TransactionApiService();
+      final response = await transactionService.createTransaction(
+        transactionRequest,
+      );
+      if (!mounted) return;
+
+      // Close loading dialog using cached navigator
+      if (mounted && _navigator != null && _navigator!.canPop()) {
+        _navigator!.pop();
+      }
+      if (!mounted) return;
+
+      if (response.success && response.data != null) {
+        // Delete pending transaction if it exists
+        final pendingProvider = Provider.of<PendingTransactionProvider>(
+          context,
+          listen: false,
+        );
+
+        // Check if this is from a pending transaction by customer name
+        final customerName = _cartProvider!.customerName;
+        if (customerName != null && customerName.isNotEmpty) {
+          // Find and delete pending transaction for this customer
+          final pendingTransactions = pendingProvider.pendingTransactionsList;
+          try {
+            final matchingTransaction = pendingTransactions.firstWhere(
+              (transaction) => transaction.customerName == customerName,
+            );
+
+            await pendingProvider.deletePendingTransaction(
+              matchingTransaction.customerId,
+            );
+          } catch (e) {
+            print('No pending transaction found for customer: $customerName');
+          }
+        }
+
+        // Clear cart
+        _cartProvider!.clearCart();
+        _notesController.clear();
+
+        // Navigate to dashboard
+        if (mounted && _navigator != null) {
+          _navigator!.pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => const PendingTransactionListPage(),
+            ),
+            (route) => false, // Remove all previous routes
+          );
+        }
+
+        // Show success message with transaction number
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Pesanan berhasil dibuat! No: ${response.data!.transactionNumber}',
+              ),
+              backgroundColor: Colors.orange,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
+      } else {
+        // Show error message
+        if (mounted) {
+          _showErrorDialog(
+            context,
+            'Gagal memproses pesanan: ${response.message}',
+          );
+        }
+      }
+    } catch (e) {
+      if (!mounted) return;
+      // Close loading dialog if still open using cached navigator
+      if (mounted && _navigator != null && _navigator!.canPop()) {
+        _navigator!.pop();
+      }
+      if (!mounted) return;
+
+      // Show error dialog
+      if (mounted) {
+        _showErrorDialog(context, 'Terjadi kesalahan: ${e.toString()}');
+      }
+    }
+  }
+
   Future<CreateTransactionRequest> _createTransactionRequest() async {
+    return _createTransactionRequestWithStatus('completed');
+  }
+
+  Future<CreateTransactionRequest> _createTransactionRequestWithStatus(
+    String status,
+  ) async {
     // Get current date in YYYY-MM-DD format
     final now = DateTime.now();
     final transactionDate =
@@ -1521,6 +1687,7 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
       details: details,
       customerName: _cartProvider!.customerName,
       customerPhone: _cartProvider!.customerPhone,
+      status: status,
     );
   }
 

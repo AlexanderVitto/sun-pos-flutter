@@ -293,13 +293,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Widget _buildQuickActions(BuildContext context, AuthProvider authProvider) {
     final quickActions = [
-      {
-        'title': 'Ubah Password',
-        'subtitle': 'Update kata sandi akun',
-        'icon': LucideIcons.lock,
-        'color': AppTheme.primaryAmber,
-        'onTap': () => _navigateToChangePassword(context),
-      },
+      // {
+      //   'title': 'Ubah Password',
+      //   'subtitle': 'Update kata sandi akun',
+      //   'icon': LucideIcons.lock,
+      //   'color': AppTheme.primaryAmber,
+      //   'onTap': () => _navigateToChangePassword(context),
+      // },
       {
         'title': 'Edit Profil',
         'subtitle': 'Ubah informasi profil',

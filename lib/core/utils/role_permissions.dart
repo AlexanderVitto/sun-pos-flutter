@@ -36,10 +36,8 @@ class RolePermissions {
   static const String editUnits = 'edit_units';
   static const String deleteUnits = 'delete_units';
 
-  static const String viewTaxes = 'view_taxes';
-  static const String createTaxes = 'create_taxes';
-  static const String editTaxes = 'edit_taxes';
-  static const String deleteTaxes = 'delete_taxes';
+  static const String updateRoles = 'update_roles';
+  static const String deleteRoles = 'delete_roles';
 
   static const String viewReports = 'view_reports';
   static const String manageSettings = 'manage_settings';

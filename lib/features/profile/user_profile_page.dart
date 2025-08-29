@@ -24,7 +24,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
           children: [
             // Modern Header
             _buildModernHeader(context),
-            
+
             // Content
             Expanded(
               child: Consumer<AuthProvider>(
@@ -46,17 +46,17 @@ class _UserProfilePageState extends State<UserProfilePage> {
                           children: [
                             // Profile Info Card
                             _buildProfileInfoCard(user),
-                            
+
                             const SizedBox(height: AppTheme.spacingXLarge),
-                            
+
                             // Quick Actions
                             _buildQuickActions(context, authProvider),
-                            
+
                             const SizedBox(height: AppTheme.spacingXLarge),
-                            
+
                             // Account Settings
                             _buildAccountSettings(context),
-                            
+
                             const SizedBox(height: AppTheme.spacingXXLarge),
                           ],
                         ),
@@ -111,10 +111,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                       ),
                       Text(
                         'Kelola informasi akun Anda',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 14),
                       ),
                     ],
                   ),
@@ -133,12 +130,16 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   Container(
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                      borderRadius: BorderRadius.circular(
+                        AppTheme.radiusMedium,
+                      ),
                     ),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
-                        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
+                        borderRadius: BorderRadius.circular(
+                          AppTheme.radiusMedium,
+                        ),
                         onTap: _refreshProfile,
                         child: const Padding(
                           padding: EdgeInsets.all(8),
@@ -190,7 +191,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
               const SizedBox(height: 8),
               Text(
                 'Terjadi kesalahan saat memuat profil pengguna',
-                style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
+                style: AppTheme.bodyMedium.copyWith(
+                  color: AppTheme.textSecondary,
+                ),
                 textAlign: TextAlign.center,
               ),
             ],
@@ -219,7 +222,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ),
                 child: Center(
                   child: Text(
-                    user.name?.isNotEmpty == true ? user.name[0].toUpperCase() : 'U',
+                    user.name?.isNotEmpty == true
+                        ? user.name[0].toUpperCase()
+                        : 'U',
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -228,9 +233,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: AppTheme.spacingLarge),
-              
+
               // User Info
               Expanded(
                 child: Column(
@@ -243,31 +248,38 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     const SizedBox(height: AppTheme.spacingXSmall),
                     Text(
                       user.email ?? 'Email tidak tersedia',
-                      style: AppTheme.bodyMedium.copyWith(color: AppTheme.textSecondary),
+                      style: AppTheme.bodyMedium.copyWith(
+                        color: AppTheme.textSecondary,
+                      ),
                     ),
                     const SizedBox(height: AppTheme.spacingXSmall),
                     if (user.roleNames != null && user.roleNames!.isNotEmpty)
                       Wrap(
                         spacing: 8,
-                        children: user.roleNames!.map<Widget>((role) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppTheme.primaryGreen.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                            ),
-                            child: Text(
-                              role.toString().toUpperCase(),
-                              style: AppTheme.caption.copyWith(
-                                color: AppTheme.primaryGreen,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                        children:
+                            user.roleNames!.map<Widget>((role) {
+                              return Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppTheme.primaryGreen.withValues(
+                                    alpha: 0.1,
+                                  ),
+                                  borderRadius: BorderRadius.circular(
+                                    AppTheme.radiusSmall,
+                                  ),
+                                ),
+                                child: Text(
+                                  role.toString().toUpperCase(),
+                                  style: AppTheme.caption.copyWith(
+                                    color: AppTheme.primaryGreen,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                       ),
                   ],
                 ),
@@ -281,13 +293,13 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Widget _buildQuickActions(BuildContext context, AuthProvider authProvider) {
     final quickActions = [
-      {
-        'title': 'Ubah Password',
-        'subtitle': 'Update kata sandi akun',
-        'icon': LucideIcons.lock,
-        'color': AppTheme.primaryAmber,
-        'onTap': () => _navigateToChangePassword(context),
-      },
+      // {
+      //   'title': 'Ubah Password',
+      //   'subtitle': 'Update kata sandi akun',
+      //   'icon': LucideIcons.lock,
+      //   'color': AppTheme.primaryAmber,
+      //   'onTap': () => _navigateToChangePassword(context),
+      // },
       {
         'title': 'Edit Profil',
         'subtitle': 'Ubah informasi profil',
@@ -295,17 +307,19 @@ class _UserProfilePageState extends State<UserProfilePage> {
         'color': AppTheme.primaryBlue,
         'onTap': () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Fitur edit profil akan segera tersedia')),
+            const SnackBar(
+              content: Text('Fitur edit profil akan segera tersedia'),
+            ),
           );
         },
       },
-      {
-        'title': 'Refresh Data',
-        'subtitle': 'Perbarui informasi profil',
-        'icon': LucideIcons.refreshCw,
-        'color': AppTheme.primaryPurple,
-        'onTap': () => _refreshProfile(),
-      },
+      // {
+      //   'title': 'Refresh Data',
+      //   'subtitle': 'Perbarui informasi profil',
+      //   'icon': LucideIcons.refreshCw,
+      //   'color': AppTheme.primaryPurple,
+      //   'onTap': () => _refreshProfile(),
+      // },
       {
         'title': 'Logout',
         'subtitle': 'Keluar dari aplikasi',
@@ -318,12 +332,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Aksi Cepat',
-          style: AppTheme.headingSmall,
-        ),
+        Text('Aksi Cepat', style: AppTheme.headingSmall),
         const SizedBox(height: AppTheme.spacingMedium),
-        
+
         GridView.count(
           crossAxisCount: 2,
           shrinkWrap: true,
@@ -331,7 +342,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
           crossAxisSpacing: AppTheme.spacingMedium,
           mainAxisSpacing: AppTheme.spacingMedium,
           childAspectRatio: 1.2,
-          children: quickActions.map((action) => _buildActionCard(action)).toList(),
+          children:
+              quickActions.map((action) => _buildActionCard(action)).toList(),
         ),
       ],
     );
@@ -356,14 +368,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     color: action['color'].withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),
-                  child: Icon(
-                    action['icon'], 
-                    color: action['color'], 
-                    size: 24,
-                  ),
+                  child: Icon(action['icon'], color: action['color'], size: 24),
                 ),
                 const SizedBox(height: AppTheme.spacingMedium),
-                
+
                 Text(
                   action['title'],
                   style: AppTheme.bodyLarge.copyWith(
@@ -372,7 +380,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: AppTheme.spacingXSmall),
-                
+
                 Text(
                   action['subtitle'],
                   style: AppTheme.bodySmall,
@@ -395,46 +403,48 @@ class _UserProfilePageState extends State<UserProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Pengaturan Akun',
-            style: AppTheme.headingSmall,
-          ),
-          
+          Text('Pengaturan Akun', style: AppTheme.headingSmall),
+
           const SizedBox(height: AppTheme.spacingMedium),
-          
-          _buildSettingItem(
-            icon: LucideIcons.bell,
-            title: 'Notifikasi',
-            subtitle: 'Kelola notifikasi aplikasi',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur notifikasi akan segera tersedia')),
-              );
-            },
-          ),
-          
-          const Divider(height: 32),
-          
+
+          // _buildSettingItem(
+          //   icon: LucideIcons.bell,
+          //   title: 'Notifikasi',
+          //   subtitle: 'Kelola notifikasi aplikasi',
+          //   onTap: () {
+          //     ScaffoldMessenger.of(context).showSnackBar(
+          //       const SnackBar(
+          //         content: Text('Fitur notifikasi akan segera tersedia'),
+          //       ),
+          //     );
+          //   },
+          // ),
+
+          // const Divider(height: 32),
           _buildSettingItem(
             icon: LucideIcons.shield,
             title: 'Keamanan',
             subtitle: 'Pengaturan keamanan akun',
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur keamanan akan segera tersedia')),
+                const SnackBar(
+                  content: Text('Fitur keamanan akan segera tersedia'),
+                ),
               );
             },
           ),
-          
+
           const Divider(height: 32),
-          
+
           _buildSettingItem(
             icon: LucideIcons.helpCircle,
             title: 'Bantuan',
             subtitle: 'Pusat bantuan dan FAQ',
             onTap: () {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Fitur bantuan akan segera tersedia')),
+                const SnackBar(
+                  content: Text('Fitur bantuan akan segera tersedia'),
+                ),
               );
             },
           ),
@@ -464,15 +474,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
                   color: AppTheme.primaryIndigo.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
                 ),
-                child: Icon(
-                  icon,
-                  color: AppTheme.primaryIndigo,
-                  size: 20,
-                ),
+                child: Icon(icon, color: AppTheme.primaryIndigo, size: 20),
               ),
-              
+
               const SizedBox(width: AppTheme.spacingMedium),
-              
+
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -483,14 +489,11 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         fontWeight: FontWeight.w600,
                       ),
                     ),
-                    Text(
-                      subtitle,
-                      style: AppTheme.bodySmall,
-                    ),
+                    Text(subtitle, style: AppTheme.bodySmall),
                   ],
                 ),
               ),
-              
+
               Icon(
                 LucideIcons.chevronRight,
                 color: AppTheme.textTertiary,
@@ -505,7 +508,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
   Future<void> _refreshProfile() async {
     if (_isRefreshing) return;
-    
+
     setState(() {
       _isRefreshing = true;
     });
@@ -541,9 +544,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
   void _navigateToChangePassword(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const ChangePasswordPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const ChangePasswordPage()),
     );
   }
 

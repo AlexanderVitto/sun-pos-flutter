@@ -261,293 +261,293 @@ class _PaymentConfirmationDialogState extends State<PaymentConfirmationDialog> {
 
               const SizedBox(height: 20),
 
-              // Customer Input Section - Only show if no pre-selected customer
-              if (widget.selectedCustomer == null) ...[
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.blue.shade100),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.person_outline,
-                            color: Colors.blue.shade700,
-                            size: 20,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Data Pembeli',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.blue.shade700,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
+              // // Customer Input Section - Only show if no pre-selected customer
+              // if (widget.selectedCustomer == null) ...[
+              //   Container(
+              //     padding: const EdgeInsets.all(16),
+              //     decoration: BoxDecoration(
+              //       color: Colors.blue.shade50,
+              //       borderRadius: BorderRadius.circular(12),
+              //       border: Border.all(color: Colors.blue.shade100),
+              //     ),
+              //     child: Column(
+              //       crossAxisAlignment: CrossAxisAlignment.start,
+              //       children: [
+              //         Row(
+              //           children: [
+              //             Icon(
+              //               Icons.person_outline,
+              //               color: Colors.blue.shade700,
+              //               size: 20,
+              //             ),
+              //             const SizedBox(width: 8),
+              //             Text(
+              //               'Data Pembeli',
+              //               style: TextStyle(
+              //                 fontSize: 14,
+              //                 fontWeight: FontWeight.w600,
+              //                 color: Colors.blue.shade700,
+              //               ),
+              //             ),
+              //           ],
+              //         ),
+              //         const SizedBox(height: 12),
 
-                      // Customer display or button to select
-                      if (_selectedCustomer != null) ...[
-                        Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.blue.shade200),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 36,
-                                height: 36,
-                                decoration: BoxDecoration(
-                                  color: Colors.blue.shade100,
-                                  borderRadius: BorderRadius.circular(18),
-                                ),
-                                child: Icon(
-                                  Icons.person,
-                                  color: Colors.blue.shade600,
-                                  size: 20,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      _selectedCustomer!.name,
-                                      style: const TextStyle(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w600,
-                                        color: Colors.black87,
-                                      ),
-                                    ),
-                                    if (_selectedCustomer!.phone.isNotEmpty)
-                                      Text(
-                                        _selectedCustomer!.phone,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: Colors.grey.shade600,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    onPressed: _showCustomerInputDialog,
-                                    icon: Icon(
-                                      Icons.edit_outlined,
-                                      color: Colors.blue.shade600,
-                                      size: 18,
-                                    ),
-                                    tooltip: 'Ubah Customer',
-                                    constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                    padding: const EdgeInsets.all(4),
-                                  ),
-                                  IconButton(
-                                    onPressed: () {
-                                      setState(() {
-                                        _selectedCustomer = null;
-                                      });
-                                    },
-                                    icon: Icon(
-                                      Icons.clear,
-                                      color: Colors.red.shade400,
-                                      size: 18,
-                                    ),
-                                    tooltip: 'Hapus Customer',
-                                    constraints: const BoxConstraints(
-                                      minWidth: 32,
-                                      minHeight: 32,
-                                    ),
-                                    padding: const EdgeInsets.all(4),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                      ] else ...[
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _showCustomerInputDialog,
-                            icon: Icon(
-                              Icons.person_add_outlined,
-                              color: Colors.blue.shade600,
-                              size: 20,
-                            ),
-                            label: Text(
-                              'Pilih atau Tambah Pembeli',
-                              style: TextStyle(
-                                color: Colors.blue.shade600,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 12,
-                                horizontal: 16,
-                              ),
-                              side: BorderSide(color: Colors.blue.shade300),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ] else ...[
-                // Show selected customer info (read-only)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.green.shade50,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.green.shade200),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.green.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          color: Colors.green.shade700,
-                          size: 22,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Customer Terpilih',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.green.shade600,
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              _selectedCustomer!.name.isNotEmpty
-                                  ? _selectedCustomer!.name
-                                  : 'Customer',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                            if (_selectedCustomer!.phone.isNotEmpty) ...[
-                              const SizedBox(height: 2),
-                              Text(
-                                _selectedCustomer!.phone,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-                      Icon(
-                        Icons.check_circle,
-                        color: Colors.green.shade600,
-                        size: 24,
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
+              //         // Customer display or button to select
+              //         if (_selectedCustomer != null) ...[
+              //           Container(
+              //             width: double.infinity,
+              //             padding: const EdgeInsets.all(12),
+              //             decoration: BoxDecoration(
+              //               color: Colors.white,
+              //               borderRadius: BorderRadius.circular(8),
+              //               border: Border.all(color: Colors.blue.shade200),
+              //             ),
+              //             child: Row(
+              //               children: [
+              //                 Container(
+              //                   width: 36,
+              //                   height: 36,
+              //                   decoration: BoxDecoration(
+              //                     color: Colors.blue.shade100,
+              //                     borderRadius: BorderRadius.circular(18),
+              //                   ),
+              //                   child: Icon(
+              //                     Icons.person,
+              //                     color: Colors.blue.shade600,
+              //                     size: 20,
+              //                   ),
+              //                 ),
+              //                 const SizedBox(width: 12),
+              //                 Expanded(
+              //                   child: Column(
+              //                     crossAxisAlignment: CrossAxisAlignment.start,
+              //                     children: [
+              //                       Text(
+              //                         _selectedCustomer!.name,
+              //                         style: const TextStyle(
+              //                           fontSize: 14,
+              //                           fontWeight: FontWeight.w600,
+              //                           color: Colors.black87,
+              //                         ),
+              //                       ),
+              //                       if (_selectedCustomer!.phone.isNotEmpty)
+              //                         Text(
+              //                           _selectedCustomer!.phone,
+              //                           style: TextStyle(
+              //                             fontSize: 12,
+              //                             color: Colors.grey.shade600,
+              //                           ),
+              //                         ),
+              //                     ],
+              //                   ),
+              //                 ),
+              //                 Row(
+              //                   mainAxisSize: MainAxisSize.min,
+              //                   children: [
+              //                     IconButton(
+              //                       onPressed: _showCustomerInputDialog,
+              //                       icon: Icon(
+              //                         Icons.edit_outlined,
+              //                         color: Colors.blue.shade600,
+              //                         size: 18,
+              //                       ),
+              //                       tooltip: 'Ubah Customer',
+              //                       constraints: const BoxConstraints(
+              //                         minWidth: 32,
+              //                         minHeight: 32,
+              //                       ),
+              //                       padding: const EdgeInsets.all(4),
+              //                     ),
+              //                     IconButton(
+              //                       onPressed: () {
+              //                         setState(() {
+              //                           _selectedCustomer = null;
+              //                         });
+              //                       },
+              //                       icon: Icon(
+              //                         Icons.clear,
+              //                         color: Colors.red.shade400,
+              //                         size: 18,
+              //                       ),
+              //                       tooltip: 'Hapus Customer',
+              //                       constraints: const BoxConstraints(
+              //                         minWidth: 32,
+              //                         minHeight: 32,
+              //                       ),
+              //                       padding: const EdgeInsets.all(4),
+              //                     ),
+              //                   ],
+              //                 ),
+              //               ],
+              //             ),
+              //           ),
+              //         ] else ...[
+              //           SizedBox(
+              //             width: double.infinity,
+              //             child: OutlinedButton.icon(
+              //               onPressed: _showCustomerInputDialog,
+              //               icon: Icon(
+              //                 Icons.person_add_outlined,
+              //                 color: Colors.blue.shade600,
+              //                 size: 20,
+              //               ),
+              //               label: Text(
+              //                 'Pilih atau Tambah Pembeli',
+              //                 style: TextStyle(
+              //                   color: Colors.blue.shade600,
+              //                   fontWeight: FontWeight.w500,
+              //                 ),
+              //               ),
+              //               style: OutlinedButton.styleFrom(
+              //                 padding: const EdgeInsets.symmetric(
+              //                   vertical: 12,
+              //                   horizontal: 16,
+              //                 ),
+              //                 side: BorderSide(color: Colors.blue.shade300),
+              //                 shape: RoundedRectangleBorder(
+              //                   borderRadius: BorderRadius.circular(8),
+              //                 ),
+              //               ),
+              //             ),
+              //           ),
+              //         ],
+              //       ],
+              //     ),
+              //   ),
+              //   const SizedBox(height: 20),
+              // ] else ...[
+              //   // Show selected customer info (read-only)
+              //   Container(
+              //     padding: const EdgeInsets.all(16),
+              //     decoration: BoxDecoration(
+              //       color: Colors.green.shade50,
+              //       borderRadius: BorderRadius.circular(12),
+              //       border: Border.all(color: Colors.green.shade200),
+              //     ),
+              //     child: Row(
+              //       children: [
+              //         Container(
+              //           width: 40,
+              //           height: 40,
+              //           decoration: BoxDecoration(
+              //             color: Colors.green.shade100,
+              //             borderRadius: BorderRadius.circular(20),
+              //           ),
+              //           child: Icon(
+              //             Icons.person,
+              //             color: Colors.green.shade700,
+              //             size: 22,
+              //           ),
+              //         ),
+              //         const SizedBox(width: 12),
+              //         Expanded(
+              //           child: Column(
+              //             crossAxisAlignment: CrossAxisAlignment.start,
+              //             children: [
+              //               Text(
+              //                 'Customer Terpilih',
+              //                 style: TextStyle(
+              //                   fontSize: 12,
+              //                   color: Colors.green.shade600,
+              //                   fontWeight: FontWeight.w500,
+              //                 ),
+              //               ),
+              //               const SizedBox(height: 2),
+              //               Text(
+              //                 _selectedCustomer!.name.isNotEmpty
+              //                     ? _selectedCustomer!.name
+              //                     : 'Customer',
+              //                 style: const TextStyle(
+              //                   fontSize: 16,
+              //                   fontWeight: FontWeight.w600,
+              //                   color: Colors.black87,
+              //                 ),
+              //               ),
+              //               if (_selectedCustomer!.phone.isNotEmpty) ...[
+              //                 const SizedBox(height: 2),
+              //                 Text(
+              //                   _selectedCustomer!.phone,
+              //                   style: TextStyle(
+              //                     fontSize: 14,
+              //                     color: Colors.grey.shade600,
+              //                   ),
+              //                 ),
+              //               ],
+              //             ],
+              //           ),
+              //         ),
+              //         Icon(
+              //           Icons.check_circle,
+              //           color: Colors.green.shade600,
+              //           size: 24,
+              //         ),
+              //       ],
+              //     ),
+              //   ),
+              //   const SizedBox(height: 20),
+              // ],
 
-              // Notes Section
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          Icons.notes_outlined,
-                          color: Colors.grey.shade600,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Catatan',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextFormField(
-                      controller: widget.notesController,
-                      maxLines: 3,
-                      decoration: InputDecoration(
-                        hintText: 'Tambahkan catatan (opsional)',
-                        hintStyle: TextStyle(
-                          color: Colors.grey.shade500,
-                          fontSize: 13,
-                        ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(color: Colors.blue.shade400),
-                        ),
-                        contentPadding: const EdgeInsets.all(12),
-                        filled: true,
-                        fillColor: Colors.white,
-                      ),
-                      style: const TextStyle(fontSize: 13),
-                    ),
-                  ],
-                ),
-              ),
+              // // Notes Section
+              // Container(
+              //   padding: const EdgeInsets.all(16),
+              //   decoration: BoxDecoration(
+              //     color: Colors.grey.shade50,
+              //     borderRadius: BorderRadius.circular(12),
+              //     border: Border.all(color: Colors.grey.shade200),
+              //   ),
+              //   child: Column(
+              //     crossAxisAlignment: CrossAxisAlignment.start,
+              //     children: [
+              //       Row(
+              //         children: [
+              //           Icon(
+              //             Icons.notes_outlined,
+              //             color: Colors.grey.shade600,
+              //             size: 20,
+              //           ),
+              //           const SizedBox(width: 8),
+              //           Text(
+              //             'Catatan',
+              //             style: TextStyle(
+              //               fontSize: 14,
+              //               fontWeight: FontWeight.w600,
+              //               color: Colors.grey.shade700,
+              //             ),
+              //           ),
+              //         ],
+              //       ),
+              //       const SizedBox(height: 12),
+              //       TextFormField(
+              //         controller: widget.notesController,
+              //         maxLines: 3,
+              //         decoration: InputDecoration(
+              //           hintText: 'Tambahkan catatan (opsional)',
+              //           hintStyle: TextStyle(
+              //             color: Colors.grey.shade500,
+              //             fontSize: 13,
+              //           ),
+              //           border: OutlineInputBorder(
+              //             borderRadius: BorderRadius.circular(8),
+              //             borderSide: BorderSide(color: Colors.grey.shade300),
+              //           ),
+              //           enabledBorder: OutlineInputBorder(
+              //             borderRadius: BorderRadius.circular(8),
+              //             borderSide: BorderSide(color: Colors.grey.shade300),
+              //           ),
+              //           focusedBorder: OutlineInputBorder(
+              //             borderRadius: BorderRadius.circular(8),
+              //             borderSide: BorderSide(color: Colors.blue.shade400),
+              //           ),
+              //           contentPadding: const EdgeInsets.all(12),
+              //           filled: true,
+              //           fillColor: Colors.white,
+              //         ),
+              //         style: const TextStyle(fontSize: 13),
+              //       ),
+              //     ],
+              //   ),
+              // ),
             ],
           ),
         ),

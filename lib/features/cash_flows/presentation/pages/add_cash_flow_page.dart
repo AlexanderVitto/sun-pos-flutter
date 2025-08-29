@@ -29,7 +29,6 @@ class _AddCashFlowPageState extends State<AddCashFlowPage> {
     {'value': 'transfer', 'label': 'Transfer', 'icon': Icons.swap_horiz},
     {'value': 'investment', 'label': 'Investasi', 'icon': Icons.trending_up},
     {'value': 'loan', 'label': 'Pinjaman', 'icon': Icons.account_balance},
-    {'value': 'tax', 'label': 'Pajak', 'icon': Icons.receipt_long},
     {'value': 'other', 'label': 'Lainnya', 'icon': Icons.more_horiz},
   ];
 

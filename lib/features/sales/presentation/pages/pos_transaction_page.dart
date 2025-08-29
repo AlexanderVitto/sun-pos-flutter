@@ -160,6 +160,7 @@ class _POSTransactionView extends StatelessWidget {
                   viewModel: viewModel,
                   onAddToCart: (product) => _addToCart(product, context),
                   onPaymentPressed: () => _processPayment(context),
+                  onOrderPressed: () => _processOrder(context),
                 )
                 : MobileLayout(
                   viewModel: viewModel,
@@ -172,6 +173,7 @@ class _POSTransactionView extends StatelessWidget {
           !isTablet
               ? BottomNavigationBarWidget(
                 onPaymentPressed: () => _processPayment(context),
+                onOrderPressed: () => _processOrder(context),
               )
               : null,
     );
@@ -259,6 +261,25 @@ class _POSTransactionView extends StatelessWidget {
       _removePendingTransactionAfterPayment(context, cartProvider);
 
       PaymentService.processPayment(
+        context: context,
+        cartProvider: cartProvider,
+        notesController: viewModel.notesController,
+      );
+    }
+  }
+
+  void _processOrder(BuildContext context) {
+    final viewModel = Provider.of<POSTransactionViewModel>(
+      context,
+      listen: false,
+    );
+    final cartProvider = viewModel.cartProvider;
+
+    if (cartProvider != null) {
+      // Remove pending transaction after successful order
+      _removePendingTransactionAfterPayment(context, cartProvider);
+
+      PaymentService.processOrder(
         context: context,
         cartProvider: cartProvider,
         notesController: viewModel.notesController,

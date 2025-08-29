@@ -5,8 +5,13 @@ import '../utils/pos_ui_helpers.dart';
 
 class BottomNavigationBarWidget extends StatelessWidget {
   final VoidCallback onPaymentPressed;
+  final VoidCallback? onOrderPressed;
 
-  const BottomNavigationBarWidget({super.key, required this.onPaymentPressed});
+  const BottomNavigationBarWidget({
+    super.key,
+    required this.onPaymentPressed,
+    this.onOrderPressed,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,52 +65,103 @@ class BottomNavigationBarWidget extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 16),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow:
-                        itemCount > 0
-                            ? [
-                              BoxShadow(
-                                color: const Color(
-                                  0xFF10b981,
-                                ).withValues(alpha: 0.3),
-                                blurRadius: 12,
-                                offset: const Offset(0, 4),
-                              ),
-                            ]
-                            : null,
-                  ),
-                  child: ElevatedButton(
-                    onPressed: itemCount > 0 ? onPaymentPressed : null,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10b981),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 28,
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.payment_rounded, size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'BAYAR SEKARANG',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                            letterSpacing: 0.5,
+                // Buttons row
+                Row(
+                  children: [
+                    // Pesan button
+                    if (onOrderPressed != null) ...[
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          boxShadow:
+                              itemCount > 0
+                                  ? [
+                                    BoxShadow(
+                                      color: const Color(
+                                        0xFFf97316,
+                                      ).withValues(alpha: 0.3),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ]
+                                  : null,
+                        ),
+                        child: ElevatedButton(
+                          onPressed: itemCount > 0 ? onOrderPressed : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFf97316),
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: const Text(
+                            'PESAN',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                              letterSpacing: 0.5,
+                            ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                      const SizedBox(width: 8),
+                    ],
+
+                    // Bayar Sekarang button
+                    // Container(
+                    //   decoration: BoxDecoration(
+                    //     borderRadius: BorderRadius.circular(12),
+                    //     boxShadow:
+                    //         itemCount > 0
+                    //             ? [
+                    //               BoxShadow(
+                    //                 color: const Color(
+                    //                   0xFF10b981,
+                    //                 ).withValues(alpha: 0.3),
+                    //                 blurRadius: 12,
+                    //                 offset: const Offset(0, 4),
+                    //               ),
+                    //             ]
+                    //             : null,
+                    //   ),
+                    //   child: ElevatedButton(
+                    //     onPressed: itemCount > 0 ? onPaymentPressed : null,
+                    //     style: ElevatedButton.styleFrom(
+                    //       backgroundColor: const Color(0xFF10b981),
+                    //       foregroundColor: Colors.white,
+                    //       padding: const EdgeInsets.symmetric(
+                    //         horizontal: 20,
+                    //         vertical: 16,
+                    //       ),
+                    //       shape: RoundedRectangleBorder(
+                    //         borderRadius: BorderRadius.circular(12),
+                    //       ),
+                    //       elevation: 0,
+                    //     ),
+                    //     child: const Row(
+                    //       mainAxisSize: MainAxisSize.min,
+                    //       children: [
+                    //         Icon(Icons.payment_rounded, size: 18),
+                    //         SizedBox(width: 6),
+                    //         Text(
+                    //           'BAYAR',
+                    //           style: TextStyle(
+                    //             fontWeight: FontWeight.bold,
+                    //             fontSize: 14,
+                    //             letterSpacing: 0.5,
+                    //           ),
+                    //         ),
+                    //       ],
+                    //     ),
+                    //   ),
+                    // ),
+                  ],
                 ),
               ],
             ),

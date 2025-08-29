@@ -12,7 +12,6 @@ class ReceiptPage extends StatelessWidget {
   final Store store;
   final User? user; // Add user parameter (optional for backward compatibility)
   final double subtotal;
-  final double tax;
   final double discount;
   final double total;
   final String paymentMethod;
@@ -26,7 +25,6 @@ class ReceiptPage extends StatelessWidget {
     required this.store,
     this.user, // Add user parameter
     required this.subtotal,
-    required this.tax,
     required this.discount,
     required this.total,
     this.paymentMethod = 'Tunai',
@@ -360,7 +358,6 @@ class ReceiptPage extends StatelessWidget {
       children: [
         _buildTotalRow('Subtotal', subtotal, false),
         if (discount > 0) _buildTotalRow('Diskon', -discount, false),
-        if (tax > 0) _buildTotalRow('Pajak (10%)', tax, false),
         const Divider(),
         _buildTotalRow('TOTAL BAYAR', total, true),
       ],
@@ -593,9 +590,6 @@ class ReceiptPage extends StatelessWidget {
     buffer.writeln('Subtotal: Rp ${_formatPrice(subtotal)}');
     if (discount > 0) {
       buffer.writeln('Diskon: Rp ${_formatPrice(discount)}');
-    }
-    if (tax > 0) {
-      buffer.writeln('Pajak (10%): Rp ${_formatPrice(tax)}');
     }
     buffer.writeln('=================================');
     buffer.writeln('TOTAL BAYAR: Rp ${_formatPrice(total)}');

@@ -41,7 +41,6 @@ class CashFlowProvider extends ChangeNotifier {
     'transfer',
     'investment',
     'loan',
-    'tax',
     'other',
   ];
 
@@ -194,8 +193,6 @@ class CashFlowProvider extends ChangeNotifier {
         return 'Investasi';
       case 'loan':
         return 'Pinjaman';
-      case 'tax':
-        return 'Pajak';
       default:
         return 'Lainnya';
     }

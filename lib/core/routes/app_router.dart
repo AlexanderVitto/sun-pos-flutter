@@ -90,7 +90,6 @@ class AppRouter {
                       args['store'] ?? _getDefaultStore(), // Add default store
                   user: args['user'], // Add user parameter
                   subtotal: args['subtotal'] ?? 0.0,
-                  tax: args['tax'] ?? 0.0,
                   discount: args['discount'] ?? 0.0,
                   total: args['total'] ?? 0.0,
                   paymentMethod: args['paymentMethod'] ?? 'Tunai',

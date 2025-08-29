@@ -37,7 +37,6 @@ class PaymentSuccessPage extends StatelessWidget {
         final items =
             cartItems ?? cartProvider.items; // Use passed items or fallback
         final subtotal = totalAmount;
-        final tax = subtotal * 0.1; // 10% tax
         final discount = 0.0; // No discount for now
         final total = totalAmount; // Use the passed total amount
         final change = amountPaid - total;
@@ -269,7 +268,6 @@ class PaymentSuccessPage extends StatelessWidget {
                                       user:
                                           null, // Add user parameter (null for now, can be improved later)
                                       subtotal: subtotal,
-                                      tax: tax,
                                       discount: discount,
                                       total: total,
                                       paymentMethod: paymentMethod,
@@ -297,22 +295,22 @@ class PaymentSuccessPage extends StatelessWidget {
                         width: double.infinity,
                         child: OutlinedButton.icon(
                           onPressed: () {
-                            // Clear cart and navigate back to dashboard with POS tab
+                            // Clear cart and navigate back to dashboard with Transaction tab
                             cartProvider.clearCart();
 
-                            // Navigate to dashboard and show POS tab (index 1)
+                            // Navigate to dashboard and show Transaction tab (index 1)
                             Navigator.of(context).pushAndRemoveUntil(
                               MaterialPageRoute(
                                 builder:
                                     (context) => const DashboardPage(
-                                      initialIndex: 1, // POS tab
+                                      initialIndex: 1, // Transaction tab
                                     ),
                               ),
                               (route) => false, // Remove all previous routes
                             );
                           },
-                          icon: const Icon(Icons.add_shopping_cart),
-                          label: const Text('Transaksi Baru'),
+                          icon: const Icon(Icons.list_alt),
+                          label: const Text('Lihat Transaksi'),
                           style: OutlinedButton.styleFrom(
                             padding: const EdgeInsets.all(16),
                             shape: RoundedRectangleBorder(

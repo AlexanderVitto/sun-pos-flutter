@@ -49,7 +49,6 @@ class RecentTransactions extends StatelessWidget {
         id: '1',
         customerName: 'John Doe',
         items: [],
-        tax: 0,
         discount: 0,
         paymentMethod: PaymentMethod.cash,
         createdAt: DateTime.now().subtract(const Duration(minutes: 15)),
@@ -58,7 +57,6 @@ class RecentTransactions extends StatelessWidget {
         id: '2',
         customerName: 'Jane Smith',
         items: [],
-        tax: 0,
         discount: 0,
         paymentMethod: PaymentMethod.card,
         createdAt: DateTime.now().subtract(const Duration(hours: 1)),
@@ -66,7 +64,6 @@ class RecentTransactions extends StatelessWidget {
       Sale(
         id: '3',
         items: [],
-        tax: 0,
         discount: 0,
         paymentMethod: PaymentMethod.transfer,
         createdAt: DateTime.now().subtract(const Duration(hours: 2)),
