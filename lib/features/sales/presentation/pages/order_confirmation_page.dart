@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../customers/data/models/customer.dart';
+import '../../../transactions/data/models/store.dart';
 
-class PaymentConfirmationPage extends StatefulWidget {
+class OrderConfirmationPage extends StatefulWidget {
   final List<CartItem> cartItems;
   final double totalAmount;
   final int itemCount;
@@ -11,25 +12,26 @@ class PaymentConfirmationPage extends StatefulWidget {
   final Customer? selectedCustomer;
   final String? initialCustomerName;
   final String? initialCustomerPhone;
+  final Store store;
 
-  const PaymentConfirmationPage({
+  const OrderConfirmationPage({
     super.key,
     required this.cartItems,
     required this.totalAmount,
     required this.itemCount,
     required this.notesController,
     required this.onConfirm,
+    required this.store,
     this.selectedCustomer,
     this.initialCustomerName,
     this.initialCustomerPhone,
   });
 
   @override
-  _PaymentConfirmationPageState createState() =>
-      _PaymentConfirmationPageState();
+  _OrderConfirmationPageState createState() => _OrderConfirmationPageState();
 }
 
-class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
+class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   Customer? _selectedCustomer;
   bool _isProcessing = false;
 
@@ -55,7 +57,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   String get customerName => _selectedCustomer?.name ?? '';
   String get customerPhone => _selectedCustomer?.phone ?? '';
 
-  void _handleConfirmPayment() async {
+  void _handleConfirmOrder() async {
     if (_isProcessing) return;
 
     setState(() {
@@ -65,9 +67,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     try {
       widget.onConfirm(customerName, customerPhone);
       // Navigation will be handled by the calling page
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      // if (mounted) {
+      //   Navigator.of(context).pop();
+      // }
     } catch (e) {
       // Show error if needed
       if (mounted) {
@@ -92,11 +94,11 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     return Scaffold(
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
-        backgroundColor: Colors.green.shade600,
+        backgroundColor: Colors.orange.shade600,
         foregroundColor: Colors.white,
         elevation: 0,
         title: const Text(
-          'Konfirmasi Pembayaran',
+          'Konfirmasi Pesanan',
           style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
         ),
         leading: IconButton(
@@ -109,6 +111,48 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Order Status Info Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [Colors.orange.shade50, Colors.orange.shade100],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pesanan Menunggu Pembayaran',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.orange.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Pesanan akan disimpan dan menunggu pembayaran dari customer',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.orange.shade700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Order Summary Card
             Card(
               elevation: 2,
@@ -137,7 +181,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                         ),
                         const SizedBox(width: 12),
                         const Text(
-                          'Ringkasan Pesanan',
+                          'Detail Pesanan',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -204,8 +248,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                       fontWeight: FontWeight.w600,
                                       color: Colors.black87,
                                     ),
-                                    // maxLines: 2,
-                                    // overflow: TextOverflow.ellipsis,
                                   ),
                                   const SizedBox(height: 4),
                                   Row(
@@ -254,10 +296,10 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                 vertical: 8,
                               ),
                               decoration: BoxDecoration(
-                                color: Colors.green.shade50,
+                                color: Colors.orange.shade50,
                                 borderRadius: BorderRadius.circular(8),
                                 border: Border.all(
-                                  color: Colors.green.shade200,
+                                  color: Colors.orange.shade200,
                                 ),
                               ),
                               child: Text(
@@ -265,13 +307,103 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.green.shade700,
+                                  color: Colors.orange.shade700,
                                 ),
                               ),
                             ),
                           ],
                         );
                       },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Store Information Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.shade600,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.store,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Informasi Toko',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.business_outlined,
+                          color: Colors.grey.shade600,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Nama: ${widget.store.name}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.location_on_outlined,
+                          color: Colors.grey.shade600,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Alamat: ${widget.store.address}',
+                            style: const TextStyle(fontSize: 16),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.phone_outlined,
+                          color: Colors.grey.shade600,
+                          size: 20,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Telepon: ${widget.store.phoneNumber}',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -297,7 +429,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.orange.shade600,
+                              color: Colors.green.shade600,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -374,7 +506,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.purple.shade600,
+                              color: Colors.indigo.shade600,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
@@ -385,7 +517,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           ),
                           const SizedBox(width: 12),
                           const Text(
-                            'Catatan',
+                            'Catatan Pesanan',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -441,7 +573,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [Colors.green.shade600, Colors.green.shade500],
+                      colors: [Colors.orange.shade600, Colors.orange.shade500],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
                     ),
@@ -454,7 +586,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const Text(
-                            'Total Pembayaran',
+                            'Total Pesanan',
                             style: TextStyle(
                               fontSize: 16,
                               color: Colors.white,
@@ -532,9 +664,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                     Expanded(
                       flex: 3,
                       child: ElevatedButton(
-                        onPressed: _isProcessing ? null : _handleConfirmPayment,
+                        onPressed: _isProcessing ? null : _handleConfirmOrder,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
+                          backgroundColor: Colors.orange.shade600,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 4,
@@ -568,10 +700,10 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                 : const Row(
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Icon(Icons.check_circle, size: 22),
+                                    Icon(Icons.restaurant_menu, size: 22),
                                     SizedBox(width: 8),
                                     Text(
-                                      'Konfirmasi Pembayaran',
+                                      'Konfirmasi Pesanan',
                                       style: TextStyle(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,

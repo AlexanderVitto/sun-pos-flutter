@@ -10,8 +10,8 @@ import '../../../../core/utils/role_permissions.dart';
 import '../../../sales/presentation/pages/pos_transaction_page.dart';
 import '../../../products/providers/product_provider.dart';
 import '../../../sales/providers/cart_provider.dart';
-import '../../../products/presentation/pages/products_page_modern.dart';
-import '../../../reports/presentation/pages/reports_page.dart';
+// import '../../../products/presentation/pages/products_page_modern.dart'; // Hidden per user request
+// import '../../../reports/presentation/pages/reports_page.dart'; // Hidden per user request
 import '../../../profile/user_profile_page.dart';
 import '../../../../core/events/transaction_events.dart';
 
@@ -196,12 +196,14 @@ class _DashboardPageState extends State<DashboardPage>
         ),
       );
     }
-    if (RolePermissions.canAccessProducts(userRoles)) {
-      pages.add(const ProductsPage());
-    }
-    if (RolePermissions.canAccessReports(userRoles)) {
-      pages.add(const ReportsPage());
-    }
+    // Products page hidden per user request
+    // if (RolePermissions.canAccessProducts(userRoles)) {
+    //   pages.add(const ProductsPage());
+    // }
+    // Reports page hidden per user request
+    // if (RolePermissions.canAccessReports(userRoles)) {
+    //   pages.add(const ReportsPage());
+    // }
     if (RolePermissions.canAccessProfile(userRoles)) {
       pages.add(const UserProfilePage());
     }
@@ -508,16 +510,16 @@ class _DashboardPageState extends State<DashboardPage>
                 ),
                 const SizedBox(width: 16),
 
-                // Products Count
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Produk',
-                    value: _productProvider.products.length.toString(),
-                    icon: LucideIcons.package,
-                    color: const Color(0xFF8b5cf6), // Purple
-                    subtitle: 'Total produk',
-                  ),
-                ),
+                // Products Count hidden per user request
+                // Expanded(
+                //   child: _buildStatCard(
+                //     title: 'Produk',
+                //     value: _productProvider.products.length.toString(),
+                //     icon: LucideIcons.package,
+                //     color: const Color(0xFF8b5cf6), // Purple
+                //     subtitle: 'Total produk',
+                //   ),
+                // ),
               ],
             ),
           ],
@@ -639,99 +641,102 @@ class _DashboardPageState extends State<DashboardPage>
       });
     }
 
-    if (RolePermissions.canAccessProducts(userRoles)) {
-      quickActions.add({
-        'title': 'Kelola Produk',
-        'subtitle': 'Tambah & edit produk',
-        'icon': LucideIcons.package,
-        'color': const Color(0xFF8b5cf6),
-        'onTap': () => setState(() => _selectedIndex = 2),
-      });
+    // Products quick actions hidden per user request
+    // if (RolePermissions.canAccessProducts(userRoles)) {
+    //   quickActions.add({
+    //     'title': 'Kelola Produk',
+    //     'subtitle': 'Tambah & edit produk',
+    //     'icon': LucideIcons.package,
+    //     'color': const Color(0xFF8b5cf6),
+    //     'onTap': () => setState(() => _selectedIndex = 2),
+    //   });
 
-      // Add quick action for adding new product directly
-      quickActions.add({
-        'title': 'Tambah Produk',
-        'subtitle': 'Tambah produk baru',
-        'icon': LucideIcons.plus,
-        'color': const Color(0xFF3b82f6),
-        'onTap': () {
-          // Navigate to add product page
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigasi ke halaman tambah produk')),
-          );
-        },
-      });
-    }
+    //   // Add quick action for adding new product directly
+    //   quickActions.add({
+    //     'title': 'Tambah Produk',
+    //     'subtitle': 'Tambah produk baru',
+    //     'icon': LucideIcons.plus,
+    //     'color': const Color(0xFF3b82f6),
+    //     'onTap': () {
+    //       // Navigate to add product page
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         const SnackBar(content: Text('Navigasi ke halaman tambah produk')),
+    //       );
+    //     },
+    //   });
+    // }
 
+    // Cash Flow actions hidden per user request
     // Cash Flow action for owners/managers
-    if (userRoles.contains('owner') || userRoles.contains('manager')) {
-      quickActions.add({
-        'title': 'Kas & Keuangan',
-        'subtitle': 'Kelola arus kas',
-        'icon': LucideIcons.wallet,
-        'color': const Color(0xFFef4444),
-        'onTap':
-            () => setState(
-              () => _selectedIndex = 5,
-            ), // Assuming cash flow is at index 5
-      });
+    // if (userRoles.contains('owner') || userRoles.contains('manager')) {
+    //   quickActions.add({
+    //     'title': 'Kas & Keuangan',
+    //     'subtitle': 'Kelola arus kas',
+    //     'icon': LucideIcons.wallet,
+    //     'color': const Color(0xFFef4444),
+    //     'onTap':
+    //         () => setState(
+    //           () => _selectedIndex = 5,
+    //         ), // Assuming cash flow is at index 5
+    //   });
 
-      // Cash Flows list - view all cash flow transactions
-      quickActions.add({
-        'title': 'Cash Flows',
-        'subtitle': 'Daftar arus kas',
-        'icon': LucideIcons.trendingUp,
-        'color': const Color(0xFF8b5cf6),
-        'onTap': () {
-          // Navigate to cash flows list page
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Navigasi ke halaman daftar cash flows'),
-            ),
-          );
-        },
-      });
+    //   // Cash Flows list - view all cash flow transactions
+    //   quickActions.add({
+    //     'title': 'Cash Flows',
+    //     'subtitle': 'Daftar arus kas',
+    //     'icon': LucideIcons.trendingUp,
+    //     'color': const Color(0xFF8b5cf6),
+    //     'onTap': () {
+    //       // Navigate to cash flows list page
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         const SnackBar(
+    //           content: Text('Navigasi ke halaman daftar cash flows'),
+    //         ),
+    //       );
+    //     },
+    //   });
 
-      // Add Cash Flow - add new cash in/out entry
-      quickActions.add({
-        'title': 'Tambah Cash Flow',
-        'subtitle': 'Input kas masuk/keluar',
-        'icon': LucideIcons.plusCircle,
-        'color': const Color(0xFF059669),
-        'onTap': () {
-          // Navigate to add cash flow page
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Navigasi ke halaman tambah cash flow'),
-            ),
-          );
-        },
-      });
-    }
+    //   // Add Cash Flow - add new cash in/out entry
+    //   quickActions.add({
+    //     'title': 'Tambah Cash Flow',
+    //     'subtitle': 'Input kas masuk/keluar',
+    //     'icon': LucideIcons.plusCircle,
+    //     'color': const Color(0xFF059669),
+    //     'onTap': () {
+    //       // Navigate to add cash flow page
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         const SnackBar(
+    //           content: Text('Navigasi ke halaman tambah cash flow'),
+    //         ),
+    //       );
+    //     },
+    //   });
+    // }
 
-    if (RolePermissions.canAccessReports(userRoles)) {
-      quickActions.add({
-        'title': 'Laporan',
-        'subtitle': 'Lihat performa toko',
-        'icon': LucideIcons.barChart3,
-        'color': const Color(0xFF10b981),
-        'onTap': () => setState(() => _selectedIndex = 3),
-      });
+    // Reports quick actions hidden per user request
+    // if (RolePermissions.canAccessReports(userRoles)) {
+    //   quickActions.add({
+    //     'title': 'Laporan',
+    //     'subtitle': 'Lihat performa toko',
+    //     'icon': LucideIcons.barChart3,
+    //     'color': const Color(0xFF10b981),
+    //     'onTap': () => setState(() => _selectedIndex = 3),
+    //   });
 
-      // Print Reports - for printing various reports
-      quickActions.add({
-        'title': 'Cetak Laporan',
-        'subtitle': 'Export & print report',
-        'icon': LucideIcons.printer,
-        'color': const Color(0xFF6366f1),
-        'onTap': () {
-          // Navigate to print reports page
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Navigasi ke halaman cetak laporan')),
-          );
-        },
-      });
-    }
+    //   // Print Reports - for printing various reports
+    //   quickActions.add({
+    //     'title': 'Cetak Laporan',
+    //     'subtitle': 'Export & print report',
+    //     'icon': LucideIcons.printer,
+    //     'color': const Color(0xFF6366f1),
+    //     'onTap': () {
+    //       // Navigate to print reports page
+    //       ScaffoldMessenger.of(context).showSnackBar(
+    //         const SnackBar(content: Text('Navigasi ke halaman cetak laporan')),
+    //       );
+    //     },
+    //   });
+    // }
 
     // Always available actions
     quickActions.add({
@@ -1055,22 +1060,23 @@ class _DashboardPageState extends State<DashboardPage>
         ),
       );
     }
-    if (RolePermissions.canAccessProducts(userRoles)) {
-      items.add(
-        const BottomNavigationBarItem(
-          icon: Icon(LucideIcons.package),
-          label: 'Products',
-        ),
-      );
-    }
-    if (RolePermissions.canAccessReports(userRoles)) {
-      items.add(
-        const BottomNavigationBarItem(
-          icon: Icon(LucideIcons.barChart3),
-          label: 'Reports',
-        ),
-      );
-    }
+    // Products and Reports navigation items hidden per user request
+    // if (RolePermissions.canAccessProducts(userRoles)) {
+    //   items.add(
+    //     const BottomNavigationBarItem(
+    //       icon: Icon(LucideIcons.package),
+    //       label: 'Products',
+    //     ),
+    //   );
+    // }
+    // if (RolePermissions.canAccessReports(userRoles)) {
+    //   items.add(
+    //     const BottomNavigationBarItem(
+    //       icon: Icon(LucideIcons.barChart3),
+    //       label: 'Reports',
+    //     ),
+    //   );
+    // }
     if (RolePermissions.canAccessProfile(userRoles)) {
       items.add(
         const BottomNavigationBarItem(

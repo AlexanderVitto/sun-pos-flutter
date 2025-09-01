@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../customers/data/models/customer.dart';
+import '../../../transactions/data/models/store.dart';
 import 'customer_input_dialog.dart';
+import '../pages/order_success_page.dart';
 
 class OrderConfirmationDialog extends StatefulWidget {
   final List<CartItem> cartItems;
   final double totalAmount;
   final int itemCount;
   final TextEditingController notesController;
-  final Function(String customerName, String customerPhone) onConfirm;
+  final VoidCallback?
+  onConfirm; // Make optional since we handle navigation internally
   final VoidCallback onCancel;
   final Customer? selectedCustomer; // Pre-selected customer from cart
   final String? initialCustomerName;
   final String? initialCustomerPhone;
+  final Store store; // Add store parameter
 
   const OrderConfirmationDialog({
     super.key,
@@ -20,8 +24,9 @@ class OrderConfirmationDialog extends StatefulWidget {
     required this.totalAmount,
     required this.itemCount,
     required this.notesController,
-    required this.onConfirm,
     required this.onCancel,
+    required this.store,
+    this.onConfirm,
     this.selectedCustomer,
     this.initialCustomerName,
     this.initialCustomerPhone,
@@ -576,7 +581,29 @@ class _OrderConfirmationDialogState extends State<OrderConfirmationDialog> {
         const SizedBox(width: 8),
         ElevatedButton(
           onPressed: () {
-            widget.onConfirm(customerName, customerPhone);
+            // Close the dialog first
+            Navigator.of(context).pop();
+
+            // Navigate to OrderSuccessPage
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder:
+                    (context) => OrderSuccessPage(
+                      customerName: customerName,
+                      customerPhone: customerPhone,
+                      totalAmount: widget.totalAmount,
+                      cartItems: widget.cartItems,
+                      itemCount: widget.itemCount,
+                      notes:
+                          widget.notesController.text.trim().isEmpty
+                              ? null
+                              : widget.notesController.text.trim(),
+                      store: widget.store,
+                      transactionNumber:
+                          'ORD${DateTime.now().millisecondsSinceEpoch}',
+                    ),
+              ),
+            );
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.orange,

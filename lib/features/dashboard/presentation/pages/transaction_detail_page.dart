@@ -3,7 +3,7 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../transactions/data/models/transaction_list_response.dart';
 import '../../../transactions/data/services/transaction_api_service.dart';
-import '../../../sales/presentation/widgets/payment_confirmation_dialog.dart';
+import '../../../sales/presentation/pages/payment_confirmation_page.dart';
 import '../../../customers/data/models/customer.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../../data/models/product.dart';
@@ -814,21 +814,21 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
     final notesController = TextEditingController();
 
-    showDialog(
-      context: context,
-      builder:
-          (context) => PaymentConfirmationDialog(
-            cartItems: cartItems,
-            totalAmount: transaction.totalAmount,
-            itemCount: cartItems.length,
-            notesController: notesController,
-            selectedCustomer: selectedCustomer,
-            onConfirm: (customerName, customerPhone) {
-              Navigator.pop(context); // Close dialog
-              _completeTransaction(context);
-            },
-            onCancel: () => Navigator.pop(context),
-          ),
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (context) => PaymentConfirmationPage(
+              cartItems: cartItems,
+              totalAmount: transaction.totalAmount,
+              itemCount: cartItems.length,
+              notesController: notesController,
+              selectedCustomer: selectedCustomer,
+              onConfirm: (customerName, customerPhone) {
+                Navigator.pop(context); // Close page
+                _completeTransaction(context);
+              },
+            ),
+      ),
     );
   }
 
@@ -964,16 +964,16 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             ),
           );
 
-          // Create mock store data
-          final store = Store(
-            id: 1,
-            name: 'Sun POS Store',
-            address: 'Jl. Contoh No. 123, Jakarta',
-            phoneNumber: '021-12345678',
-            isActive: true,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
+          // // Create mock store data
+          // final store = Store(
+          //   id: 1,
+          //   name: 'Sun POS Store',
+          //   address: 'Jl. Contoh No. 123, Jakarta',
+          //   phoneNumber: '021-12345678',
+          //   isActive: true,
+          //   createdAt: DateTime.now(),
+          //   updatedAt: DateTime.now(),
+          // );
 
           // Convert transaction items to cart items for payment success page
           final cartItems =
@@ -1014,7 +1014,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                     amountPaid: transaction.totalAmount,
                     totalAmount: transaction.totalAmount,
                     transactionNumber: transaction.transactionNumber,
-                    store: store,
+                    store: transaction.store,
                     cartItems: cartItems,
                     notes: transaction.notes,
                   ),

@@ -8,13 +8,13 @@ import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/utils/role_permissions.dart';
 import '../../../products/providers/product_provider.dart';
-import '../../../products/presentation/pages/products_page_modern.dart';
-import '../../../reports/presentation/pages/reports_page.dart';
+// import '../../../products/presentation/pages/products_page_modern.dart'; // Hidden per user request
+// import '../../../reports/presentation/pages/reports_page.dart'; // Hidden per user request
 import '../../../profile/user_profile_page.dart';
 import '../../../../core/events/transaction_events.dart';
 import '../../../customers/pages/customer_list_page.dart';
-import '../../../cash_flows/presentation/pages/cash_flows_page.dart';
-import '../../../cash_flows/presentation/pages/add_cash_flow_page.dart';
+// import '../../../cash_flows/presentation/pages/cash_flows_page.dart'; // Hidden per user request
+// import '../../../cash_flows/presentation/pages/add_cash_flow_page.dart'; // Hidden per user request
 import '../../../sales/presentation/pages/pending_transaction_list_page.dart';
 import '../widgets/transaction_tab_page.dart';
 
@@ -175,12 +175,14 @@ class _DashboardPageState extends State<DashboardPage>
     if (RolePermissions.canAccessPOS(userRoles)) {
       pages.add(const PendingTransactionListPage());
     }
-    if (RolePermissions.canAccessProducts(userRoles)) {
-      pages.add(const ProductsPage());
-    }
-    if (RolePermissions.canAccessReports(userRoles)) {
-      pages.add(const ReportsPage());
-    }
+    // Products menu hidden per user request
+    // if (RolePermissions.canAccessProducts(userRoles)) {
+    //   pages.add(const ProductsPage());
+    // }
+    // Reports menu hidden per user request
+    // if (RolePermissions.canAccessReports(userRoles)) {
+    //   pages.add(const ReportsPage());
+    // }
     if (RolePermissions.canAccessProfile(userRoles)) {
       pages.add(const UserProfilePage());
     }
@@ -647,25 +649,27 @@ class _DashboardPageState extends State<DashboardPage>
       });
     }
 
-    if (RolePermissions.canAccessProducts(userRoles)) {
-      quickActions.add({
-        'title': 'Kelola Produk',
-        'subtitle': 'Tambah & edit produk',
-        'icon': LucideIcons.package,
-        'color': const Color(0xFF8b5cf6),
-        'onTap': () => setState(() => _selectedIndex = 3),
-      });
-    }
+    // Products quick action hidden per user request
+    // if (RolePermissions.canAccessProducts(userRoles)) {
+    //   quickActions.add({
+    //     'title': 'Kelola Produk',
+    //     'subtitle': 'Tambah & edit produk',
+    //     'icon': LucideIcons.package,
+    //     'color': const Color(0xFF8b5cf6),
+    //     'onTap': () => setState(() => _selectedIndex = 3),
+    //   });
+    // }
 
-    if (RolePermissions.canAccessReports(userRoles)) {
-      quickActions.add({
-        'title': 'Laporan',
-        'subtitle': 'Lihat performa toko',
-        'icon': LucideIcons.barChart3,
-        'color': const Color(0xFFf59e0b),
-        'onTap': () => setState(() => _selectedIndex = 4),
-      });
-    }
+    // Reports quick action hidden per user request
+    // if (RolePermissions.canAccessReports(userRoles)) {
+    //   quickActions.add({
+    //     'title': 'Laporan',
+    //     'subtitle': 'Lihat performa toko',
+    //     'icon': LucideIcons.barChart3,
+    //     'color': const Color(0xFFf59e0b),
+    //     'onTap': () => setState(() => _selectedIndex = 4),
+    //   });
+    // }
 
     // Customer management for all roles
     quickActions.add({
@@ -681,34 +685,35 @@ class _DashboardPageState extends State<DashboardPage>
       },
     });
 
+    // Cash Flow actions hidden per user request
     // Arus Kas actions for owners/managers
-    if (userRoles.contains('owner') || userRoles.contains('manager')) {
-      quickActions.add({
-        'title': 'Arus Kas',
-        'subtitle': 'Daftar arus kas',
-        'icon': LucideIcons.trendingUp,
-        'color': const Color(0xFF8b5cf6),
-        'onTap': () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const CashFlowsPage()),
-          );
-        },
-      });
+    // if (userRoles.contains('owner') || userRoles.contains('manager')) {
+    //   quickActions.add({
+    //     'title': 'Arus Kas',
+    //     'subtitle': 'Daftar arus kas',
+    //     'icon': LucideIcons.trendingUp,
+    //     'color': const Color(0xFF8b5cf6),
+    //     'onTap': () {
+    //       Navigator.push(
+    //         context,
+    //         MaterialPageRoute(builder: (context) => const CashFlowsPage()),
+    //       );
+    //     },
+    //   });
 
-      quickActions.add({
-        'title': 'Tambah Arus Kas',
-        'subtitle': 'Input kas masuk/keluar',
-        'icon': LucideIcons.plusCircle,
-        'color': const Color(0xFF059669),
-        'onTap': () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddCashFlowPage()),
-          );
-        },
-      });
-    }
+    //   quickActions.add({
+    //     'title': 'Tambah Arus Kas',
+    //     'subtitle': 'Input kas masuk/keluar',
+    //     'icon': LucideIcons.plusCircle,
+    //     'color': const Color(0xFF059669),
+    //     'onTap': () {
+    //       Navigator.push(
+    //         context,
+    //         MaterialPageRoute(builder: (context) => const AddCashFlowPage()),
+    //       );
+    //     },
+    //   });
+    // }
 
     quickActions.add({
       'title': 'Pengaturan',
@@ -1095,22 +1100,24 @@ class _DashboardPageState extends State<DashboardPage>
         ),
       );
     }
-    if (RolePermissions.canAccessProducts(userRoles)) {
-      items.add(
-        const BottomNavigationBarItem(
-          icon: Icon(LucideIcons.package),
-          label: 'Produk',
-        ),
-      );
-    }
-    if (RolePermissions.canAccessReports(userRoles)) {
-      items.add(
-        const BottomNavigationBarItem(
-          icon: Icon(LucideIcons.barChart3),
-          label: 'Laporan',
-        ),
-      );
-    }
+    // Products menu hidden per user request
+    // if (RolePermissions.canAccessProducts(userRoles)) {
+    //   items.add(
+    //     const BottomNavigationBarItem(
+    //       icon: Icon(LucideIcons.package),
+    //       label: 'Produk',
+    //     ),
+    //   );
+    // }
+    // Reports menu hidden per user request
+    // if (RolePermissions.canAccessReports(userRoles)) {
+    //   items.add(
+    //     const BottomNavigationBarItem(
+    //       icon: Icon(LucideIcons.barChart3),
+    //       label: 'Laporan',
+    //     ),
+    //   );
+    // }
     if (RolePermissions.canAccessProfile(userRoles)) {
       items.add(
         const BottomNavigationBarItem(

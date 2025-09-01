@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import 'dart:async';
+import '../../../transactions/data/models/transaction_list_response.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../pages/transaction_detail_page.dart';
 
@@ -16,6 +18,9 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
   final _searchController = TextEditingController();
   final _scrollController = ScrollController();
   String _selectedStatus = 'pending'; // Default to pending
+  String _searchQuery = '';
+  bool _isSearching = false;
+  Timer? _debounceTimer;
 
   @override
   void initState() {
@@ -51,7 +56,52 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _debounceTimer?.cancel();
     super.dispose();
+  }
+
+  void _onSearchChanged(String query) {
+    setState(() {
+      _searchQuery = query;
+      _isSearching = true;
+    });
+
+    // Cancel previous timer
+    _debounceTimer?.cancel();
+
+    // Set up new timer for debouncing
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(query);
+    });
+  }
+
+  void _performSearch(String query) {
+    final provider = Provider.of<TransactionListProvider>(
+      context,
+      listen: false,
+    );
+
+    // Set search query in provider
+    provider.setSearch(query.trim().isEmpty ? null : query.trim());
+
+    // Reload transactions with search
+    provider.loadTransactions(refresh: true).then((_) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    });
+  }
+
+  void _clearSearch() {
+    _debounceTimer?.cancel();
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _isSearching = false;
+    });
+    _onSearchChanged('');
   }
 
   @override
@@ -64,7 +114,9 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
             return Column(
               children: [
                 _buildHeader(),
+                _buildSearchBar(),
                 _buildStatusFilter(provider),
+                const SizedBox(height: 8), // Spacing sebelum list
                 Expanded(child: _buildTransactionsList(provider)),
               ],
             );
@@ -140,27 +192,153 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     );
   }
 
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: TextField(
+          controller: _searchController,
+          textInputAction: TextInputAction.search,
+          onSubmitted: (_) => _performSearch(_searchQuery),
+          style: const TextStyle(fontSize: 16, color: Color(0xFF1F2937)),
+          decoration: InputDecoration(
+            hintText: 'Cari berdasarkan nama customer atau nomor transaksi...',
+            hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 16),
+            prefixIcon: Container(
+              padding: const EdgeInsets.all(12),
+              child: const Icon(
+                LucideIcons.search,
+                color: Color(0xFF6B7280),
+                size: 20,
+              ),
+            ),
+            suffixIcon:
+                _isSearching
+                    ? Container(
+                      padding: const EdgeInsets.all(12),
+                      child: const SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Color(0xFF6366f1),
+                          ),
+                        ),
+                      ),
+                    )
+                    : _searchQuery.isNotEmpty
+                    ? Container(
+                      padding: const EdgeInsets.all(4),
+                      child: IconButton(
+                        icon: const Icon(
+                          LucideIcons.x,
+                          color: Color(0xFF6B7280),
+                          size: 18,
+                        ),
+                        onPressed: _clearSearch,
+                        style: IconButton.styleFrom(
+                          backgroundColor: const Color(0xFFF3F4F6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.all(8),
+                          minimumSize: const Size(32, 32),
+                        ),
+                      ),
+                    )
+                    : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: BorderSide.none,
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Color(0xFF6366f1), width: 2),
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 20,
+              vertical: 18,
+            ),
+          ),
+          onChanged: _onSearchChanged,
+        ),
+      ),
+    );
+  }
+
   Widget _buildStatusFilter(TransactionListProvider provider) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // const Text(
-          //   'Filter Status',
-          //   style: TextStyle(
-          //     fontSize: 16,
-          //     fontWeight: FontWeight.w600,
-          //     color: Color(0xFF1F2937),
-          //   ),
-          // ),
-          // const SizedBox(height: 12),
+          if (_searchQuery.isNotEmpty) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0F9FF),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF0EA5E9), width: 1),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    LucideIcons.search,
+                    size: 16,
+                    color: Color(0xFF0EA5E9),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Pencarian: "$_searchQuery"',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        color: Color(0xFF0369A1),
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _clearSearch,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0EA5E9).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        LucideIcons.x,
+                        size: 14,
+                        color: Color(0xFF0EA5E9),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
                 _buildStatusChip('pending', 'Pending', provider),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 _buildStatusChip('completed', 'Success', provider),
               ],
             ),
@@ -176,38 +354,58 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     TransactionListProvider provider,
   ) {
     final isSelected = _selectedStatus == value;
-    return FilterChip(
-      label: Text(
-        label,
-        style: TextStyle(
-          color: isSelected ? Colors.white : const Color(0xFF6366f1),
-          fontWeight: FontWeight.w600,
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        boxShadow:
+            isSelected
+                ? [
+                  BoxShadow(
+                    color: const Color(0xFF6366f1).withValues(alpha: 0.15),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                : null,
+      ),
+      child: FilterChip(
+        label: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Text(
+            label,
+            style: TextStyle(
+              color: isSelected ? Colors.white : const Color(0xFF6366f1),
+              fontWeight: FontWeight.w600,
+              fontSize: 14,
+            ),
+          ),
         ),
-      ),
-      selected: isSelected,
-      onSelected: (bool selected) {
-        if (selected) {
-          setState(() {
-            _selectedStatus = value;
-          });
+        selected: isSelected,
+        onSelected: (bool selected) {
+          if (selected) {
+            setState(() {
+              _selectedStatus = value;
+            });
 
-          // Apply filter based on selection
-          provider.setStatus(value);
+            // Apply filter based on selection
+            provider.setStatus(value);
 
-          // Ensure newest transactions are shown first
-          provider.setSorting('created_at', 'desc');
-          provider.loadTransactions(refresh: true);
-        }
-      },
-      selectedColor: const Color(0xFF6366f1),
-      backgroundColor: Colors.white,
-      side: BorderSide(
-        color: isSelected ? const Color(0xFF6366f1) : const Color(0xFFE5E7EB),
-        width: 1,
+            // Ensure newest transactions are shown first
+            provider.setSorting('created_at', 'desc');
+            provider.loadTransactions(refresh: true);
+          }
+        },
+        selectedColor: const Color(0xFF6366f1),
+        backgroundColor: Colors.white,
+        side: BorderSide(
+          color: isSelected ? const Color(0xFF6366f1) : const Color(0xFFE5E7EB),
+          width: 1,
+        ),
+        showCheckmark: false,
+        elevation: 0,
+        pressElevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
-      showCheckmark: false,
-      elevation: isSelected ? 2 : 0,
-      shadowColor: const Color(0xFF6366f1).withValues(alpha: 0.3),
     );
   }
 
@@ -276,6 +474,22 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     }
 
     if (provider.transactions.isEmpty) {
+      String emptyMessage;
+      String emptyDescription;
+      IconData emptyIcon;
+
+      if (_searchQuery.isNotEmpty) {
+        emptyMessage = 'Transaksi tidak ditemukan';
+        emptyDescription =
+            'Tidak ada transaksi yang cocok dengan pencarian "$_searchQuery"';
+        emptyIcon = LucideIcons.searchX;
+      } else {
+        emptyMessage = 'Belum ada transaksi';
+        emptyDescription =
+            'Transaksi ${_selectedStatus == 'pending' ? 'pending' : 'yang selesai'} akan muncul di sini';
+        emptyIcon = LucideIcons.receipt;
+      }
+
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -286,16 +500,12 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
                 color: const Color(0xFF6366f1).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(
-                LucideIcons.receipt,
-                color: Color(0xFF6366f1),
-                size: 48,
-              ),
+              child: Icon(emptyIcon, color: const Color(0xFF6366f1), size: 48),
             ),
             const SizedBox(height: 24),
-            const Text(
-              'Belum ada transaksi',
-              style: TextStyle(
+            Text(
+              emptyMessage,
+              style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF1F2937),
@@ -303,10 +513,25 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Transaksi ${_selectedStatus == 'pending' ? 'pending' : 'yang selesai'} akan muncul di sini',
+              emptyDescription,
               style: const TextStyle(fontSize: 16, color: Color(0xFF64748B)),
               textAlign: TextAlign.center,
             ),
+            if (_searchQuery.isNotEmpty) ...[
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _clearSearch,
+                icon: const Icon(LucideIcons.x),
+                label: const Text('Hapus Pencarian'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF6366f1),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
           ],
         ),
       );
@@ -340,7 +565,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     );
   }
 
-  Widget _buildTransactionCard(transaction) {
+  Widget _buildTransactionCard(TransactionListItem transaction) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -396,12 +621,23 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                Text(
-                  transaction.transactionNumber,
-                  style: const TextStyle(
+                _buildHighlightedText(
+                  transaction.customer?.name ?? '',
+                  _searchQuery,
+                  const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                     color: Color(0xFF1F2937),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                _buildHighlightedText(
+                  transaction.transactionNumber,
+                  _searchQuery,
+                  TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[600],
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -501,6 +737,39 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     Navigator.of(context).push(
       MaterialPageRoute(
         builder: (context) => TransactionDetailPage(transaction: transaction),
+      ),
+    );
+  }
+
+  Widget _buildHighlightedText(
+    String text,
+    String searchQuery,
+    TextStyle style,
+  ) {
+    if (searchQuery.isEmpty ||
+        !text.toLowerCase().contains(searchQuery.toLowerCase())) {
+      return Text(text, style: style);
+    }
+
+    final index = text.toLowerCase().indexOf(searchQuery.toLowerCase());
+    final before = text.substring(0, index);
+    final match = text.substring(index, index + searchQuery.length);
+    final after = text.substring(index + searchQuery.length);
+
+    return RichText(
+      text: TextSpan(
+        style: style,
+        children: [
+          TextSpan(text: before),
+          TextSpan(
+            text: match,
+            style: style.copyWith(
+              backgroundColor: const Color(0xFFFEF3C7), // Yellow highlight
+              color: const Color(0xFF92400E), // Darker text for contrast
+            ),
+          ),
+          TextSpan(text: after),
+        ],
       ),
     );
   }

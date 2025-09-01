@@ -159,8 +159,15 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
     if (_searchQuery.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Masukkan nama customer terlebih dahulu'),
+          content: Row(
+            children: [
+              Icon(LucideIcons.alertCircle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Masukkan nama customer terlebih dahulu'),
+            ],
+          ),
           backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
         ),
       );
       return;
@@ -169,37 +176,10 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
     final phone = await _showPhoneInputDialog(_searchQuery.trim());
     if (phone == null || phone.trim().isEmpty) return;
 
-    try {
-      final customerProvider = Provider.of<CustomerProvider>(
-        context,
-        listen: false,
-      );
-      final newCustomer = await customerProvider.createCustomer(
-        name: _searchQuery.trim(),
-        phone: phone.trim(),
-      );
-
-      if (newCustomer != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Customer "${newCustomer.name}" berhasil dibuat'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        // Auto-select the newly created customer
-        await _selectCustomer(newCustomer);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal membuat customer: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
+    await _createCustomerFromDialog(
+      name: _searchQuery.trim(),
+      phone: phone.trim(),
+    );
   }
 
   Future<String?> _showPhoneInputDialog(String customerName) async {
@@ -248,6 +228,177 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
     );
   }
 
+  Future<void> _showCreateCustomerDialog() async {
+    final nameController = TextEditingController();
+    final phoneController = TextEditingController();
+
+    final result = await showDialog<Map<String, String>>(
+      context: context,
+      builder:
+          (context) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF3B82F6), Color(0xFF1E40AF)],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    LucideIcons.userPlus,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                const Text(
+                  'Tambah Customer Baru',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Nama Customer',
+                    hintText: 'Masukkan nama lengkap',
+                    prefixIcon: const Icon(LucideIcons.user),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                  ),
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: phoneController,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    labelText: 'Nomor Telepon',
+                    hintText: 'Contoh: 081234567890',
+                    prefixIcon: const Icon(LucideIcons.phone),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: const Color(0xFFF8FAFC),
+                  ),
+                ),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: const Text(
+                  'Batal',
+                  style: TextStyle(color: Color(0xFF64748B)),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final name = nameController.text.trim();
+                  final phone = phoneController.text.trim();
+                  if (name.isNotEmpty && phone.isNotEmpty) {
+                    Navigator.of(context).pop({'name': name, 'phone': phone});
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF3B82F6),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
+                ),
+                child: const Text(
+                  'Simpan',
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+    );
+
+    if (result != null) {
+      await _createCustomerFromDialog(
+        name: result['name']!,
+        phone: result['phone']!,
+      );
+    }
+  }
+
+  Future<void> _createCustomerFromDialog({
+    required String name,
+    required String phone,
+  }) async {
+    try {
+      final customerProvider = Provider.of<CustomerProvider>(
+        context,
+        listen: false,
+      );
+      final newCustomer = await customerProvider.createCustomer(
+        name: name,
+        phone: phone,
+      );
+
+      if (newCustomer != null && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(LucideIcons.checkCircle, color: Colors.white),
+                const SizedBox(width: 8),
+                Text('Customer "${newCustomer.name}" berhasil dibuat'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+
+        // Auto-select the newly created customer
+        await _selectCustomer(newCustomer);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(LucideIcons.alertCircle, color: Colors.white),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Gagal membuat customer: $e')),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -266,7 +417,13 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
         ),
         actions: [
           IconButton(
+            icon: const Icon(LucideIcons.userPlus, color: Color(0xFF6B7280)),
+            tooltip: 'Tambah Customer Baru',
+            onPressed: () => _showCreateCustomerDialog(),
+          ),
+          IconButton(
             icon: const Icon(LucideIcons.refreshCw, color: Color(0xFF6B7280)),
+            tooltip: 'Refresh',
             onPressed: () {
               final customerProvider = Provider.of<CustomerProvider>(
                 context,
@@ -313,64 +470,96 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 10,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: InputDecoration(
-                        labelText: 'Cari Pelanggan',
-                        hintText: 'Ketik nama pelanggan...',
-                        prefixIcon: const Icon(
-                          LucideIcons.search,
-                          color: Color(0xFF6B7280),
-                        ),
-                        suffixIcon:
-                            _isSearching
-                                ? const Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                    ),
-                                  ),
-                                )
-                                : (_searchController.text.isNotEmpty
-                                    ? IconButton(
-                                      icon: const Icon(
-                                        LucideIcons.x,
-                                        color: Color(0xFF6B7280),
-                                      ),
-                                      onPressed: () {
-                                        _searchController.clear();
-                                        _onSearchChanged('');
-                                      },
-                                    )
-                                    : null),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(16),
-                          borderSide: BorderSide.none,
-                        ),
-                        filled: true,
-                        fillColor: Colors.white,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: TextField(
+                            controller: _searchController,
+                            decoration: InputDecoration(
+                              labelText: 'Cari Pelanggan',
+                              hintText: 'Ketik nama pelanggan...',
+                              prefixIcon: const Icon(
+                                LucideIcons.search,
+                                color: Color(0xFF6B7280),
+                              ),
+                              suffixIcon:
+                                  _isSearching
+                                      ? const Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                          ),
+                                        ),
+                                      )
+                                      : (_searchController.text.isNotEmpty
+                                          ? IconButton(
+                                            icon: const Icon(
+                                              LucideIcons.x,
+                                              color: Color(0xFF6B7280),
+                                            ),
+                                            onPressed: () {
+                                              _searchController.clear();
+                                              _onSearchChanged('');
+                                            },
+                                          )
+                                          : null),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(16),
+                                borderSide: BorderSide.none,
+                              ),
+                              filled: true,
+                              fillColor: Colors.white,
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 16,
+                              ),
+                            ),
+                            onChanged: _onSearchChanged,
+                          ),
                         ),
                       ),
-                      onChanged: _onSearchChanged,
-                    ),
+                      const SizedBox(width: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(16),
+                            onTap: () => _showCreateCustomerDialog(),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              child: const Icon(
+                                LucideIcons.userPlus,
+                                color: Colors.white,
+                                size: 24,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -380,6 +569,17 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
           // Results
           Expanded(child: _buildCustomerList()),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => _showCreateCustomerDialog(),
+        backgroundColor: const Color(0xFF3B82F6),
+        foregroundColor: Colors.white,
+        elevation: 4,
+        icon: const Icon(LucideIcons.userPlus),
+        label: const Text(
+          'Tambah Customer',
+          style: TextStyle(fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -451,9 +651,59 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Ketik nama untuk membuat pelanggan baru',
+                    'Mulai dengan menambahkan pelanggan pertama Anda',
                     style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
                     textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF3B82F6), Color(0xFF1E40AF)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () => _showCreateCustomerDialog(),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 16,
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                LucideIcons.userPlus,
+                                color: Colors.white,
+                                size: 20,
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Tambah Pelanggan Pertama',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),

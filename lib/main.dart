@@ -53,7 +53,21 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ApiProductProvider()),
-        ChangeNotifierProvider(create: (_) => CartProvider()),
+        ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
+          create: (_) => CartProvider(),
+          update: (_, authProvider, cartProvider) {
+            // Auto-sync user data dari AuthProvider ke CartProvider
+            if (cartProvider != null) {
+              cartProvider.syncUserData(authProvider.user);
+              return cartProvider;
+            }
+
+            // Fallback jika cartProvider null
+            final newCartProvider = CartProvider();
+            newCartProvider.initializeWithUser(authProvider.user);
+            return newCartProvider;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProxyProvider<CartProvider, ProductDetailViewModel>(
           create:
@@ -82,8 +96,8 @@ class MyApp extends StatelessWidget {
         >(
           create: (_) => POSTransactionViewModel(),
           update: (_, cartProvider, transactionProvider, viewModel) {
+            // CartProvider sudah auto-sync dengan AuthProvider melalui proxy
             // Sesuai dokumentasi: reuse instance dan update properties
-            // Jangan create instance baru di sini!
             if (viewModel != null) {
               viewModel.updateCartProvider(cartProvider);
               viewModel.updateTransactionProvider(transactionProvider);
@@ -114,3 +128,6 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+// Widget AppWithUserSync sudah tidak diperlukan lagi
+// karena sync dilakukan melalui ChangeNotifierProxyProvider

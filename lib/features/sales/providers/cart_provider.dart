@@ -5,6 +5,7 @@ import '../../../data/models/cart_item.dart';
 import '../../../data/models/customer.dart';
 import '../../../data/models/sale.dart';
 import '../../customers/data/models/customer.dart' as api_customer;
+import '../../auth/data/models/user.dart';
 
 class CartProvider extends ChangeNotifier {
   final List<CartItem> _items = [];
@@ -15,6 +16,7 @@ class CartProvider extends ChangeNotifier {
   String? _errorMessage;
   String? _customerName;
   String? _customerPhone;
+  User? _currentUser;
 
   // Getters
   List<CartItem> get items => List.unmodifiable(_items);
@@ -24,6 +26,7 @@ class CartProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get customerName => _customerName;
   String? get customerPhone => _customerPhone;
+  User? get currentUser => _currentUser;
 
   int get itemCount => _items.fold(
     0,
@@ -368,6 +371,56 @@ class CartProvider extends ChangeNotifier {
 
   void clearError() {
     _clearError();
+    notifyListeners();
+  }
+
+  // User management methods
+  void setCurrentUser(User? user) {
+    _currentUser = user;
+    notifyListeners();
+  }
+
+  // Initialize user from AuthProvider
+  void initializeWithUser(User? user) {
+    _currentUser = user;
+    // Don't notify listeners here since it's initialization
+  }
+
+  // Sync user data from AuthProvider (with change detection)
+  void syncUserData(User? authUser) {
+    if (authUser == null) {
+      // Clear user if auth user is null
+      if (_currentUser != null) {
+        _currentUser = null;
+        notifyListeners();
+      }
+    } else {
+      // Update user if different or not set
+      if (_currentUser == null || _currentUser!.id != authUser.id) {
+        _currentUser = authUser;
+        notifyListeners();
+      }
+    }
+  }
+
+  // Get user information
+  String? get userName => _currentUser?.name;
+  String? get userEmail => _currentUser?.email;
+  int? get userId => _currentUser?.id;
+  String? get userRole =>
+      _currentUser?.roles.isNotEmpty == true
+          ? _currentUser!.roles.first.name
+          : null;
+
+  // Get full user object
+  User? get user => _currentUser;
+
+  // Check if user is logged in
+  bool get hasUser => _currentUser != null;
+
+  // Clear user data
+  void clearUser() {
+    _currentUser = null;
     notifyListeners();
   }
 }
