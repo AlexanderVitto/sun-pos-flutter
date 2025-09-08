@@ -179,7 +179,7 @@ class ProductDetailViewModel extends ChangeNotifier {
 
       // Convert ProductDetail to Product model that CartProvider expects
       final product = Product(
-        id: _productDetail!.id.toString(),
+        id: _productDetail!.id,
         name: _productDetail!.name,
         code: _productDetail!.sku,
         description: _productDetail!.description,

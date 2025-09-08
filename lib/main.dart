@@ -53,6 +53,8 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ApiProductProvider()),
+        ChangeNotifierProvider(create: (_) => TransactionProvider()),
+        ChangeNotifierProvider(create: (_) => PendingTransactionProvider()),
         ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
           create: (_) => CartProvider(),
           update: (_, authProvider, cartProvider) {
@@ -68,7 +70,6 @@ class MyApp extends StatelessWidget {
             return newCartProvider;
           },
         ),
-        ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProxyProvider<CartProvider, ProductDetailViewModel>(
           create:
               (_) => ProductDetailViewModel(
@@ -89,30 +90,40 @@ class MyApp extends StatelessWidget {
             )..updateCartProvider(cartProvider);
           },
         ),
-        ChangeNotifierProxyProvider2<
+        ChangeNotifierProxyProvider3<
           CartProvider,
           TransactionProvider,
+          PendingTransactionProvider,
           POSTransactionViewModel
         >(
           create: (_) => POSTransactionViewModel(),
-          update: (_, cartProvider, transactionProvider, viewModel) {
+          update: (
+            _,
+            cartProvider,
+            transactionProvider,
+            pendingTransactionProvider,
+            viewModel,
+          ) {
             // CartProvider sudah auto-sync dengan AuthProvider melalui proxy
             // Sesuai dokumentasi: reuse instance dan update properties
             if (viewModel != null) {
               viewModel.updateCartProvider(cartProvider);
               viewModel.updateTransactionProvider(transactionProvider);
+              viewModel.updatePendingTransactionProvider(
+                pendingTransactionProvider,
+              );
               return viewModel;
             }
 
             // Fallback jika viewModel null (seharusnya tidak terjadi)
             return POSTransactionViewModel()
               ..updateCartProvider(cartProvider)
-              ..updateTransactionProvider(transactionProvider);
+              ..updateTransactionProvider(transactionProvider)
+              ..updatePendingTransactionProvider(pendingTransactionProvider);
           },
         ),
         ChangeNotifierProvider(create: (_) => TransactionListProvider()),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
-        ChangeNotifierProvider(create: (_) => PendingTransactionProvider()),
         ChangeNotifierProvider(create: (_) => CashFlowProvider()),
         ChangeNotifierProvider(create: (_) => ReportsProvider()),
       ],

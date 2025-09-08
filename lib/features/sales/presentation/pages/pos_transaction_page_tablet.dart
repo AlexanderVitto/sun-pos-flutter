@@ -1664,12 +1664,11 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
     final details =
         _cartProvider!.items.map((cartItem) {
           return TransactionDetail(
-            productId:
-                int.tryParse(cartItem.product.id) ??
-                1, // Convert string ID to int, default to 1 if conversion fails
+            productId: cartItem.product.id, // ID is already int
             productVariantId:
-                int.tryParse(cartItem.product.id) ??
-                1, // Using same ID for variant, adjust as needed
+                cartItem
+                    .product
+                    .id, // Using same ID for variant, adjust as needed
             quantity: cartItem.quantity,
             unitPrice: cartItem.product.price,
           );
@@ -1735,7 +1734,7 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
       case 'beverages':
         return Icons.local_drink;
       case 'food':
-        return Icons.restaurant;
+        return Icons.receipt;
       default:
         return Icons.shopping_bag;
     }

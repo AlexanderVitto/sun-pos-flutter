@@ -10,6 +10,8 @@ class CreateTransactionRequest {
   final String? customerName;
   final String? customerPhone;
   final String? status;
+  final double? cashAmount;
+  final double transferAmount;
 
   const CreateTransactionRequest({
     required this.storeId,
@@ -21,6 +23,8 @@ class CreateTransactionRequest {
     this.customerName,
     this.customerPhone,
     this.status,
+    this.cashAmount,
+    this.transferAmount = 0,
   });
 
   Map<String, dynamic> toJson() {
@@ -34,6 +38,8 @@ class CreateTransactionRequest {
       'customer_name': customerName,
       'customer_phone': customerPhone,
       'status': status,
+      'cash_amount': cashAmount,
+      'transfer_amount': transferAmount,
     };
   }
 
@@ -51,6 +57,8 @@ class CreateTransactionRequest {
       customerName: json['customer_name'],
       customerPhone: json['customer_phone'],
       status: json['status'],
+      cashAmount: json['cash_amount']?.toDouble(),
+      transferAmount: json['transfer_amount']?.toDouble() ?? 0,
     );
   }
 

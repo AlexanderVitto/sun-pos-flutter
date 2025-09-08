@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/transaction_provider.dart';
+import '../../providers/pending_transaction_provider.dart';
 
 class POSTransactionViewModel extends ChangeNotifier {
   CartProvider? _cartProvider;
   TransactionProvider? _transactionProvider;
+  PendingTransactionProvider? _pendingTransactionProvider;
 
   // Controllers
   final TextEditingController _notesController = TextEditingController();
@@ -23,13 +25,19 @@ class POSTransactionViewModel extends ChangeNotifier {
   TextEditingController get notesController => _notesController;
   CartProvider? get cartProvider => _cartProvider;
   TransactionProvider? get transactionProvider => _transactionProvider;
+  PendingTransactionProvider? get pendingTransactionProvider =>
+      _pendingTransactionProvider;
 
   /// Update method sesuai dokumentasi ChangeNotifierProxyProvider
   /// Reuse instance dan update properties, jangan create instance baru
   void updateCartProvider(CartProvider cartProvider) {
     if (_cartProvider != cartProvider) {
-      print(
+      debugPrint(
         '🔄 POSTransactionViewModel: Updating CartProvider instance ${cartProvider.hashCode}',
+      );
+      debugPrint('🔄 New CartProvider items: ${cartProvider.items.length}');
+      debugPrint(
+        '🔄 New CartProvider customer: ${cartProvider.selectedCustomer?.name}',
       );
 
       // Remove listener dari CartProvider lama jika ada
@@ -42,13 +50,19 @@ class POSTransactionViewModel extends ChangeNotifier {
 
       // Notify listeners karena CartProvider reference berubah
       notifyListeners();
+    } else {
+      debugPrint('🔄 POSTransactionViewModel: CartProvider instance unchanged');
     }
   }
 
   /// Callback ketika CartProvider berubah - akan trigger rebuild di POSAppBar
   void _onCartChanged() {
-    print(
+    debugPrint(
       '🔔 POSTransactionViewModel: CartProvider changed, notifying listeners',
+    );
+    debugPrint('🔔 Current items: ${_cartProvider?.items.length ?? 0}');
+    debugPrint(
+      '🔔 Current customer: ${_cartProvider?.selectedCustomer?.name ?? 'None'}',
     );
     notifyListeners();
   }
@@ -58,6 +72,16 @@ class POSTransactionViewModel extends ChangeNotifier {
     if (_transactionProvider != transactionProvider) {
       _transactionProvider = transactionProvider;
       // Tidak perlu notifyListeners() karena TransactionProvider changes tidak mempengaruhi UI langsung
+    }
+  }
+
+  /// Update PendingTransactionProvider sesuai pattern dokumentasi
+  void updatePendingTransactionProvider(
+    PendingTransactionProvider pendingTransactionProvider,
+  ) {
+    if (_pendingTransactionProvider != pendingTransactionProvider) {
+      _pendingTransactionProvider = pendingTransactionProvider;
+      // Tidak perlu notifyListeners() karena PendingTransactionProvider changes tidak mempengaruhi UI langsung
     }
   }
 

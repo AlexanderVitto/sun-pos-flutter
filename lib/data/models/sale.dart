@@ -51,7 +51,7 @@ class SaleItem {
 
   factory SaleItem.fromProduct(Product product, int quantity) {
     return SaleItem(
-      productId: product.id,
+      productId: product.id.toString(),
       productName: product.name,
       price: product.price,
       quantity: quantity,

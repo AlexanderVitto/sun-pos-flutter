@@ -59,7 +59,7 @@ class AuthService {
 
   Future<ProfileResponse> getProfile() async {
     try {
-      final url = '${AppConfig.baseUrl}/auth/profile';
+      final url = '${AppConfig.baseUrl}/api/v1/auth/profile';
 
       final response = await _httpClient.get(url, requireAuth: true);
       final responseData = _httpClient.parseJsonResponse(response);

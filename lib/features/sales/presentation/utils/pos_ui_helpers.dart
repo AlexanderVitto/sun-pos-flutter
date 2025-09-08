@@ -23,7 +23,7 @@ class PosUIHelpers {
       case 'beverages':
         return Icons.local_drink;
       case 'food':
-        return Icons.restaurant;
+        return Icons.receipt;
       default:
         return Icons.shopping_bag;
     }

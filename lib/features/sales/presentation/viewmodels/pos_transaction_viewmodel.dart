@@ -53,23 +53,24 @@ class POSTransactionViewModel extends ChangeNotifier {
     }
   }
 
-  void addToCart(Product product, {int quantity = 1}) {
-    _cartProvider.addItem(product, quantity: quantity);
+  void addToCart(Product product, {int quantity = 1, BuildContext? context}) {
+    _cartProvider.addItem(product, quantity: quantity, context: context);
     // Note: CartProvider will notify its own listeners
   }
 
-  void removeFromCart(String itemId) {
-    _cartProvider.removeItem(itemId);
+  void removeFromCart(String itemId, {BuildContext? context}) {
+    _cartProvider.removeItem(itemId, context: context);
   }
 
-  void increaseQuantity(String itemId) {
+  void increaseQuantity(String itemId, {BuildContext? context}) {
     _cartProvider.addItem(
       _cartProvider.items.firstWhere((item) => item.id == itemId).product,
+      context: context,
     );
   }
 
-  void decreaseQuantity(String itemId) {
-    _cartProvider.decreaseQuantity(itemId);
+  void decreaseQuantity(String itemId, {BuildContext? context}) {
+    _cartProvider.decreaseQuantity(itemId, context: context);
   }
 
   void clearCart() {
@@ -148,7 +149,7 @@ class POSTransactionViewModel extends ChangeNotifier {
 
   // Helper method to get product ID for navigation
   int getProductId(Product product) {
-    return int.tryParse(product.id) ?? 0;
+    return product.id; // ID is already int
   }
 
   @override

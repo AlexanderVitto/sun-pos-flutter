@@ -1,5 +1,5 @@
 class Product {
-  final String id;
+  final int id;
   final String name;
   final String code;
   final String description;
@@ -24,7 +24,7 @@ class Product {
   });
 
   Product copyWith({
-    String? id,
+    int? id,
     String? name,
     String? code,
     String? description,
@@ -52,30 +52,32 @@ class Product {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
-      'code': code,
+      'product_name': name,
+      'product_id': code,
       'description': description,
-      'price': price,
-      'stock': stock,
-      'category': category,
-      'imagePath': imagePath,
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
+      'unit_price': price,
+      'quantity': stock,
     };
   }
 
   factory Product.fromJson(Map<String, dynamic> json) {
     return Product(
       id: json['id'],
-      name: json['name'],
-      code: json['code'],
-      description: json['description'],
-      price: json['price'].toDouble(),
-      stock: json['stock'],
-      category: json['category'],
-      imagePath: json['imagePath'],
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
+      name: json['product_name'] ?? '',
+      code: json['product_id'] ?? '',
+      description: json['description'] ?? '',
+      price: (json['unit_price'] ?? 0).toDouble(),
+      stock: json['quantity'] ?? 0,
+      category: json['category'] ?? 'General', // Default category
+      imagePath: json['imagePath'], // Null-safe, can be null
+      createdAt:
+          json['createdAt'] != null
+              ? DateTime.parse(json['createdAt'])
+              : DateTime.now(), // Default to current time
+      updatedAt:
+          json['updatedAt'] != null
+              ? DateTime.parse(json['updatedAt'])
+              : DateTime.now(), // Default to current time
     );
   }
 

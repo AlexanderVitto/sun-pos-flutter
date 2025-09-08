@@ -47,7 +47,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
       );
 
       final newProduct = Product(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: DateTime.now().millisecondsSinceEpoch,
         name: _nameController.text.trim(),
         code: 'PRD${DateTime.now().millisecondsSinceEpoch}',
         description: 'Produk ${_nameController.text.trim()}',

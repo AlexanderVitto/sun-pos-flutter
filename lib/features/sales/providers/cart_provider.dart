@@ -6,6 +6,7 @@ import '../../../data/models/customer.dart';
 import '../../../data/models/sale.dart';
 import '../../customers/data/models/customer.dart' as api_customer;
 import '../../auth/data/models/user.dart';
+import '../presentation/services/payment_service.dart';
 
 class CartProvider extends ChangeNotifier {
   final List<CartItem> _items = [];
@@ -17,6 +18,7 @@ class CartProvider extends ChangeNotifier {
   String? _customerName;
   String? _customerPhone;
   User? _currentUser;
+  int? _draftTransactionId; // ✅ Added to track draft transaction ID
 
   // Getters
   List<CartItem> get items => List.unmodifiable(_items);
@@ -27,6 +29,7 @@ class CartProvider extends ChangeNotifier {
   String? get customerName => _customerName;
   String? get customerPhone => _customerPhone;
   User? get currentUser => _currentUser;
+  int? get draftTransactionId => _draftTransactionId; // ✅ Added getter
 
   int get itemCount => _items.fold(
     0,
@@ -44,7 +47,11 @@ class CartProvider extends ChangeNotifier {
   double get total => subtotal;
 
   // Add item to cart
-  void addItem(Product product, {int quantity = 1}) {
+  void addItem(Product product, {int quantity = 1, BuildContext? context}) {
+    debugPrint('🛒 CartProvider: Adding item ${product.name} x $quantity');
+    debugPrint('🛒 CartProvider instance: $hashCode');
+    debugPrint('🛒 Current items before add: ${_items.length}');
+
     if (quantity <= 0) return;
 
     // Check if product already exists in cart
@@ -58,16 +65,17 @@ class CartProvider extends ChangeNotifier {
       final newQuantity = existingItem.quantity + quantity;
 
       // Check stock availability
-      if (newQuantity > product.stock) {
+      if (newQuantity > product.stock && context != null) {
         _errorMessage = 'Not enough stock. Available: ${product.stock}';
         notifyListeners();
         return;
       }
 
       _items[existingIndex] = existingItem.copyWith(quantity: newQuantity);
+      debugPrint('🛒 Updated existing item quantity to: $newQuantity');
     } else {
       // Check stock availability
-      if (quantity > product.stock) {
+      if (quantity > product.stock && context != null) {
         _errorMessage = 'Not enough stock. Available: ${product.stock}';
         notifyListeners();
         return;
@@ -81,14 +89,25 @@ class CartProvider extends ChangeNotifier {
         addedAt: DateTime.now(),
       );
       _items.add(cartItem);
+      debugPrint('🛒 Added new item to cart');
     }
 
+    debugPrint('🛒 Current items after add: ${_items.length}');
     _clearError();
     notifyListeners();
+
+    // Process draft transaction when context is available
+    if (context != null) {
+      _processDraftTransaction(context);
+    }
   }
 
   // Update item quantity
-  void updateItemQuantity(String itemId, int newQuantity) {
+  void updateItemQuantity(
+    String itemId,
+    int newQuantity, {
+    BuildContext? context,
+  }) {
     if (newQuantity < 0) return;
 
     final index = _items.indexWhere((item) => item.id == itemId);
@@ -98,7 +117,7 @@ class CartProvider extends ChangeNotifier {
 
     if (newQuantity == 0) {
       // Remove item if quantity is 0
-      removeItem(itemId);
+      removeItem(itemId, context: context);
       return;
     }
 
@@ -112,10 +131,15 @@ class CartProvider extends ChangeNotifier {
     _items[index] = item.copyWith(quantity: newQuantity);
     _clearError();
     notifyListeners();
+
+    // Process draft transaction when context is available
+    if (context != null) {
+      _processDraftTransaction(context);
+    }
   }
 
   // Increase item quantity
-  void increaseQuantity(String itemId) {
+  void increaseQuantity(String itemId, {BuildContext? context}) {
     final index = _items.indexWhere((item) => item.id == itemId);
     if (index == -1) return;
 
@@ -132,10 +156,15 @@ class CartProvider extends ChangeNotifier {
     _items[index] = item.copyWith(quantity: newQuantity);
     _clearError();
     notifyListeners();
+
+    // Process draft transaction when context is available
+    if (context != null) {
+      _processDraftTransaction(context);
+    }
   }
 
   // Decrease item quantity
-  void decreaseQuantity(String itemId) {
+  void decreaseQuantity(String itemId, {BuildContext? context}) {
     final index = _items.indexWhere((item) => item.id == itemId);
     if (index == -1) return;
 
@@ -143,36 +172,53 @@ class CartProvider extends ChangeNotifier {
     final newQuantity = item.quantity - 1;
 
     if (newQuantity <= 0) {
-      removeItem(itemId);
+      removeItem(itemId, context: context);
       return;
     }
 
     _items[index] = item.copyWith(quantity: newQuantity);
     notifyListeners();
+
+    // Process draft transaction when context is available
+    if (context != null) {
+      _processDraftTransaction(context);
+    }
   }
 
   // Decrease item quantity by product ID
-  void decreaseQuantityByProductId(String productId) {
-    final index = _items.indexWhere((item) => item.product.id == productId);
+  void decreaseQuantityByProductId(String productId, {BuildContext? context}) {
+    final index = _items.indexWhere(
+      (item) => item.product.id.toString() == productId,
+    );
     if (index == -1) return;
 
     final item = _items[index];
     final newQuantity = item.quantity - 1;
 
     if (newQuantity <= 0) {
-      removeItem(item.id);
+      removeItem(item.id, context: context);
       return;
     }
 
     _items[index] = item.copyWith(quantity: newQuantity);
     notifyListeners();
+
+    // Process draft transaction when context is available
+    if (context != null) {
+      _processDraftTransaction(context);
+    }
   }
 
   // Remove item from cart
-  void removeItem(String itemId) {
+  void removeItem(String itemId, {BuildContext? context}) {
     _items.removeWhere((item) => item.id == itemId);
     _clearError();
     notifyListeners();
+
+    // Process draft transaction when context is available
+    if (context != null) {
+      _processDraftTransaction(context);
+    }
   }
 
   // Clear cart
@@ -182,7 +228,13 @@ class CartProvider extends ChangeNotifier {
     _discountAmount = 0.0;
     _customerName = null;
     _customerPhone = null;
+    _draftTransactionId = null; // ✅ Clear draft transaction ID
     _clearError();
+    notifyListeners();
+  }
+
+  void clearItems() {
+    _items.clear();
     notifyListeners();
   }
 
@@ -194,8 +246,14 @@ class CartProvider extends ChangeNotifier {
 
   // Set customer from API customer model
   void setCustomerFromApi(api_customer.Customer? apiCustomer) {
+    debugPrint('🛒 CartProvider: Setting customer from API');
+    debugPrint(
+      '🛒 API Customer: ${apiCustomer?.name} (ID: ${apiCustomer?.id})',
+    );
+
     if (apiCustomer == null) {
       _selectedCustomer = null;
+      debugPrint('🛒 Customer cleared');
     } else {
       _selectedCustomer = Customer(
         id: apiCustomer.id.toString(),
@@ -204,6 +262,7 @@ class CartProvider extends ChangeNotifier {
         createdAt: apiCustomer.createdAt,
         updatedAt: apiCustomer.updatedAt,
       );
+      debugPrint('🛒 Customer set: ${_selectedCustomer?.name}');
     }
     notifyListeners();
   }
@@ -233,22 +292,26 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // Get item by product ID
-  CartItem? getItemByProductId(String productId) {
+  // Get item by product ID (supports both int and String for backward compatibility)
+  CartItem? getItemByProductId(dynamic productId) {
     try {
-      return _items.firstWhere((item) => item.product.id == productId);
+      return _items.firstWhere(
+        (item) => item.product.id.toString() == productId.toString(),
+      );
     } catch (e) {
       return null;
     }
   }
 
-  // Check if product is in cart
-  bool isProductInCart(String productId) {
-    return _items.any((item) => item.product.id == productId);
+  // Check if product is in cart (supports both int and String for backward compatibility)
+  bool isProductInCart(dynamic productId) {
+    return _items.any(
+      (item) => item.product.id.toString() == productId.toString(),
+    );
   }
 
-  // Get quantity of product in cart
-  int getProductQuantity(String productId) {
+  // Get quantity of product in cart (supports both int and String for backward compatibility)
+  int getProductQuantity(dynamic productId) {
     final item = getItemByProductId(productId);
     return item?.quantity ?? 0;
   }
@@ -274,7 +337,7 @@ class CartProvider extends ChangeNotifier {
           _items
               .map(
                 (cartItem) => SaleItem(
-                  productId: cartItem.product.id,
+                  productId: cartItem.product.id.toString(),
                   productName: cartItem.product.name,
                   price: cartItem.product.price,
                   quantity: cartItem.quantity,
@@ -423,4 +486,27 @@ class CartProvider extends ChangeNotifier {
     _currentUser = null;
     notifyListeners();
   }
+
+  // Process draft transaction when items are added to cart
+  void _processDraftTransaction(BuildContext context) async {
+    try {
+      await PaymentService.processDraftTransaction(
+        context: context,
+        cartProvider: this,
+      );
+    } catch (e) {
+      // Silent failure to not interrupt user experience
+      debugPrint('Failed to process draft transaction: ${e.toString()}');
+    }
+  }
+
+  // Set draft transaction ID (used when resuming from pending transaction)
+  void setDraftTransactionId(int? transactionId) {
+    _draftTransactionId = transactionId;
+    debugPrint('🛒 Draft transaction ID set: $_draftTransactionId');
+    notifyListeners();
+  }
+
+  // Check if this is an existing draft transaction
+  bool get hasExistingDraftTransaction => _draftTransactionId != null;
 }

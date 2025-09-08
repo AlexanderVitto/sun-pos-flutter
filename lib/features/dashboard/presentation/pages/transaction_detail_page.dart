@@ -8,7 +8,6 @@ import '../../../customers/data/models/customer.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../../data/models/product.dart';
 import '../../../sales/presentation/pages/payment_success_page.dart';
-import '../../../transactions/data/models/store.dart';
 
 class TransactionItemDetail {
   final String productName;
@@ -783,7 +782,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         _transactionItems?.map((item) {
           // Create a mock product based on transaction item
           final product = Product(
-            id: 'mock_${item.productName.toLowerCase().replaceAll(' ', '_')}',
+            id: item.productName.hashCode.abs(),
             name: item.productName,
             code: 'MOCK_${item.productName.toUpperCase().replaceAll(' ', '_')}',
             description:
@@ -979,7 +978,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           final cartItems =
               _transactionItems?.map((item) {
                 final product = Product(
-                  id: 'item_${item.productName.toLowerCase().replaceAll(' ', '_')}',
+                  id: item.productName.hashCode.abs(),
                   name: item.productName,
                   code:
                       'CODE_${item.productName.toUpperCase().replaceAll(' ', '_')}',

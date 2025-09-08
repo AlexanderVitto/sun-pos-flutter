@@ -51,7 +51,7 @@ class _AddProductPageState extends State<AddProductPage> {
       );
 
       final newProduct = Product(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        id: DateTime.now().millisecondsSinceEpoch,
         name: _nameController.text.trim(),
         code: 'PRD${DateTime.now().millisecondsSinceEpoch}',
         description:

@@ -170,7 +170,7 @@ class ApiProductProvider extends ChangeNotifier {
   /// Convert API product to local product for compatibility
   local_product.Product apiProductToLocal(api_product.Product apiProduct) {
     return local_product.Product(
-      id: apiProduct.id.toString(),
+      id: apiProduct.id,
       name: apiProduct.name,
       code: apiProduct.sku,
       description: apiProduct.description,

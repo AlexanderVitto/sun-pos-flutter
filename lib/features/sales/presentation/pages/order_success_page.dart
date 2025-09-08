@@ -65,7 +65,7 @@ class OrderSuccessPage extends StatelessWidget {
                       ],
                     ),
                     child: const Icon(
-                      Icons.restaurant_menu,
+                      Icons.check_circle,
                       size: 60,
                       color: Colors.white,
                     ),

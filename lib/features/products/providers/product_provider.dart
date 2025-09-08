@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:uuid/uuid.dart';
 import '../../../data/models/product.dart';
 import '../data/services/product_api_service.dart';
 import '../data/models/product.dart' as ApiProduct;
@@ -7,7 +6,6 @@ import '../data/models/product.dart' as ApiProduct;
 class ProductProvider extends ChangeNotifier {
   final List<Product> _products = [];
   final ProductApiService _apiService = ProductApiService();
-  final Uuid _uuid = const Uuid();
   bool _isLoading = false;
   String? _errorMessage;
   String _searchQuery = '';
@@ -110,7 +108,7 @@ class ProductProvider extends ChangeNotifier {
   // Convert API Product model to local Product model
   Product _convertApiProductToLocalProduct(ApiProduct.Product apiProduct) {
     return Product(
-      id: apiProduct.id.toString(),
+      id: apiProduct.id,
       name: apiProduct.name,
       code: apiProduct.sku,
       description: apiProduct.description,
@@ -165,7 +163,7 @@ class ProductProvider extends ChangeNotifier {
     final now = DateTime.now();
     return [
       Product(
-        id: _uuid.v4(),
+        id: 1,
         name: 'Kopi Arabica Premium',
         code: 'KAP001',
         description: 'Kopi arabica berkualitas premium dari pegunungan Jawa',
@@ -177,7 +175,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 2,
         name: 'Teh Hijau Organik',
         code: 'THO002',
         description: 'Teh hijau organik tanpa pestisida',
@@ -189,7 +187,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 3,
         name: 'Croissant Butter',
         code: 'CB003',
         description: 'Croissant segar dengan butter berkualitas tinggi',
@@ -201,7 +199,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 4,
         name: 'Donut Glazed',
         code: 'DG004',
         description: 'Donut lembut dengan glazed manis',
@@ -213,7 +211,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 5,
         name: 'Sandwich Club',
         code: 'SC005',
         description: 'Sandwich dengan isian lengkap dan segar',
@@ -225,7 +223,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 6,
         name: 'Salad Caesar',
         code: 'SAL006',
         description: 'Salad segar dengan dressing caesar',
@@ -237,7 +235,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 7,
         name: 'Jus Jeruk Segar',
         code: 'JJS007',
         description: 'Jus jeruk segar tanpa pengawet',
@@ -249,7 +247,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 8,
         name: 'Muffin Blueberry',
         code: 'MB008',
         description: 'Muffin lembut dengan blueberry segar',
@@ -261,7 +259,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 9,
         name: 'Pasta Carbonara',
         code: 'PC009',
         description: 'Pasta carbonara dengan cream sauce',
@@ -273,7 +271,7 @@ class ProductProvider extends ChangeNotifier {
         updatedAt: now,
       ),
       Product(
-        id: _uuid.v4(),
+        id: 10,
         name: 'Cappuccino',
         code: 'CAP010',
         description: 'Cappuccino dengan foam art',

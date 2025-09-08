@@ -27,6 +27,8 @@ class TransactionProvider extends ChangeNotifier {
     String? customerName,
     String? customerPhone,
     String? status,
+    double? cashAmount,
+    double transferAmount = 0,
   }) async {
     if (cartItems.isEmpty) {
       _errorMessage = 'Keranjang kosong!';
@@ -48,6 +50,8 @@ class TransactionProvider extends ChangeNotifier {
         customerName: customerName,
         customerPhone: customerPhone,
         status: status,
+        cashAmount: cashAmount,
+        transferAmount: transferAmount,
       );
 
       final response = await _transactionService.createTransaction(
@@ -88,6 +92,8 @@ class TransactionProvider extends ChangeNotifier {
     String? customerName,
     String? customerPhone,
     String? status,
+    double? cashAmount,
+    double transferAmount = 0,
   }) {
     // Get current date in YYYY-MM-DD format
     final now = DateTime.now();
@@ -98,9 +104,12 @@ class TransactionProvider extends ChangeNotifier {
     final details =
         cartItems.map((cartItem) {
           return TransactionDetail(
-            productId: int.tryParse(cartItem.product.id) ?? 1,
-            productVariantId: int.tryParse(cartItem.product.id) ?? 1,
+            productId: cartItem.product.id,
+            productVariantId: cartItem.product.id,
             quantity: cartItem.quantity,
+            // unitPrice already contains discounted price per item
+            // The cartItems received should have already been processed
+            // with discount applied at the item level
             unitPrice: cartItem.product.price,
           );
         }).toList();
@@ -118,7 +127,76 @@ class TransactionProvider extends ChangeNotifier {
       customerName: customerName,
       customerPhone: customerPhone,
       status: status ?? 'pending',
+      cashAmount: cashAmount,
+      transferAmount: transferAmount,
     );
+  }
+
+  /// Update existing transaction
+  Future<CreateTransactionResponse?> updateTransaction({
+    required int transactionId,
+    required List<CartItem> cartItems,
+    required double totalAmount,
+    String? notes,
+    String paymentMethod = 'cash',
+    int storeId = 1,
+    String? customerName,
+    String? customerPhone,
+    String? status,
+    double? cashAmount,
+    double transferAmount = 0,
+  }) async {
+    if (cartItems.isEmpty) {
+      _errorMessage = 'Keranjang kosong!';
+      notifyListeners();
+      return null;
+    }
+
+    _isProcessingPayment = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final transactionRequest = _createTransactionRequest(
+        cartItems: cartItems,
+        totalAmount: totalAmount,
+        notes: notes,
+        paymentMethod: paymentMethod,
+        storeId: storeId,
+        customerName: customerName,
+        customerPhone: customerPhone,
+        status: status,
+        cashAmount: cashAmount,
+        transferAmount: transferAmount,
+      );
+
+      final response = await _transactionService.updateTransaction(
+        transactionId,
+        transactionRequest,
+      );
+
+      if (response.data != null) {
+        _lastTransactionNumber = response.data!.transactionNumber;
+        _errorMessage = null;
+
+        // Emit transaction updated event for real-time updates
+        TransactionEvents.instance.transactionUpdated(
+          response.data!.transactionNumber,
+        );
+      } else {
+        _errorMessage = 'Gagal mengupdate transaksi: ${response.message}';
+      }
+
+      _isProcessingPayment = false;
+      notifyListeners();
+
+      return response;
+    } catch (e) {
+      _isProcessingPayment = false;
+      _errorMessage = 'Terjadi kesalahan: ${e.toString()}';
+      notifyListeners();
+      return null;
+    }
   }
 
   /// Clear any error messages

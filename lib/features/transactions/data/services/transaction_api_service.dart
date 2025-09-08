@@ -219,7 +219,75 @@ class TransactionApiService {
     }
   }
 
-  /// Update transaction status
+  /// Update transaction with full transaction data
+  Future<CreateTransactionResponse> updateTransaction(
+    int transactionId,
+    CreateTransactionRequest request,
+  ) async {
+    try {
+      final token = await _secureStorage.getAccessToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Access token not found');
+      }
+
+      final url = Uri.parse('$baseUrl/transactions/$transactionId');
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      };
+
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: jsonEncode(request.toJson()),
+      );
+
+      // Handle different HTTP status codes
+      if (response.statusCode == 200) {
+        // Success response
+        final responseData = jsonDecode(response.body);
+        return CreateTransactionResponse.fromJson(responseData);
+      } else if (response.statusCode == 401) {
+        // Unauthorized
+        throw Exception('401: Unauthorized access');
+      } else if (response.statusCode == 404) {
+        // Transaction not found
+        throw Exception('Transaction not found');
+      } else if (response.statusCode == 422) {
+        // Validation error
+        final responseData = jsonDecode(response.body);
+        final errorMessage = _extractValidationErrors(responseData);
+        throw Exception('Validation error: $errorMessage');
+      } else if (response.statusCode == 400) {
+        // Bad request
+        final responseData = jsonDecode(response.body);
+        final message = responseData['message'] ?? 'Bad request';
+        throw Exception('Bad request: $message');
+      } else if (response.statusCode >= 500) {
+        // Server error
+        throw Exception(
+          'Server error (${response.statusCode}): Please try again later',
+        );
+      } else {
+        // Other errors
+        throw Exception(
+          'Failed to update transaction (${response.statusCode})',
+        );
+      }
+    } catch (e) {
+      // Re-throw with more context if it's not already an Exception
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('Network error: ${e.toString()}');
+      }
+    }
+  }
+
+  /// Update transaction status only
   Future<Map<String, dynamic>> updateTransactionStatus(
     int transactionId,
     String status,
@@ -256,6 +324,54 @@ class TransactionApiService {
       } else {
         throw Exception(
           'Failed to update transaction (${response.statusCode})',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('Network error: ${e.toString()}');
+      }
+    }
+  }
+
+  /// Delete transaction by ID
+  Future<Map<String, dynamic>> deleteTransaction(int transactionId) async {
+    try {
+      final token = await _secureStorage.getAccessToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Access token not found');
+      }
+
+      final url = Uri.parse('$baseUrl/transactions/$transactionId');
+
+      final headers = {
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      };
+
+      final response = await http.delete(url, headers: headers);
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        // Success - return response or empty object for 204
+        if (response.body.isNotEmpty) {
+          return jsonDecode(response.body);
+        } else {
+          return {
+            'success': true,
+            'message': 'Transaction deleted successfully',
+          };
+        }
+      } else if (response.statusCode == 401) {
+        throw Exception('401: Unauthorized access');
+      } else if (response.statusCode == 404) {
+        throw Exception('Transaction not found');
+      } else if (response.statusCode == 403) {
+        throw Exception('403: Forbidden - Cannot delete this transaction');
+      } else {
+        throw Exception(
+          'Failed to delete transaction (${response.statusCode})',
         );
       }
     } catch (e) {

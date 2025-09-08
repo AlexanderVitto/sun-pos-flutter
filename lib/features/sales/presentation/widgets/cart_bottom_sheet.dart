@@ -115,7 +115,7 @@ class CartBottomSheet extends StatelessWidget {
             itemCount: cartProvider.items.length,
             itemBuilder: (context, index) {
               final item = cartProvider.items[index];
-              return _buildCartItem(item, cartProvider);
+              return _buildCartItem(context, item, cartProvider);
             },
           );
         },
@@ -164,7 +164,11 @@ class CartBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildCartItem(CartItem item, CartProvider cartProvider) {
+  Widget _buildCartItem(
+    BuildContext context,
+    CartItem item,
+    CartProvider cartProvider,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(20),
@@ -250,7 +254,11 @@ class CartBottomSheet extends StatelessWidget {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: IconButton(
-                    onPressed: () => cartProvider.addItem(item.product),
+                    onPressed:
+                        () => cartProvider.addItem(
+                          item.product,
+                          context: context,
+                        ),
                     icon: const Icon(Icons.add_rounded, size: 18),
                     color: const Color(0xFF10b981),
                     constraints: const BoxConstraints(

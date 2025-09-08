@@ -4,8 +4,10 @@ import '../../../../data/models/cart_item.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
 import '../../../transactions/data/models/store.dart';
 import '../../../transactions/data/models/user.dart';
+import '../services/thermal_printer_service.dart';
+import '../widgets/printer_settings_dialog.dart';
 
-class ReceiptPage extends StatelessWidget {
+class ReceiptPage extends StatefulWidget {
   final String receiptId;
   final DateTime transactionDate;
   final List<CartItem> items;
@@ -32,6 +34,13 @@ class ReceiptPage extends StatelessWidget {
   });
 
   @override
+  State<ReceiptPage> createState() => _ReceiptPageState();
+}
+
+class _ReceiptPageState extends State<ReceiptPage> {
+  ThermalPrinterService? _connectedPrinter;
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
@@ -42,10 +51,76 @@ class ReceiptPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.share),
             onPressed: () => _shareReceipt(context),
+            tooltip: 'Bagikan Struk',
           ),
-          IconButton(
-            icon: const Icon(Icons.print),
-            onPressed: () => _printReceipt(context),
+          PopupMenuButton<String>(
+            icon: Icon(
+              _connectedPrinter?.isConnected == true
+                  ? Icons.print
+                  : Icons.print_disabled,
+              color:
+                  _connectedPrinter?.isConnected == true
+                      ? Colors.white
+                      : Colors.white70,
+            ),
+            tooltip: 'Opsi Printer',
+            onSelected: (value) async {
+              switch (value) {
+                case 'print':
+                  _printReceipt(context);
+                  break;
+                case 'setup':
+                  _setupPrinter(context);
+                  break;
+                case 'test':
+                  _testPrinter(context);
+                  break;
+              }
+            },
+            itemBuilder:
+                (context) => [
+                  PopupMenuItem<String>(
+                    value: 'print',
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.print,
+                          color:
+                              _connectedPrinter?.isConnected == true
+                                  ? Colors.green
+                                  : Colors.grey,
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          _connectedPrinter?.isConnected == true
+                              ? 'Cetak Struk'
+                              : 'Cetak Struk (Setup Required)',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem<String>(
+                    value: 'setup',
+                    child: Row(
+                      children: [
+                        Icon(Icons.settings, color: Colors.blue),
+                        SizedBox(width: 12),
+                        Text('Pengaturan Printer'),
+                      ],
+                    ),
+                  ),
+                  if (_connectedPrinter?.isConnected == true)
+                    const PopupMenuItem<String>(
+                      value: 'test',
+                      child: Row(
+                        children: [
+                          Icon(Icons.receipt_long, color: Colors.orange),
+                          SizedBox(width: 12),
+                          Text('Test Print'),
+                        ],
+                      ),
+                    ),
+                ],
           ),
         ],
       ),
@@ -87,7 +162,8 @@ class ReceiptPage extends StatelessWidget {
                   const Divider(height: 32, thickness: 2),
 
                   // Notes section (if exists)
-                  if (notes != null && notes!.trim().isNotEmpty) ...[
+                  if (widget.notes != null &&
+                      widget.notes!.trim().isNotEmpty) ...[
                     _buildNotesSection(),
                     const SizedBox(height: 16),
                   ],
@@ -152,7 +228,7 @@ class ReceiptPage extends StatelessWidget {
             borderRadius: BorderRadius.circular(40),
             boxShadow: [
               BoxShadow(
-                color: Colors.blue.withOpacity(0.3),
+                color: Colors.blue.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 4),
               ),
@@ -164,7 +240,7 @@ class ReceiptPage extends StatelessWidget {
 
         // Store Name
         Text(
-          store.name,
+          widget.store.name,
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -176,7 +252,7 @@ class ReceiptPage extends StatelessWidget {
 
         // Store Address
         Text(
-          '${store.address}\nTelp: ${store.phoneNumber}',
+          '${widget.store.address}\nTelp: ${widget.store.phoneNumber}',
           style: TextStyle(fontSize: 14, color: Colors.grey[600]),
           textAlign: TextAlign.center,
         ),
@@ -202,7 +278,7 @@ class ReceiptPage extends StatelessWidget {
           children: [
             Text('No. Transaksi:', style: TextStyle(color: Colors.grey[600])),
             Text(
-              receiptId,
+              widget.receiptId,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -214,7 +290,7 @@ class ReceiptPage extends StatelessWidget {
           children: [
             Text('Tanggal:', style: TextStyle(color: Colors.grey[600])),
             Text(
-              _formatDateTime(transactionDate),
+              _formatDateTime(widget.transactionDate),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -238,7 +314,7 @@ class ReceiptPage extends StatelessWidget {
           children: [
             Text('Pembayaran:', style: TextStyle(color: Colors.grey[600])),
             Text(
-              paymentMethod,
+              widget.paymentMethod,
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -307,7 +383,7 @@ class ReceiptPage extends StatelessWidget {
         const SizedBox(height: 8),
 
         // Items
-        ...items.map((item) => _buildItemRow(item)),
+        ...widget.items.map((item) => _buildItemRow(item)),
       ],
     );
   }
@@ -356,10 +432,11 @@ class ReceiptPage extends StatelessWidget {
   Widget _buildTotals() {
     return Column(
       children: [
-        _buildTotalRow('Subtotal', subtotal, false),
-        if (discount > 0) _buildTotalRow('Diskon', -discount, false),
+        _buildTotalRow('Subtotal', widget.subtotal, false),
+        if (widget.discount > 0)
+          _buildTotalRow('Diskon', -widget.discount, false),
         const Divider(),
-        _buildTotalRow('TOTAL BAYAR', total, true),
+        _buildTotalRow('TOTAL BAYAR', widget.total, true),
       ],
     );
   }
@@ -481,7 +558,7 @@ class ReceiptPage extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            notes!,
+            widget.notes!,
             style: TextStyle(fontSize: 14, color: Colors.orange[800]),
           ),
         ],
@@ -537,13 +614,164 @@ class ReceiptPage extends StatelessWidget {
     );
   }
 
-  void _printReceipt(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Fitur print akan segera tersedia'),
-        backgroundColor: Colors.blue,
-      ),
+  void _printReceipt(BuildContext context) async {
+    // Show loading dialog
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
+        // Show printer settings dialog
+        Navigator.of(context).pop(); // Close loading dialog
+
+        final printer = await showDialog<ThermalPrinterService>(
+          context: context,
+          builder: (context) => const PrinterSettingsDialog(),
+        );
+
+        if (printer != null) {
+          _connectedPrinter = printer;
+        } else {
+          // User cancelled printer setup
+          return;
+        }
+      }
+
+      // Print receipt using thermal printer
+      final success = await _connectedPrinter!.printReceipt(
+        receiptId: widget.receiptId,
+        transactionDate: widget.transactionDate,
+        items: widget.items,
+        store: widget.store,
+        user: widget.user,
+        subtotal: widget.subtotal,
+        discount: widget.discount,
+        total: widget.total,
+        paymentMethod: widget.paymentMethod,
+        notes: widget.notes,
+      );
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Struk berhasil dicetak!'
+                  : 'Gagal mencetak struk. Silakan coba lagi.',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+            action:
+                success
+                    ? null
+                    : SnackBarAction(
+                      label: 'Retry',
+                      onPressed: () => _printReceipt(context),
+                    ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              onPressed: () => _printReceipt(context),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _setupPrinter(BuildContext context) async {
+    final printer = await showDialog<ThermalPrinterService>(
+      context: context,
+      builder: (context) => const PrinterSettingsDialog(),
+    );
+
+    if (printer != null) {
+      setState(() {
+        _connectedPrinter = printer;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Printer berhasil dikonfigurasi!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _testPrinter(BuildContext context) async {
+    if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Printer belum terhubung'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      return;
+    }
+
+    // Show loading
+    if (mounted) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 16),
+                  Text('Mencetak test page...'),
+                ],
+              ),
+            ),
+      );
+    }
+
+    try {
+      final success = await _connectedPrinter!.testPrint();
+
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              success
+                  ? 'Test print berhasil!'
+                  : 'Test print gagal. Periksa koneksi printer.',
+            ),
+            backgroundColor: success ? Colors.green : Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.of(context).pop(); // Close loading dialog
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
   }
 
   void _newTransaction(BuildContext context) {
@@ -563,43 +791,43 @@ class ReceiptPage extends StatelessWidget {
     final buffer = StringBuffer();
 
     buffer.writeln('=================================');
-    buffer.writeln('     ${store.name.toUpperCase()}');
-    buffer.writeln('  ${store.address}');
-    buffer.writeln('       Telp: ${store.phoneNumber}');
+    buffer.writeln('     ${widget.store.name.toUpperCase()}');
+    buffer.writeln('  ${widget.store.address}');
+    buffer.writeln('       Telp: ${widget.store.phoneNumber}');
     buffer.writeln('=================================');
     buffer.writeln();
     buffer.writeln('STRUK PEMBAYARAN');
     buffer.writeln();
-    buffer.writeln('No. Transaksi: $receiptId');
-    buffer.writeln('Tanggal: ${_formatDateTime(transactionDate)}');
-    buffer.writeln('Kasir: ${user?.name ?? 'Admin POS'}');
-    buffer.writeln('Pembayaran: $paymentMethod');
+    buffer.writeln('No. Transaksi: ${widget.receiptId}');
+    buffer.writeln('Tanggal: ${_formatDateTime(widget.transactionDate)}');
+    buffer.writeln('Kasir: ${widget.user?.name ?? 'Admin POS'}');
+    buffer.writeln('Pembayaran: ${widget.paymentMethod}');
     buffer.writeln();
     buffer.writeln('---------------------------------');
     buffer.writeln('DETAIL PEMBELIAN');
     buffer.writeln('---------------------------------');
 
-    for (final item in items) {
-      buffer.writeln('${item.product.name}');
+    for (final item in widget.items) {
+      buffer.writeln(item.product.name);
       buffer.writeln(
         '  ${item.quantity} x Rp ${_formatPrice(item.product.price)} = Rp ${_formatPrice(item.subtotal)}',
       );
     }
 
     buffer.writeln('---------------------------------');
-    buffer.writeln('Subtotal: Rp ${_formatPrice(subtotal)}');
-    if (discount > 0) {
-      buffer.writeln('Diskon: Rp ${_formatPrice(discount)}');
+    buffer.writeln('Subtotal: Rp ${_formatPrice(widget.subtotal)}');
+    if (widget.discount > 0) {
+      buffer.writeln('Diskon: Rp ${_formatPrice(widget.discount)}');
     }
     buffer.writeln('=================================');
-    buffer.writeln('TOTAL BAYAR: Rp ${_formatPrice(total)}');
+    buffer.writeln('TOTAL BAYAR: Rp ${_formatPrice(widget.total)}');
     buffer.writeln('=================================');
     buffer.writeln();
 
     // Add notes if exists
-    if (notes != null && notes!.trim().isNotEmpty) {
+    if (widget.notes != null && widget.notes!.trim().isNotEmpty) {
       buffer.writeln('CATATAN:');
-      buffer.writeln(notes!);
+      buffer.writeln(widget.notes!);
       buffer.writeln();
     }
 

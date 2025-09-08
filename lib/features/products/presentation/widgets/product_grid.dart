@@ -198,7 +198,7 @@ class ProductGrid extends StatelessWidget {
 
   void _addToCart(BuildContext context, product) {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-    cartProvider.addItem(product);
+    cartProvider.addItem(product, context: context);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

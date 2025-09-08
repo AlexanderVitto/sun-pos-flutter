@@ -33,13 +33,21 @@ class PaymentService {
     required BuildContext context,
     required CartProvider cartProvider,
     required TextEditingController notesController,
+    double? cashAmount,
+    double transferAmount = 0,
   }) async {
     if (cartProvider.items.isEmpty) {
       PosUIHelpers.showErrorSnackbar(context, 'Keranjang masih kosong');
       return;
     }
 
-    _showPaymentConfirmationDialog(context, cartProvider, notesController);
+    _showPaymentConfirmationDialog(
+      context,
+      cartProvider,
+      notesController,
+      cashAmount,
+      transferAmount,
+    );
   }
 
   static Future<void> processOrder({
@@ -55,10 +63,93 @@ class PaymentService {
     _showOrderConfirmationDialog(context, cartProvider, notesController);
   }
 
+  // Process draft transaction when adding items to cart
+  static Future<void> processDraftTransaction({
+    required BuildContext context,
+    required CartProvider cartProvider,
+  }) async {
+    if (cartProvider.items.isEmpty) {
+      return; // No items to process
+    }
+
+    try {
+      // Get transaction provider
+      final transactionProvider = Provider.of<TransactionProvider>(
+        context,
+        listen: false,
+      );
+
+      // Check if this is an existing draft transaction that needs update
+      if (cartProvider.hasExistingDraftTransaction) {
+        debugPrint(
+          '🔄 Updating existing draft transaction ID: ${cartProvider.draftTransactionId}',
+        );
+
+        // Use the new updateTransaction method
+        await transactionProvider.updateTransaction(
+          transactionId: cartProvider.draftTransactionId!,
+          cartItems: cartProvider.items,
+          totalAmount: cartProvider.total,
+          notes: 'Updated draft transaction',
+          paymentMethod: 'cash',
+          customerName: cartProvider.selectedCustomer?.name ?? 'Customer',
+          customerPhone: cartProvider.selectedCustomer?.phone,
+          status: 'draft', // Draft status for cart items
+          cashAmount: 0, // No cash amount for draft
+          transferAmount: 0, // Default transfer amount for draft
+        );
+
+        debugPrint('✅ Draft transaction updated successfully');
+      } else {
+        debugPrint('✨ Creating new draft transaction');
+
+        // Process new draft transaction
+        final response = await transactionProvider.processPayment(
+          cartItems: cartProvider.items,
+          totalAmount: cartProvider.total,
+          notes: 'New draft transaction',
+          paymentMethod: 'cash',
+          customerName: cartProvider.selectedCustomer?.name ?? 'Customer',
+          customerPhone: cartProvider.selectedCustomer?.phone,
+          status: 'draft', // Draft status for cart items
+          cashAmount: 0, // No cash amount for draft
+          transferAmount: 0, // Default transfer amount for draft
+        );
+
+        // Store draft transaction ID for future updates
+        if (response != null && response.data != null) {
+          // Use a separate method call to update the cart provider
+          _updateCartProviderWithTransactionId(context, response.data!.id);
+          debugPrint(
+            '✅ New draft transaction created with ID: ${response.data!.id}',
+          );
+        }
+      }
+    } catch (e) {
+      // Silent failure for draft transactions to not interrupt user experience
+      debugPrint('Failed to process draft transaction: ${e.toString()}');
+    }
+  }
+
+  // Helper method to update cart provider with transaction ID
+  static void _updateCartProviderWithTransactionId(
+    BuildContext context,
+    int transactionId,
+  ) {
+    try {
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      cartProvider.setDraftTransactionId(transactionId);
+    } catch (e) {
+      debugPrint('Failed to update cart provider with transaction ID: $e');
+    }
+  }
+
   static void _showPaymentConfirmationDialog(
     BuildContext context,
     CartProvider cartProvider,
     TextEditingController notesController,
+    double? cashAmount,
+    double transferAmount,
   ) {
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -82,6 +173,8 @@ class PaymentService {
                     customerName,
                     customerPhone,
                     notesController,
+                    cashAmount,
+                    transferAmount,
                   );
                 }
               },
@@ -96,6 +189,8 @@ class PaymentService {
     String customerName,
     String customerPhone,
     TextEditingController notesController,
+    double? cashAmount,
+    double transferAmount,
   ) async {
     try {
       // Set customer information in cart provider
@@ -112,16 +207,47 @@ class PaymentService {
         listen: false,
       );
 
-      // Process payment using the correct method
-      final transactionResponse = await transactionProvider.processPayment(
-        cartItems: cartProvider.items,
-        totalAmount: cartProvider.total,
-        notes: notesController.text.trim(),
-        paymentMethod: 'cash',
-        customerName: cartProvider.customerName ?? 'Customer',
-        customerPhone: cartProvider.customerPhone,
-        status: 'completed', // Change status to completed for paid transactions
-      );
+      dynamic transactionResponse;
+
+      // Check if this is an existing draft transaction that needs update
+      if (cartProvider.hasExistingDraftTransaction) {
+        debugPrint(
+          '🔄 Updating existing draft transaction to completed status. ID: ${cartProvider.draftTransactionId}',
+        );
+
+        // Use updateTransaction method for existing draft transactions
+        transactionResponse = await transactionProvider.updateTransaction(
+          transactionId: cartProvider.draftTransactionId!,
+          cartItems: cartProvider.items,
+          totalAmount: cartProvider.total,
+          notes: notesController.text.trim(),
+          paymentMethod: 'cash',
+          customerName: cartProvider.customerName ?? 'Customer',
+          customerPhone: cartProvider.customerPhone,
+          status: 'pending', // Change status from draft to pending
+          cashAmount: cashAmount,
+          transferAmount: transferAmount,
+        );
+
+        debugPrint('✅ Draft transaction updated to pending successfully');
+      } else {
+        debugPrint('✨ Creating new completed transaction');
+
+        // Process payment using the correct method
+        transactionResponse = await transactionProvider.processPayment(
+          cartItems: cartProvider.items,
+          totalAmount: cartProvider.total,
+          notes: notesController.text.trim(),
+          paymentMethod: 'cash',
+          customerName: cartProvider.customerName ?? 'Customer',
+          customerPhone: cartProvider.customerPhone,
+          status: 'pending', // Change status to pending for paid transactions
+          cashAmount: cashAmount,
+          transferAmount: transferAmount,
+        );
+
+        debugPrint('✅ New pending transaction created successfully');
+      }
 
       if (transactionResponse != null) {
         // Store cart items before clearing for receipt
@@ -245,7 +371,13 @@ class PaymentService {
               initialCustomerName: cartProvider.customerName,
               initialCustomerPhone: cartProvider.customerPhone,
               store: store,
-              onConfirm: (customerName, customerPhone) {
+              onConfirm: (
+                customerName,
+                customerPhone,
+                updatedCartItems,
+                updatedTotalAmount,
+                discountPercentage,
+              ) {
                 // Check if context is still valid before operations
                 if (context.mounted) {
                   _confirmOrder(
@@ -254,6 +386,9 @@ class PaymentService {
                     customerName,
                     customerPhone,
                     notesController,
+                    updatedCartItems,
+                    updatedTotalAmount,
+                    discountPercentage,
                   );
                 }
               },
@@ -268,6 +403,9 @@ class PaymentService {
     String customerName,
     String customerPhone,
     TextEditingController notesController,
+    List<CartItem> updatedCartItems,
+    double updatedTotalAmount,
+    double discountPercentage,
   ) async {
     try {
       // Set customer information in cart provider
@@ -278,22 +416,65 @@ class PaymentService {
         cartProvider.setCustomerPhone(customerPhone);
       }
 
+      // Update cart provider with modified items and total
+      // This ensures the backend receives the correct updated prices
+      cartProvider.clearItems();
+      for (final item in updatedCartItems) {
+        cartProvider.addItem(item.product, quantity: item.quantity);
+      }
+
+      // Since updatedCartItems already have discounted prices per item,
+      // we don't need to set discount amount separately.
+      // The cart provider will automatically calculate the correct total
+      // from the already discounted item prices.
+
       // Get transaction provider
       final transactionProvider = Provider.of<TransactionProvider>(
         context,
         listen: false,
       );
 
-      // Process order using the correct method (status = pending payment)
-      final transactionResponse = await transactionProvider.processPayment(
-        cartItems: cartProvider.items,
-        totalAmount: cartProvider.total,
-        notes: notesController.text.trim(),
-        paymentMethod: 'cash',
-        customerName: cartProvider.customerName ?? 'Customer',
-        customerPhone: cartProvider.customerPhone,
-        status: 'pending', // Change status to pending for orders
-      );
+      dynamic transactionResponse;
+
+      // Check if this is an existing draft transaction that needs update
+      if (cartProvider.hasExistingDraftTransaction) {
+        debugPrint(
+          '🔄 Updating existing draft transaction to order status. ID: ${cartProvider.draftTransactionId}',
+        );
+
+        // Use updateTransaction method for existing draft transactions
+        transactionResponse = await transactionProvider.updateTransaction(
+          transactionId: cartProvider.draftTransactionId!,
+          cartItems: updatedCartItems,
+          totalAmount: updatedTotalAmount,
+          notes: notesController.text.trim(),
+          paymentMethod: 'cash',
+          customerName: cartProvider.customerName ?? 'Customer',
+          customerPhone: cartProvider.customerPhone,
+          status: 'pending', // Change status from draft to pending
+          cashAmount: 0, // Orders don't have cash amount since they're pending
+          transferAmount: 0, // Default transfer amount for orders
+        );
+
+        debugPrint('✅ Draft transaction updated to order successfully');
+      } else {
+        debugPrint('✨ Creating new order transaction');
+
+        // Process new order using the correct method (status = pending payment)
+        transactionResponse = await transactionProvider.processPayment(
+          cartItems: updatedCartItems,
+          totalAmount: updatedTotalAmount,
+          notes: notesController.text.trim(),
+          paymentMethod: 'cash',
+          customerName: cartProvider.customerName ?? 'Customer',
+          customerPhone: cartProvider.customerPhone,
+          status: 'pending', // Change status to pending for orders
+          cashAmount: 0, // Orders don't have cash amount since they're pending
+          transferAmount: 0, // Default transfer amount for orders
+        );
+
+        debugPrint('✅ New order transaction created successfully');
+      }
 
       if (transactionResponse != null) {
         // Prepare data for OrderSuccessPage
@@ -313,12 +494,15 @@ class PaymentService {
             'ORD${DateTime.now().millisecondsSinceEpoch}';
 
         // Store cart items before clearing
-        final cartItemsCopy = List<CartItem>.from(cartProvider.items);
-        final totalAmount = cartProvider.total;
-        final itemCount = cartProvider.itemCount;
+        final cartItemsCopy = List<CartItem>.from(updatedCartItems);
+        final totalAmount = updatedTotalAmount;
+        final itemCount = updatedCartItems.fold(
+          0,
+          (sum, item) => sum + item.quantity,
+        );
         final notes = notesController.text.trim();
 
-        // Clear cart
+        // Clear cart and reset draft transaction
         cartProvider.clearCart();
         notesController.clear();
 

@@ -8,7 +8,14 @@ class OrderConfirmationPage extends StatefulWidget {
   final double totalAmount;
   final int itemCount;
   final TextEditingController notesController;
-  final Function(String customerName, String customerPhone) onConfirm;
+  final Function(
+    String customerName,
+    String customerPhone,
+    List<CartItem> updatedCartItems,
+    double updatedTotalAmount,
+    double discountPercentage,
+  )
+  onConfirm;
   final Customer? selectedCustomer;
   final String? initialCustomerName;
   final String? initialCustomerPhone;
@@ -34,10 +41,17 @@ class OrderConfirmationPage extends StatefulWidget {
 class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   Customer? _selectedCustomer;
   bool _isProcessing = false;
+  late List<CartItem> _cartItems;
+  double _discountPercentage = 0.0;
+  late TextEditingController _discountController;
 
   @override
   void initState() {
     super.initState();
+    // Initialize cart items copy
+    _cartItems = List.from(widget.cartItems);
+    _discountController = TextEditingController(text: '0');
+
     // Prioritize pre-selected customer from cart
     if (widget.selectedCustomer != null) {
       _selectedCustomer = widget.selectedCustomer;
@@ -54,8 +68,256 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
     }
   }
 
+  @override
+  void dispose() {
+    _discountController.dispose();
+    super.dispose();
+  }
+
   String get customerName => _selectedCustomer?.name ?? '';
   String get customerPhone => _selectedCustomer?.phone ?? '';
+
+  List<CartItem> get updatedCartItems =>
+      _cartItems.map((item) {
+        // Apply discount percentage to each item's price
+        final discountedPrice =
+            item.product.price * (1 - (_discountPercentage / 100));
+        return item.copyWith(
+          product: item.product.copyWith(price: discountedPrice),
+        );
+      }).toList();
+
+  double get subtotal => _cartItems.fold(
+    0.0,
+    (sum, item) => sum + (item.product.price * item.quantity),
+  );
+
+  double get subtotalAfterDiscount => updatedCartItems.fold(
+    0.0,
+    (sum, item) => sum + (item.product.price * item.quantity),
+  );
+
+  double get discountAmount => subtotal - subtotalAfterDiscount;
+  double get updatedTotalAmount => subtotalAfterDiscount;
+
+  void _recalculateTotal() {
+    setState(() {
+      // Total akan dihitung ulang melalui getter yang sudah ada
+      // subtotal akan update otomatis karena _cartItems berubah
+      // updatedTotalAmount akan update otomatis karena menggunakan subtotal dan discount
+    });
+  }
+
+  void _updateDiscount() {
+    setState(() {
+      final discount = double.tryParse(_discountController.text) ?? 0.0;
+      _discountPercentage = discount.clamp(0.0, 100.0);
+      if (_discountPercentage != discount) {
+        _discountController.text = _discountPercentage.toString();
+      }
+    });
+  }
+
+  void _showEditPriceModal(int index) {
+    final item = _cartItems[index];
+    final TextEditingController priceController = TextEditingController(
+      text: item.product.price.toString(),
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder:
+          (context) => Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Handle bar
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Title
+                    Text(
+                      'Edit Harga Item',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Product info
+                    Row(
+                      children: [
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child:
+                              item.product.imagePath?.isNotEmpty == true
+                                  ? ClipRRect(
+                                    borderRadius: BorderRadius.circular(8),
+                                    child: Image.network(
+                                      item.product.imagePath!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) => Icon(
+                                            Icons.image_not_supported,
+                                            color: Colors.grey.shade400,
+                                          ),
+                                    ),
+                                  )
+                                  : Icon(
+                                    Icons.shopping_bag,
+                                    color: Colors.grey.shade400,
+                                  ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                item.product.name,
+                                style: const TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              Text(
+                                'Qty: ${item.quantity}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Price input
+                    Text(
+                      'Harga per Item',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.grey.shade700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: priceController,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        prefixText: 'Rp ',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(
+                            color: Colors.orange.shade600,
+                            width: 2,
+                          ),
+                        ),
+                        contentPadding: const EdgeInsets.all(16),
+                      ),
+                      autofocus: true,
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Action buttons
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Batal'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              final newPrice = double.tryParse(
+                                priceController.text,
+                              );
+                              if (newPrice != null && newPrice > 0) {
+                                setState(() {
+                                  _cartItems[index] = _cartItems[index]
+                                      .copyWith(
+                                        product: item.product.copyWith(
+                                          price: newPrice,
+                                        ),
+                                      );
+                                });
+                                _recalculateTotal();
+                                Navigator.pop(context);
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Harga harus berupa angka yang valid',
+                                    ),
+                                    backgroundColor: Colors.red,
+                                  ),
+                                );
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.orange.shade600,
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Text('Simpan'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
+  }
 
   void _handleConfirmOrder() async {
     if (_isProcessing) return;
@@ -65,7 +327,14 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
     });
 
     try {
-      widget.onConfirm(customerName, customerPhone);
+      // Pass the updated cart items and total to the callback
+      widget.onConfirm(
+        customerName,
+        customerPhone,
+        updatedCartItems,
+        updatedTotalAmount,
+        _discountPercentage,
+      );
       // Navigation will be handled by the calling page
       // if (mounted) {
       //   Navigator.of(context).pop();
@@ -196,11 +465,11 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                     ListView.separated(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: widget.cartItems.length,
+                      itemCount: _cartItems.length,
                       separatorBuilder:
                           (context, index) => const Divider(height: 20),
                       itemBuilder: (context, index) {
-                        final item = widget.cartItems[index];
+                        final item = _cartItems[index];
                         return Row(
                           children: [
                             // Product Image
@@ -276,11 +545,76 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      Text(
-                                        'Rp ${item.product.price.toStringAsFixed(0)}',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.grey.shade600,
+                                      GestureDetector(
+                                        onTap: () => _showEditPriceModal(index),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.green.shade200,
+                                            ),
+                                          ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  if (_discountPercentage >
+                                                      0) ...[
+                                                    Text(
+                                                      'Rp ${item.product.price.toStringAsFixed(0)}',
+                                                      style: TextStyle(
+                                                        fontSize: 10,
+                                                        color:
+                                                            Colors
+                                                                .grey
+                                                                .shade600,
+                                                        decoration:
+                                                            TextDecoration
+                                                                .lineThrough,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                  ],
+                                                  Text(
+                                                    'Rp ${updatedCartItems[index].product.price.toStringAsFixed(0)}',
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color:
+                                                          Colors.green.shade700,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 4),
+                                                  Icon(
+                                                    Icons.edit,
+                                                    size: 14,
+                                                    color:
+                                                        Colors.green.shade700,
+                                                  ),
+                                                ],
+                                              ),
+                                              if (_discountPercentage > 0)
+                                                Text(
+                                                  '-${_discountPercentage.toStringAsFixed(1)}%',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    color: Colors.red.shade600,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                            ],
+                                          ),
                                         ),
                                       ),
                                     ],
@@ -303,7 +637,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                 ),
                               ),
                               child: Text(
-                                'Rp ${(item.product.price * item.quantity).toStringAsFixed(0)}',
+                                'Rp ${(updatedCartItems[index].product.price * item.quantity).toStringAsFixed(0)}',
                                 style: TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -489,6 +823,157 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 
             const SizedBox(height: 16),
 
+            // Discount Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade600,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.percent,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Diskon Per Item',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _discountController,
+                            keyboardType: TextInputType.number,
+                            onChanged: (_) => _updateDiscount(),
+                            decoration: InputDecoration(
+                              labelText: 'Diskon Per Item (%)',
+                              hintText: '0',
+                              helperText:
+                                  'Diskon akan diterapkan ke setiap item',
+                              suffixText: '%',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.red.shade600,
+                                  width: 2,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 16,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.red.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.red.shade200),
+                          ),
+                          child: Text(
+                            'Rp ${discountAmount.toStringAsFixed(0)}',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red.shade700,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Subtotal (sebelum diskon):',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                              Text(
+                                'Rp ${subtotal.toStringAsFixed(0)}',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey.shade700,
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (_discountPercentage > 0) ...[
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Total setelah diskon:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+                                Text(
+                                  'Rp ${subtotalAfterDiscount.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Notes Card
             if (widget.notesController.text.isNotEmpty)
               Card(
@@ -600,15 +1085,46 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                               color: Colors.white.withValues(alpha: 0.8),
                             ),
                           ),
+                          if (_discountPercentage > 0)
+                            Text(
+                              'Diskon ${_discountPercentage.toStringAsFixed(1)}%',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.white.withValues(alpha: 0.8),
+                              ),
+                            ),
                         ],
                       ),
-                      Text(
-                        'Rp ${widget.totalAmount.toStringAsFixed(0)}',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (_discountPercentage > 0) ...[
+                            Text(
+                              'Rp ${subtotal.toStringAsFixed(0)}',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.white.withValues(alpha: 0.8),
+                                decoration: TextDecoration.lineThrough,
+                              ),
+                            ),
+                            Text(
+                              'Rp ${updatedTotalAmount.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ] else
+                            Text(
+                              'Rp ${updatedTotalAmount.toStringAsFixed(0)}',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                        ],
                       ),
                     ],
                   ),
@@ -697,19 +1213,12 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                     ),
                                   ],
                                 )
-                                : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.restaurant_menu, size: 22),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Konfirmasi Pesanan',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
+                                : Text(
+                                  'Konfirmasi Pesanan',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                       ),
                     ),

@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:sun_pos/data/models/product.dart';
+import 'package:sun_pos/features/products/providers/product_provider.dart';
 import '../../providers/pending_transaction_provider.dart';
+import '../../data/models/pending_transaction_api_models.dart';
 import 'customer_selection_page.dart';
 import '../../providers/cart_provider.dart';
 import 'pos_transaction_page.dart';
@@ -38,45 +41,140 @@ class _PendingTransactionListPageState
     await pendingProvider.loadPendingTransactions();
   }
 
-  void _resumeTransaction(PendingTransaction transaction) {
+  void _resumeTransaction(dynamic transaction) async {
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
-
-    // Clear current cart and load pending transaction
-    cartProvider.clearCart();
-
-    // Load cart items
-    for (final item in transaction.cartItems) {
-      cartProvider.addItem(item.product, quantity: item.quantity);
-    }
-
-    // Set customer - convert to API customer format
-    final apiCustomer = transaction.customer;
-    cartProvider.setCustomerFromApi(apiCustomer);
-
-    // Show confirmation
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Melanjutkan transaksi untuk ${transaction.customerName}',
-        ),
-        backgroundColor: Colors.blue,
-      ),
+    final pendingProvider = Provider.of<PendingTransactionProvider>(
+      context,
+      listen: false,
+    );
+    final productProvider = Provider.of<ProductProvider>(
+      context,
+      listen: false,
     );
 
-    // Navigate to POS page
-    Navigator.of(
-      context,
-    ).push(MaterialPageRoute(builder: (context) => const POSTransactionPage()));
+    try {
+      // Clear current cart
+      cartProvider.clearCart();
+
+      if (transaction is PendingTransactionItem) {
+        // Handle API transaction - need to get detail first
+        final detail = await pendingProvider.getPendingTransactionDetail(
+          transaction.id,
+        );
+
+        // Set draft transaction ID for future updates
+        cartProvider.setDraftTransactionId(transaction.id);
+        debugPrint('🔄 Setting draft transaction ID: ${transaction.id}');
+
+        // Convert API detail items to cart items
+        for (final item in detail.details) {
+          if (item.product != null) {
+            // find product in productProvider, return null if not found
+            Product? product =
+                productProvider.products
+                        .where((p) => p.id == item.product!.id)
+                        .isNotEmpty
+                    ? productProvider.products.firstWhere(
+                      (p) => p.id == item.product!.id,
+                    )
+                    : null;
+
+            if (product != null) {
+              cartProvider.addItem(product, quantity: item.quantity);
+            } else {
+              debugPrint(
+                '⚠️ Product with ID ${item.product!.id} not found in productProvider',
+              );
+            }
+          }
+        }
+
+        // Set customer from API customer format
+        if (detail.customer != null) {
+          cartProvider.setCustomerFromApi(detail.customer!);
+        }
+
+        // Show confirmation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Melanjutkan transaksi untuk ${detail.customerName}'),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      } else if (transaction is PendingTransaction) {
+        // Handle local transaction (backward compatibility)
+        // Note: Local transactions don't have API transaction ID
+        debugPrint(
+          '🔄 Resuming local pending transaction (no API transaction ID)',
+        );
+
+        // Load cart items
+        for (final item in transaction.cartItems) {
+          cartProvider.addItem(item.product, quantity: item.quantity);
+        }
+
+        // Set customer from API customer format
+        final apiCustomer = transaction.customer;
+        cartProvider.setCustomerFromApi(apiCustomer);
+
+        // Show confirmation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Melanjutkan transaksi untuk ${transaction.customerName}',
+            ),
+            backgroundColor: Colors.blue,
+          ),
+        );
+      }
+
+      // Delay untuk memastikan provider state ter-update
+      await Future.delayed(const Duration(milliseconds: 100));
+
+      // Debug: Verify cart state before navigation
+      debugPrint(
+        '🛒 Cart items before navigation: ${cartProvider.items.length}',
+      );
+      debugPrint(
+        '🛒 Selected customer: ${cartProvider.selectedCustomer?.name}',
+      );
+
+      // Navigate to POS page dengan context yang sama untuk mempertahankan provider state
+      if (mounted) {
+        Navigator.of(context).push(
+          MaterialPageRoute(builder: (context) => const POSTransactionPage()),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal melanjutkan transaksi: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      debugPrint('❌ Error resuming transaction: $e');
+    }
   }
 
-  Future<void> _deleteTransaction(PendingTransaction transaction) async {
+  Future<void> _deleteTransaction(dynamic transaction) async {
+    String customerName;
+    if (transaction is PendingTransactionItem) {
+      customerName = transaction.customerName;
+    } else if (transaction is PendingTransaction) {
+      customerName = transaction.customerName;
+    } else {
+      customerName = 'Unknown Customer';
+    }
+
     final confirm = await showDialog<bool>(
       context: context,
       builder:
           (context) => AlertDialog(
             title: const Text('Hapus Transaksi Pending'),
             content: Text(
-              'Apakah Anda yakin ingin menghapus transaksi pending untuk ${transaction.customerName}?',
+              'Apakah Anda yakin ingin menghapus transaksi pending untuk $customerName?',
             ),
             actions: [
               TextButton(
@@ -101,14 +199,21 @@ class _PendingTransactionListPageState
           context,
           listen: false,
         );
-        await pendingProvider.deletePendingTransaction(transaction.customerId);
+
+        if (transaction is PendingTransactionItem) {
+          // Delete API transaction by ID
+          await pendingProvider.deletePendingTransactionById(transaction.id);
+        } else if (transaction is PendingTransaction) {
+          // Delete local transaction by customer ID
+          await pendingProvider.deletePendingTransaction(
+            transaction.customerId,
+          );
+        }
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(
-                'Transaksi untuk ${transaction.customerName} berhasil dihapus',
-              ),
+              content: Text('Transaksi untuk $customerName berhasil dihapus'),
               backgroundColor: Colors.green,
             ),
           );
@@ -142,7 +247,15 @@ class _PendingTransactionListPageState
           color: const Color(0xFF3B82F6),
           child: Consumer<PendingTransactionProvider>(
             builder: (context, pendingProvider, child) {
-              if (pendingProvider.pendingTransactionsList.isEmpty) {
+              final transactions = pendingProvider.allPendingTransactionsList;
+
+              if (pendingProvider.isLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Color(0xFF3B82F6)),
+                );
+              }
+
+              if (transactions.isEmpty) {
                 return _buildEmptyState();
               }
 
@@ -156,18 +269,51 @@ class _PendingTransactionListPageState
                     _buildHeader(),
                     const SizedBox(height: 24),
 
+                    // Error message if any
+                    if (pendingProvider.errorMessage != null) ...[
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        margin: const EdgeInsets.only(bottom: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: Colors.orange.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              LucideIcons.alertTriangle,
+                              color: Colors.orange,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                pendingProvider.errorMessage!,
+                                style: TextStyle(
+                                  color: Colors.orange.shade700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
                     // Header stats
-                    _buildHeaderStats(pendingProvider),
+                    _buildHeaderStats(transactions),
                     const SizedBox(height: 24),
 
                     // Transactions list
                     ListView.builder(
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
-                      itemCount: pendingProvider.pendingTransactionsList.length,
+                      itemCount: transactions.length,
                       itemBuilder: (context, index) {
-                        final transaction =
-                            pendingProvider.pendingTransactionsList[index];
+                        final transaction = transactions[index];
                         return _buildTransactionCard(transaction);
                       },
                     ),
@@ -213,16 +359,20 @@ class _PendingTransactionListPageState
     );
   }
 
-  Widget _buildHeaderStats(PendingTransactionProvider provider) {
-    final totalTransactions = provider.pendingTransactionsList.length;
-    final totalAmount = provider.pendingTransactionsList.fold<double>(
-      0,
-      (sum, transaction) => sum + transaction.totalAmount,
-    );
-    final totalItems = provider.pendingTransactionsList.fold<int>(
-      0,
-      (sum, transaction) => sum + transaction.totalItems,
-    );
+  Widget _buildHeaderStats(List<dynamic> transactions) {
+    final totalTransactions = transactions.length;
+    double totalAmount = 0;
+    int totalItems = 0;
+
+    for (final transaction in transactions) {
+      if (transaction is PendingTransactionItem) {
+        totalAmount += transaction.totalAmount;
+        totalItems += transaction.totalItems;
+      } else if (transaction is PendingTransaction) {
+        totalAmount += transaction.totalAmount;
+        totalItems += transaction.totalItems;
+      }
+    }
 
     final formatCurrency = NumberFormat.currency(
       locale: 'id_ID',
@@ -462,7 +612,7 @@ class _PendingTransactionListPageState
     );
   }
 
-  Widget _buildTransactionCard(PendingTransaction transaction) {
+  Widget _buildTransactionCard(PendingTransactionItem transaction) {
     final formatCurrency = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
@@ -470,6 +620,44 @@ class _PendingTransactionListPageState
     );
 
     final formatDate = DateFormat('dd MMM yyyy, HH:mm', 'id_ID');
+
+    String customerName = transaction.customerName;
+    String? customerPhone = transaction.customerPhone;
+    double totalAmount = transaction.totalAmount;
+    int totalItems = transaction.totalItems;
+    DateTime createdAt = transaction.createdAt;
+    DateTime updatedAt = transaction.updatedAt;
+    String? notes = transaction.notes;
+
+    // Extract common properties based on transaction type
+    // String customerName;
+    // String? customerPhone;
+    // double totalAmount;
+    // int totalItems;
+    // DateTime createdAt;
+    // DateTime updatedAt;
+    // String? notes;
+
+    // if (transaction is PendingTransactionItem) {
+
+    // } else if (transaction is PendingTransaction) {
+    //   customerName = transaction.customerName;
+    //   customerPhone = transaction.customerPhone;
+    //   totalAmount = transaction.totalAmount;
+    //   totalItems = transaction.totalItems;
+    //   createdAt = transaction.createdAt;
+    //   updatedAt = transaction.updatedAt;
+    //   notes = transaction.notes;
+    // } else {
+    //   // Fallback values
+    //   customerName = 'Unknown Customer';
+    //   customerPhone = null;
+    //   totalAmount = 0.0;
+    //   totalItems = 0;
+    //   createdAt = DateTime.now();
+    //   updatedAt = DateTime.now();
+    //   notes = null;
+    // }
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -521,8 +709,8 @@ class _PendingTransactionListPageState
                   ),
                   child: Center(
                     child: Text(
-                      transaction.customerName.isNotEmpty
-                          ? transaction.customerName[0].toUpperCase()
+                      customerName.isNotEmpty
+                          ? customerName[0].toUpperCase()
                           : '?',
                       style: const TextStyle(
                         color: Colors.white,
@@ -539,7 +727,7 @@ class _PendingTransactionListPageState
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        transaction.customerName,
+                        customerName,
                         style: const TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -547,7 +735,7 @@ class _PendingTransactionListPageState
                           letterSpacing: -0.3,
                         ),
                       ),
-                      if (transaction.customerPhone != null) ...[
+                      if (customerPhone != null) ...[
                         const SizedBox(height: 4),
                         Row(
                           children: [
@@ -558,7 +746,7 @@ class _PendingTransactionListPageState
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              transaction.customerPhone!,
+                              customerPhone,
                               style: const TextStyle(
                                 color: Color(0xFF6B7280),
                                 fontSize: 14,
@@ -571,48 +759,49 @@ class _PendingTransactionListPageState
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF3F4F6),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'delete') {
-                        _deleteTransaction(transaction);
-                      }
-                    },
-                    icon: const Icon(
-                      LucideIcons.moreVertical,
-                      size: 16,
-                      color: Color(0xFF6B7280),
-                    ),
-                    itemBuilder:
-                        (context) => [
-                          PopupMenuItem(
-                            value: 'delete',
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  LucideIcons.trash2,
-                                  color: Color(0xFFEF4444),
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 8),
-                                const Text(
-                                  'Hapus',
-                                  style: TextStyle(
-                                    color: Color(0xFFEF4444),
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                  ),
-                ),
+
+                // Container(
+                //   padding: const EdgeInsets.all(8),
+                //   decoration: BoxDecoration(
+                //     color: const Color(0xFFF3F4F6),
+                //     borderRadius: BorderRadius.circular(12),
+                //   ),
+                //   child: PopupMenuButton<String>(
+                //     onSelected: (value) {
+                //       if (value == 'delete') {
+                //         _deleteTransaction(transaction);
+                //       }
+                //     },
+                //     icon: const Icon(
+                //       LucideIcons.moreVertical,
+                //       size: 16,
+                //       color: Color(0xFF6B7280),
+                //     ),
+                //     itemBuilder:
+                //         (context) => [
+                //           PopupMenuItem(
+                //             value: 'delete',
+                //             child: Row(
+                //               children: [
+                //                 const Icon(
+                //                   LucideIcons.trash2,
+                //                   color: Color(0xFFEF4444),
+                //                   size: 16,
+                //                 ),
+                //                 const SizedBox(width: 8),
+                //                 const Text(
+                //                   'Hapus',
+                //                   style: TextStyle(
+                //                     color: Color(0xFFEF4444),
+                //                     fontWeight: FontWeight.w600,
+                //                   ),
+                //                 ),
+                //               ],
+                //             ),
+                //           ),
+                //         ],
+                //   ),
+                // ),
               ],
             ),
 
@@ -663,7 +852,7 @@ class _PendingTransactionListPageState
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          '${transaction.totalItems}',
+                          '$totalItems',
                           style: const TextStyle(
                             fontSize: 20,
                             fontWeight: FontWeight.w800,
@@ -719,7 +908,7 @@ class _PendingTransactionListPageState
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          formatCurrency.format(transaction.totalAmount),
+                          formatCurrency.format(totalAmount),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.w800,
@@ -756,7 +945,7 @@ class _PendingTransactionListPageState
                       const SizedBox(width: 8),
                       Flexible(
                         child: Text(
-                          'Dibuat: ${formatDate.format(transaction.createdAt)}',
+                          'Dibuat: ${formatDate.format(createdAt)}',
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF6B7280),
@@ -766,7 +955,7 @@ class _PendingTransactionListPageState
                       ),
                     ],
                   ),
-                  if (transaction.updatedAt != transaction.createdAt) ...[
+                  if (updatedAt != createdAt) ...[
                     const SizedBox(height: 6),
                     Row(
                       children: [
@@ -781,7 +970,7 @@ class _PendingTransactionListPageState
                         const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            'Update: ${formatDate.format(transaction.updatedAt)}',
+                            'Update: ${formatDate.format(updatedAt)}',
                             style: const TextStyle(
                               fontSize: 12,
                               color: Color(0xFF6B7280),
@@ -797,7 +986,7 @@ class _PendingTransactionListPageState
             ),
 
             // Notes if available
-            if (transaction.notes != null && transaction.notes!.isNotEmpty) ...[
+            if (notes != null && notes.isNotEmpty) ...[
               const SizedBox(height: 12),
               Container(
                 width: double.infinity,
@@ -821,7 +1010,7 @@ class _PendingTransactionListPageState
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        transaction.notes!,
+                        notes,
                         style: const TextStyle(
                           fontSize: 13,
                           color: Color(0xFF1E3A8A),

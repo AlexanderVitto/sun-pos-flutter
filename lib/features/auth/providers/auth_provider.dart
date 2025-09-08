@@ -39,6 +39,15 @@ class AuthProvider extends ChangeNotifier {
   // Getter untuk cek apakah ada token
   bool get hasToken => _token != null && _token!.isNotEmpty;
 
+  // Getters untuk user data dan permissions
+  List<String> get userRoles => _user?.roleNames ?? [];
+  List<String> get userPermissions => _user?.allPermissions ?? [];
+
+  // Helper methods untuk cek permission dan role
+  bool hasPermission(String permission) =>
+      _user?.hasPermission(permission) ?? false;
+  bool hasRole(String role) => _user?.hasRole(role) ?? false;
+
   // Method sederhana untuk cek token di storage dengan fallback
   Future<bool> hasStoredToken() async {
     try {
@@ -115,6 +124,9 @@ class AuthProvider extends ChangeNotifier {
         try {
           await fetchUserProfile();
           debugPrint('Profile refreshed from server');
+
+          // Load transactions or other user-specific data if needed
+          
         } catch (e) {
           debugPrint('Failed to refresh profile from server: $e');
           // Tidak masalah jika gagal, masih bisa pakai data lokal
@@ -147,6 +159,26 @@ class AuthProvider extends ChangeNotifier {
         _user = loginResponse.data.user;
         _token = loginResponse.data.token;
         _errorMessage = null;
+
+        // Load profile data setelah login berhasil
+        debugPrint('Login successful, loading user profile...');
+        try {
+          final profileLoaded = await fetchUserProfile();
+          if (profileLoaded) {
+            debugPrint('User profile loaded successfully');
+            // Profile sudah disimpan sebagai userData di fetchUserProfile()
+          } else {
+            debugPrint(
+              'Failed to load user profile, using data from login response',
+            );
+            // Jika profile gagal, tetap simpan data login sebagai userData
+            await _saveUserDataToStorage(_user!);
+          }
+        } catch (e) {
+          debugPrint('Error loading profile after login: $e');
+          // Tetap gunakan data dari login response jika profile gagal dimuat
+          await _saveUserDataToStorage(_user!);
+        }
 
         // Coba simpan ke secure storage terlebih dahulu
         try {
@@ -249,23 +281,11 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      if (profileResponse.status == 'success') {
+      if (profileResponse.success) {
         _user = profileResponse.data;
 
-        // Update stored user data
-        try {
-          await _secureStorage.saveUserData(_user!.toJson());
-          debugPrint('Profile updated in secure storage');
-        } catch (e) {
-          debugPrint('Secure storage failed, updating SharedPreferences: $e');
-
-          // Fallback ke SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setInt('user_id', _user!.id);
-          await prefs.setString('user_name', _user!.name);
-          await prefs.setString('user_email', _user!.email);
-          debugPrint('Profile updated in SharedPreferences');
-        }
+        // Simpan profile lengkap sebagai userData di storage
+        await _saveUserDataToStorage(_user!);
 
         notifyListeners();
         return true;
@@ -315,7 +335,7 @@ class AuthProvider extends ChangeNotifier {
   Future<void> updateUserData(User updatedUser) async {
     try {
       _user = updatedUser;
-      await _secureStorage.saveUserData(updatedUser.toJson());
+      await _saveUserDataToStorage(updatedUser);
       notifyListeners();
     } catch (e) {
       debugPrint('Error updating user data: $e');
@@ -343,6 +363,61 @@ class AuthProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Error getting session info: $e');
       return {};
+    }
+  }
+
+  // Get userData lengkap dari storage
+  Future<Map<String, dynamic>?> getUserDataFromStorage() async {
+    try {
+      // Coba dari secure storage dulu
+      final userData = await _secureStorage.getUserData();
+      if (userData != null && userData.isNotEmpty) {
+        debugPrint('UserData retrieved from secure storage');
+        return userData;
+      }
+    } catch (e) {
+      debugPrint('Secure storage error, trying SharedPreferences: $e');
+    }
+
+    try {
+      // Fallback ke SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+
+      final userId = prefs.getInt('user_id');
+      if (userId == null) return null;
+
+      final userData = <String, dynamic>{
+        'id': userId,
+        'name': prefs.getString('user_name') ?? '',
+        'email': prefs.getString('user_email') ?? '',
+        'created_at': prefs.getString('user_created_at') ?? '',
+        'updated_at': prefs.getString('user_updated_at') ?? '',
+        'roles': [], // Will be reconstructed if available
+      };
+
+      // Try to get roles if available
+      final rolesString = prefs.getString('user_roles');
+      if (rolesString != null && rolesString.isNotEmpty) {
+        try {
+          // Parse roles from stored string
+          // This is a simplified version, actual implementation may vary
+          debugPrint('Found stored roles: $rolesString');
+        } catch (e) {
+          debugPrint('Error parsing roles: $e');
+        }
+      }
+
+      // Get permissions if available
+      final permissions = prefs.getStringList('user_permissions') ?? [];
+      if (permissions.isNotEmpty) {
+        userData['permissions'] = permissions;
+      }
+
+      debugPrint('UserData retrieved from SharedPreferences');
+      return userData;
+    } catch (e) {
+      debugPrint('Error getting userData from SharedPreferences: $e');
+      return null;
     }
   }
 
@@ -454,6 +529,38 @@ class AuthProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  // Helper method untuk simpan userData ke storage
+  Future<void> _saveUserDataToStorage(User user) async {
+    final userData = user.toJson();
+    try {
+      await _secureStorage.saveUserData(userData);
+      debugPrint('UserData saved to secure storage: ${userData.keys}');
+    } catch (e) {
+      debugPrint(
+        'Secure storage failed, saving userData to SharedPreferences: $e',
+      );
+
+      // Fallback ke SharedPreferences - simpan sebagai userData lengkap
+      final prefs = await SharedPreferences.getInstance();
+
+      // Simpan data dasar
+      await prefs.setInt('user_id', user.id);
+      await prefs.setString('user_name', user.name);
+      await prefs.setString('user_email', user.email);
+      await prefs.setString('user_created_at', user.createdAt);
+      await prefs.setString('user_updated_at', user.updatedAt);
+
+      // Simpan roles sebagai JSON string
+      final rolesJson = user.roles.map((role) => role.toJson()).toList();
+      await prefs.setString('user_roles', rolesJson.toString());
+
+      // Simpan permissions sebagai list string
+      await prefs.setStringList('user_permissions', user.allPermissions);
+
+      debugPrint('UserData saved to SharedPreferences');
+    }
   }
 
   // Method untuk manual logout (dipanggil dari UI)

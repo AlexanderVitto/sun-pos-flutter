@@ -7,11 +7,10 @@ void main() {
   group('Cart Provider Tests', () {
     test('Cart should add items correctly', () {
       final cartProvider = CartProvider();
-      final productProvider = ProductProvider();
 
       // Create a test product
       final testProduct = Product(
-        id: 'test-1',
+        id: 1,
         name: 'Test Product',
         code: 'TEST001',
         description: 'Test description',
@@ -41,7 +40,7 @@ void main() {
       final cartProvider = CartProvider();
 
       final testProduct = Product(
-        id: 'test-2',
+        id: 2,
         name: 'Test Product 2',
         code: 'TEST002',
         description: 'Test description 2',

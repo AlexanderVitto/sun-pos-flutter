@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/pending_transaction_provider.dart';
+import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../../data/models/product.dart';
 import '../../../products/presentation/pages/product_detail_page.dart';
 import '../view_models/pos_transaction_view_model.dart';
@@ -30,6 +31,11 @@ class _POSTransactionPageState extends State<POSTransactionPage>
     super.initState();
     // Add observer to listen for app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
+
+    // Debug: Check initial cart state
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _debugCartState();
+    });
   }
 
   @override
@@ -49,6 +55,28 @@ class _POSTransactionPageState extends State<POSTransactionPage>
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached) {
       _saveCurrentTransaction();
+    }
+  }
+
+  /// Debug method to check cart state
+  void _debugCartState() {
+    try {
+      final cartProvider = Provider.of<CartProvider>(context, listen: false);
+      debugPrint('🛒 POSTransactionPage - Cart State Check:');
+      debugPrint('🛒 Items count: ${cartProvider.items.length}');
+      debugPrint(
+        '🛒 Selected customer: ${cartProvider.selectedCustomer?.name}',
+      );
+      debugPrint('🛒 Total amount: ${cartProvider.total}');
+
+      if (cartProvider.items.isNotEmpty) {
+        debugPrint('🛒 Cart items:');
+        for (var item in cartProvider.items) {
+          debugPrint('   - ${item.product.name} x ${item.quantity}');
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error debugging cart state: $e');
     }
   }
 
@@ -147,6 +175,16 @@ class _POSTransactionView extends StatelessWidget {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth >= 768;
 
+    // Debug: Check viewModel and cartProvider state
+    debugPrint('🛒 _POSTransactionView building...');
+    debugPrint(
+      '🛒 ViewModel cartProvider: ${viewModel.cartProvider?.hashCode}',
+    );
+    debugPrint('🛒 Cart items: ${viewModel.cartProvider?.items.length ?? 0}');
+    debugPrint(
+      '🛒 Selected customer: ${viewModel.cartProvider?.selectedCustomer?.name ?? 'None'}',
+    );
+
     return Scaffold(
       appBar: POSAppBar(
         isTablet: isTablet,
@@ -180,7 +218,7 @@ class _POSTransactionView extends StatelessWidget {
   }
 
   void _addToCart(Product product, BuildContext context) {
-    print('🛒 Adding product to cart: ${product.name}');
+    debugPrint('🛒 Adding product to cart: ${product.name}');
     final viewModel = Provider.of<POSTransactionViewModel>(
       context,
       listen: false,
@@ -188,14 +226,22 @@ class _POSTransactionView extends StatelessWidget {
     final cartProvider = viewModel.cartProvider;
 
     if (cartProvider != null) {
-      print('🛒 Using CartProvider instance: ${cartProvider.hashCode}');
-      cartProvider.addItem(product);
-      print('🛒 After adding - total items: ${cartProvider.items.length}');
+      debugPrint('🛒 Using CartProvider instance: ${cartProvider.hashCode}');
+      debugPrint(
+        '🛒 Before adding - total items: ${cartProvider.items.length}',
+      );
+
+      cartProvider.addItem(product, context: context);
+
+      debugPrint('🛒 After adding - total items: ${cartProvider.items.length}');
 
       PosUIHelpers.showSuccessSnackbar(
         context,
         '${product.name} ditambahkan ke keranjang',
       );
+
+      // Load transactions after adding item to cart
+      _loadTransactionsAfterCartUpdate(context);
 
       // Auto-save after adding item to cart (with throttling)
       if (onAutoSave != null) {
@@ -206,12 +252,42 @@ class _POSTransactionView extends StatelessWidget {
           });
         });
       }
+    } else {
+      debugPrint('❌ CartProvider is null!');
+    }
+  }
+
+  /// Load transactions after cart is updated to keep data fresh
+  void _loadTransactionsAfterCartUpdate(BuildContext context) {
+    try {
+      // Load pending transactions
+      final pendingProvider = Provider.of<PendingTransactionProvider>(
+        context,
+        listen: false,
+      );
+      pendingProvider.loadPendingTransactions();
+
+      // Load transaction list if provider is available
+      try {
+        final transactionListProvider = Provider.of<TransactionListProvider>(
+          context,
+          listen: false,
+        );
+        transactionListProvider.refreshTransactions();
+
+        debugPrint('✅ Transaction lists refreshed after cart update');
+      } catch (e) {
+        // TransactionListProvider might not be available in current scope
+        debugPrint('ℹ️ TransactionListProvider not available in current scope');
+      }
+    } catch (e) {
+      debugPrint('❌ Error loading transactions after cart update: $e');
     }
   }
 
   void _navigateToProductDetail(Product product, BuildContext context) {
-    // Convert Product to int ID for ProductDetailPage
-    final productId = int.tryParse(product.id) ?? 0;
+    // Product ID is already int, no conversion needed
+    final productId = product.id;
 
     Navigator.push(
       context,
@@ -277,7 +353,7 @@ class _POSTransactionView extends StatelessWidget {
 
     if (cartProvider != null) {
       // Remove pending transaction after successful order
-      _removePendingTransactionAfterPayment(context, cartProvider);
+      // _removePendingTransactionAfterPayment(context, cartProvider);
 
       PaymentService.processOrder(
         context: context,
