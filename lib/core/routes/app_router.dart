@@ -63,7 +63,7 @@ class AppRouter {
         if (args != null) {
           return MaterialPageRoute(
             builder:
-                (_) => PaymentSuccessPage(
+                (context) => PaymentSuccessPage(
                   paymentMethod: args['paymentMethod'] ?? 'Tunai',
                   amountPaid: args['amountPaid'] ?? 0.0,
                   totalAmount: args['totalAmount'] ?? 0.0,
@@ -72,6 +72,7 @@ class AppRouter {
                       args['store'] ??
                       _getDefaultStore(), // Add store parameter
                   cartItems: args['cartItems'],
+                  user: args['user'],
                 ),
           );
         }

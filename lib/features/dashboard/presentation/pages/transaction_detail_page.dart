@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../transactions/data/models/transaction_list_response.dart';
@@ -8,6 +9,8 @@ import '../../../customers/data/models/customer.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../../data/models/product.dart';
 import '../../../sales/presentation/pages/payment_success_page.dart';
+import '../../../../shared/widgets/payment_method_widgets.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 class TransactionItemDetail {
   final String productName;
@@ -353,7 +356,10 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             ).format(transaction.totalAmount),
           ),
           _buildDetailRow('Jumlah Item', '${transaction.detailsCount} barang'),
-          _buildDetailRow('Metode Pembayaran', transaction.paymentMethod),
+          _buildPaymentMethodRow(
+            'Metode Pembayaran',
+            transaction.paymentMethod,
+          ),
           if (transaction.notes != null && transaction.notes!.trim().isNotEmpty)
             _buildDetailRow('Catatan', transaction.notes!),
         ],
@@ -387,6 +393,37 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentMethodRow(String label, String paymentMethod) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const Text(': ', style: TextStyle(color: Color(0xFF6B7280))),
+          Expanded(
+            child: PaymentMethodDisplay(
+              paymentMethod: paymentMethod,
+              fontSize: 14,
+              iconSize: 16,
+              color: const Color(0xFF1F2937),
             ),
           ),
         ],
@@ -811,7 +848,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     Customer? selectedCustomer;
     // You can extract customer info from transaction if available
 
-    final notesController = TextEditingController();
+    final notesController = TextEditingController(
+      text: transaction.notes ?? '',
+    );
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -822,9 +861,21 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
               itemCount: cartItems.length,
               notesController: notesController,
               selectedCustomer: selectedCustomer,
-              onConfirm: (customerName, customerPhone) {
+              onConfirm: (
+                customerName,
+                customerPhone,
+                paymentMethod,
+                cashAmount,
+                transferAmount,
+              ) {
                 Navigator.pop(context); // Close page
-                _completeTransaction(context);
+                _completeTransaction(
+                  context,
+                  paymentMethod: paymentMethod,
+                  cashAmount: cashAmount,
+                  transferAmount: transferAmount,
+                  notes: notesController.text.trim(),
+                );
               },
             ),
       ),
@@ -901,7 +952,13 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     );
   }
 
-  void _completeTransaction(BuildContext context) async {
+  void _completeTransaction(
+    BuildContext context, {
+    String? paymentMethod,
+    double? cashAmount,
+    double? transferAmount,
+    String? notes,
+  }) async {
     // Cache navigator reference before async operations
     final navigator = Navigator.of(context);
     final scaffoldMessenger = ScaffoldMessenger.of(context);
@@ -925,11 +982,30 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     );
 
     try {
-      // Update transaction status to completed via API
-      final response = await _apiService.updateTransactionStatus(
+      // Prepare transaction update data
+      Map<String, dynamic> updateData = {'status': 'completed'};
+
+      // Add optional fields if provided
+      if (paymentMethod != null) {
+        updateData['payment_method'] = paymentMethod;
+      }
+      if (cashAmount != null) {
+        updateData['cash_amount'] = cashAmount;
+      }
+      if (transferAmount != null) {
+        updateData['transfer_amount'] = transferAmount;
+      }
+      if (notes != null && notes.isNotEmpty) {
+        updateData['notes'] = notes;
+      }
+
+      // Update transaction via API
+      final response = await _apiService.updateTransactionWithData(
         transaction.id,
-        'completed',
+        updateData,
       );
+
+      debugPrint('Update Response: ${response['data']}', wrapWidth: 1024);
 
       // Close loading dialog using cached navigator
       if (mounted && navigator.canPop()) {
@@ -1009,13 +1085,15 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             MaterialPageRoute(
               builder:
                   (context) => PaymentSuccessPage(
-                    paymentMethod: transaction.paymentMethod,
+                    paymentMethod: paymentMethod ?? transaction.paymentMethod,
                     amountPaid: transaction.totalAmount,
                     totalAmount: transaction.totalAmount,
                     transactionNumber: transaction.transactionNumber,
                     store: transaction.store,
                     cartItems: cartItems,
-                    notes: transaction.notes,
+                    notes: notes ?? transaction.notes,
+                    user:
+                        Provider.of<AuthProvider>(context, listen: false).user,
                   ),
             ),
           );

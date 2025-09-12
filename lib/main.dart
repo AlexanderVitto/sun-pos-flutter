@@ -18,6 +18,7 @@ import 'features/transactions/providers/transaction_list_provider.dart';
 import 'features/customers/providers/customer_provider.dart';
 import 'features/cash_flows/providers/cash_flow_provider.dart';
 import 'features/reports/providers/reports_provider.dart';
+import 'features/dashboard/providers/store_provider.dart';
 import 'features/splash/splash_screen.dart';
 
 void main() async {
@@ -51,6 +52,7 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
+        ChangeNotifierProvider(create: (_) => StoreProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ApiProductProvider()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),

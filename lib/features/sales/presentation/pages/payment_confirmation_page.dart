@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../customers/data/models/customer.dart';
+import '../../../../core/constants/payment_constants.dart';
 
 class PaymentConfirmationPage extends StatefulWidget {
   final List<CartItem> cartItems;
   final double totalAmount;
   final int itemCount;
   final TextEditingController notesController;
-  final Function(String customerName, String customerPhone) onConfirm;
+  final Function(
+    String customerName,
+    String customerPhone,
+    String paymentMethod,
+    double? cashAmount,
+    double? transferAmount,
+  )
+  onConfirm;
   final Customer? selectedCustomer;
   final String? initialCustomerName;
   final String? initialCustomerPhone;
@@ -32,6 +40,13 @@ class PaymentConfirmationPage extends StatefulWidget {
 class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   Customer? _selectedCustomer;
   bool _isProcessing = false;
+  String _selectedPaymentMethod = 'cash'; // Default to cash
+  String _bankTransferType = 'full'; // 'full' or 'partial'
+
+  // Controllers for cash and transfer amounts
+  final TextEditingController _cashAmountController = TextEditingController();
+  final TextEditingController _transferAmountController =
+      TextEditingController();
 
   @override
   void initState() {
@@ -50,10 +65,72 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         updatedAt: DateTime.now(),
       );
     }
+
+    // Add listeners for real-time calculation updates
+    _cashAmountController.addListener(() {
+      setState(() {});
+    });
+    _transferAmountController.addListener(() {
+      setState(() {});
+    });
   }
 
   String get customerName => _selectedCustomer?.name ?? '';
   String get customerPhone => _selectedCustomer?.phone ?? '';
+
+  IconData _getPaymentMethodIcon(String method) {
+    switch (method) {
+      case 'cash':
+        return Icons.money;
+      case 'card':
+        return Icons.credit_card;
+      case 'bank_transfer':
+        return Icons.account_balance;
+      case 'digital_wallet':
+        return Icons.wallet;
+      case 'credit':
+        return Icons.schedule;
+      default:
+        return Icons.payment;
+    }
+  }
+
+  @override
+  void dispose() {
+    _cashAmountController.dispose();
+    _transferAmountController.dispose();
+    super.dispose();
+  }
+
+  bool get _isPaymentValid {
+    if (_selectedPaymentMethod != 'bank_transfer') return true;
+    if (_bankTransferType == 'full') return true;
+
+    // For partial payment, check if total payment is sufficient
+    final cashAmount =
+        double.tryParse(
+          _cashAmountController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
+        0.0;
+    final transferAmount =
+        double.tryParse(
+          _transferAmountController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+        ) ??
+        0.0;
+    final totalPaid = cashAmount + transferAmount;
+
+    return totalPaid >= widget.totalAmount;
+  }
+
+  String _getPaymentDisplayText() {
+    final baseMethod =
+        PaymentConstants.paymentMethods[_selectedPaymentMethod] ?? '';
+    if (_selectedPaymentMethod == 'bank_transfer') {
+      final typeText = _bankTransferType == 'full' ? 'Penuh' : 'Sebagian';
+      return '$baseMethod ($typeText)';
+    }
+    return baseMethod;
+  }
 
   void _handleConfirmPayment() async {
     if (_isProcessing) return;
@@ -63,7 +140,33 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     });
 
     try {
-      widget.onConfirm(customerName, customerPhone);
+      // Parse cash and transfer amounts based on payment method and type
+      double? cashAmount;
+      double? transferAmount;
+
+      if (_selectedPaymentMethod == 'bank_transfer') {
+        if (_bankTransferType == 'partial') {
+          // For partial payment, get values from input fields
+          cashAmount = double.tryParse(
+            _cashAmountController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+          );
+          transferAmount = double.tryParse(
+            _transferAmountController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+          );
+        } else {
+          // For full payment, transfer amount = total amount, cash = 0
+          cashAmount = 0.0;
+          transferAmount = widget.totalAmount;
+        }
+      }
+
+      widget.onConfirm(
+        customerName,
+        customerPhone,
+        _selectedPaymentMethod,
+        cashAmount,
+        transferAmount,
+      );
       // Navigation will be handled by the calling page
       if (mounted) {
         Navigator.of(context).pop();
@@ -357,8 +460,196 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
             const SizedBox(height: 16),
 
-            // Notes Card
-            if (widget.notesController.text.isNotEmpty)
+            // Notes Input Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.purple.shade600,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.note,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Catatan Transaksi',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: widget.notesController,
+                      maxLines: 3,
+                      decoration: InputDecoration(
+                        hintText: 'Tambahkan catatan transaksi (opsional)...',
+                        hintStyle: TextStyle(color: Colors.grey.shade500),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.purple.shade400),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        contentPadding: const EdgeInsets.all(16),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                      ),
+                      style: const TextStyle(fontSize: 16),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Payment Method Selection Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.teal.shade600,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.payment,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Metode Pembayaran',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Payment Method Options
+                    Column(
+                      children:
+                          PaymentConstants.paymentMethods.entries.map((entry) {
+                            final String methodKey = entry.key;
+                            final String methodLabel = entry.value;
+                            final bool isSelected =
+                                _selectedPaymentMethod == methodKey;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: InkWell(
+                                onTap: () {
+                                  setState(() {
+                                    _selectedPaymentMethod = methodKey;
+                                  });
+                                },
+                                borderRadius: BorderRadius.circular(12),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color:
+                                        isSelected
+                                            ? Colors.teal.shade50
+                                            : Colors.grey.shade50,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color:
+                                          isSelected
+                                              ? Colors.teal.shade400
+                                              : Colors.grey.shade300,
+                                      width: isSelected ? 2 : 1,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        _getPaymentMethodIcon(methodKey),
+                                        color:
+                                            isSelected
+                                                ? Colors.teal.shade600
+                                                : Colors.grey.shade600,
+                                        size: 22,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          methodLabel,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            fontWeight:
+                                                isSelected
+                                                    ? FontWeight.w600
+                                                    : FontWeight.w500,
+                                            color:
+                                                isSelected
+                                                    ? Colors.teal.shade700
+                                                    : Colors.black87,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        Icon(
+                                          Icons.check_circle,
+                                          color: Colors.teal.shade600,
+                                          size: 22,
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
+            // Bank Transfer Type Selection (only show when bank_transfer is selected)
+            if (_selectedPaymentMethod == 'bank_transfer')
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -374,18 +665,18 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: Colors.purple.shade600,
+                              color: Colors.indigo.shade600,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: const Icon(
-                              Icons.note,
+                              Icons.account_balance_wallet,
                               color: Colors.white,
                               size: 20,
                             ),
                           ),
                           const SizedBox(width: 12),
                           const Text(
-                            'Catatan',
+                            'Jenis Pembayaran Transfer',
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -395,17 +686,393 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                         ],
                       ),
                       const SizedBox(height: 16),
+
+                      // Full Payment Option
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _bankTransferType = 'full';
+                            // Clear input fields when switching to full payment
+                            _cashAmountController.clear();
+                            _transferAmountController.clear();
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color:
+                                _bankTransferType == 'full'
+                                    ? Colors.indigo.shade50
+                                    : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  _bankTransferType == 'full'
+                                      ? Colors.indigo.shade400
+                                      : Colors.grey.shade300,
+                              width: _bankTransferType == 'full' ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.payment,
+                                color:
+                                    _bankTransferType == 'full'
+                                        ? Colors.indigo.shade600
+                                        : Colors.grey.shade600,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Bayar Penuh',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight:
+                                            _bankTransferType == 'full'
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                        color:
+                                            _bankTransferType == 'full'
+                                                ? Colors.indigo.shade700
+                                                : Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Bayar seluruh jumlah via transfer bank',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_bankTransferType == 'full')
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.indigo.shade600,
+                                  size: 22,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // Partial Payment Option
+                      InkWell(
+                        onTap: () {
+                          setState(() {
+                            _bankTransferType = 'partial';
+                          });
+                        },
+                        borderRadius: BorderRadius.circular(12),
+                        child: Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color:
+                                _bankTransferType == 'partial'
+                                    ? Colors.indigo.shade50
+                                    : Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color:
+                                  _bankTransferType == 'partial'
+                                      ? Colors.indigo.shade400
+                                      : Colors.grey.shade300,
+                              width: _bankTransferType == 'partial' ? 2 : 1,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.pie_chart,
+                                color:
+                                    _bankTransferType == 'partial'
+                                        ? Colors.indigo.shade600
+                                        : Colors.grey.shade600,
+                                size: 22,
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Bayar Sebagian',
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        fontWeight:
+                                            _bankTransferType == 'partial'
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                        color:
+                                            _bankTransferType == 'partial'
+                                                ? Colors.indigo.shade700
+                                                : Colors.black87,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      'Kombinasi pembayaran tunai + transfer',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (_bankTransferType == 'partial')
+                                Icon(
+                                  Icons.check_circle,
+                                  color: Colors.indigo.shade600,
+                                  size: 22,
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            const SizedBox(height: 16),
+
+            // Payment Amount Details Card (only show for bank_transfer and partial payment)
+            if (_selectedPaymentMethod == 'bank_transfer' &&
+                _bankTransferType == 'partial')
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.blue.shade600,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.calculate,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Detail Pembayaran',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Cash Amount Input
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.money,
+                                color: Colors.grey.shade600,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Jumlah Tunai',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _cashAmountController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              hintText: 'Masukkan jumlah tunai (opsional)',
+                              prefixText: 'Rp ',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade300,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade400,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Transfer Amount Input
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.account_balance,
+                                color: Colors.grey.shade600,
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                'Jumlah Transfer',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          TextField(
+                            controller: _transferAmountController,
+                            keyboardType: TextInputType.number,
+                            decoration: InputDecoration(
+                              hintText: 'Masukkan jumlah transfer (opsional)',
+                              prefixText: 'Rp ',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.grey.shade300,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: BorderSide(
+                                  color: Colors.blue.shade400,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 12,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Total calculation display
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
+                          color: Colors.blue.shade50,
                           borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
+                          border: Border.all(color: Colors.blue.shade200),
                         ),
-                        child: Text(
-                          widget.notesController.text,
-                          style: const TextStyle(fontSize: 16),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total yang harus dibayar:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  'Rp ${widget.totalAmount.toStringAsFixed(0)}',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue.shade700,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                const Text(
+                                  'Total pembayaran:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Builder(
+                                  builder: (context) {
+                                    final cashAmount =
+                                        double.tryParse(
+                                          _cashAmountController.text.replaceAll(
+                                            RegExp(r'[^0-9.]'),
+                                            '',
+                                          ),
+                                        ) ??
+                                        0.0;
+                                    final transferAmount =
+                                        double.tryParse(
+                                          _transferAmountController.text
+                                              .replaceAll(
+                                                RegExp(r'[^0-9.]'),
+                                                '',
+                                              ),
+                                        ) ??
+                                        0.0;
+                                    final totalPaid =
+                                        cashAmount + transferAmount;
+                                    return Text(
+                                      'Rp ${totalPaid.toStringAsFixed(0)}',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color:
+                                            totalPaid >= widget.totalAmount
+                                                ? Colors.green.shade700
+                                                : Colors.red.shade700,
+                                      ),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -467,6 +1134,25 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                               fontSize: 14,
                               color: Colors.white.withValues(alpha: 0.8),
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                          Row(
+                            children: [
+                              Icon(
+                                _getPaymentMethodIcon(_selectedPaymentMethod),
+                                color: Colors.white.withValues(alpha: 0.9),
+                                size: 16,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                _getPaymentDisplayText(),
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.white.withValues(alpha: 0.9),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -532,9 +1218,15 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                     Expanded(
                       flex: 3,
                       child: ElevatedButton(
-                        onPressed: _isProcessing ? null : _handleConfirmPayment,
+                        onPressed:
+                            (_isProcessing || !_isPaymentValid)
+                                ? null
+                                : _handleConfirmPayment,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green.shade600,
+                          backgroundColor:
+                              _isPaymentValid
+                                  ? Colors.green.shade600
+                                  : Colors.grey.shade400,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 4,

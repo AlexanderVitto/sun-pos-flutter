@@ -126,7 +126,6 @@ class AuthProvider extends ChangeNotifier {
           debugPrint('Profile refreshed from server');
 
           // Load transactions or other user-specific data if needed
-          
         } catch (e) {
           debugPrint('Failed to refresh profile from server: $e');
           // Tidak masalah jika gagal, masih bisa pakai data lokal
@@ -162,23 +161,7 @@ class AuthProvider extends ChangeNotifier {
 
         // Load profile data setelah login berhasil
         debugPrint('Login successful, loading user profile...');
-        try {
-          final profileLoaded = await fetchUserProfile();
-          if (profileLoaded) {
-            debugPrint('User profile loaded successfully');
-            // Profile sudah disimpan sebagai userData di fetchUserProfile()
-          } else {
-            debugPrint(
-              'Failed to load user profile, using data from login response',
-            );
-            // Jika profile gagal, tetap simpan data login sebagai userData
-            await _saveUserDataToStorage(_user!);
-          }
-        } catch (e) {
-          debugPrint('Error loading profile after login: $e');
-          // Tetap gunakan data dari login response jika profile gagal dimuat
-          await _saveUserDataToStorage(_user!);
-        }
+        await _saveUserDataToStorage(_user!);
 
         // Coba simpan ke secure storage terlebih dahulu
         try {
@@ -204,6 +187,22 @@ class AuthProvider extends ChangeNotifier {
           await prefs.setString('user_name', _user!.name);
           await prefs.setString('user_email', _user!.email);
           debugPrint('Login data saved to SharedPreferences');
+        }
+
+        try {
+          final profileLoaded = await fetchUserProfile();
+          if (profileLoaded) {
+            debugPrint('User profile loaded successfully');
+            // Profile sudah disimpan sebagai userData di fetchUserProfile()
+          } else {
+            debugPrint(
+              'Failed to load user profile, using data from login response',
+            );
+          }
+        } catch (e) {
+          debugPrint('Error loading profile after login: $e');
+          // Tetap gunakan data dari login response jika profile gagal dimuat
+          await _saveUserDataToStorage(_user!);
         }
 
         _isLoading = false;
@@ -281,18 +280,13 @@ class AuthProvider extends ChangeNotifier {
         return false;
       }
 
-      if (profileResponse.success) {
-        _user = profileResponse.data;
+      _user = profileResponse.data;
 
-        // Simpan profile lengkap sebagai userData di storage
-        await _saveUserDataToStorage(_user!);
+      // Simpan profile lengkap sebagai userData di storage
+      await _saveUserDataToStorage(_user!);
 
-        notifyListeners();
-        return true;
-      } else {
-        debugPrint('Failed to fetch profile: ${profileResponse.message}');
-        return false;
-      }
+      notifyListeners();
+      return true;
     } catch (e) {
       debugPrint('Error fetching user profile: $e');
       return false;

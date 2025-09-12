@@ -12,6 +12,7 @@ import '../../../transactions/data/models/create_transaction_request.dart';
 import '../../../transactions/data/models/transaction_detail.dart';
 import '../widgets/customer_input_dialog.dart';
 import '../../../customers/data/models/customer.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 class POSTransactionPage extends StatefulWidget {
   const POSTransactionPage({super.key});
@@ -1493,6 +1494,8 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
                         _notesController.text.trim().isEmpty
                             ? null
                             : _notesController.text.trim(),
+                    user:
+                        Provider.of<AuthProvider>(context, listen: false).user,
                   ),
             ),
           );

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/constants/payment_constants.dart';
 import '../../../transactions/data/models/store.dart';
 import '../../providers/cart_provider.dart';
 import 'receipt_page.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
+import '../../../transactions/data/models/user.dart' as TransactionsUser;
+import '../../../auth/data/models/user.dart' as AuthUser;
 
 class PaymentSuccessPage extends StatelessWidget {
   final String paymentMethod;
@@ -14,6 +17,7 @@ class PaymentSuccessPage extends StatelessWidget {
   final Store store; // Add store parameter
   final List<CartItem>? cartItems; // Store cart items before clearing
   final String? notes; // Add notes parameter
+  final AuthUser.User? user; // Add user parameter
 
   const PaymentSuccessPage({
     super.key,
@@ -24,7 +28,39 @@ class PaymentSuccessPage extends StatelessWidget {
     required this.store,
     this.cartItems,
     this.notes,
+    this.user,
   });
+
+  // Helper function to convert AuthUser.User to TransactionsUser.User
+  TransactionsUser.User? _convertAuthUserToTransactionsUser(
+    AuthUser.User? authUser,
+  ) {
+    if (authUser == null) return null;
+
+    return TransactionsUser.User(
+      id: authUser.id,
+      name: authUser.name,
+      email: authUser.email,
+      roles:
+          authUser.roles
+              .map(
+                (authRole) => TransactionsUser.Role(
+                  id: authRole.id,
+                  name: authRole.name,
+                  displayName: authRole.displayName,
+                  guardName: authRole.guardName,
+                  permissions: authRole.permissionNames,
+                  createdAt:
+                      DateTime.tryParse(authRole.createdAt) ?? DateTime.now(),
+                  updatedAt:
+                      DateTime.tryParse(authRole.updatedAt) ?? DateTime.now(),
+                ),
+              )
+              .toList(),
+      createdAt: DateTime.tryParse(authUser.createdAt) ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(authUser.updatedAt) ?? DateTime.now(),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -206,7 +242,9 @@ class PaymentSuccessPage extends StatelessWidget {
                                 ),
                               ),
                               Text(
-                                paymentMethod,
+                                PaymentConstants
+                                        .paymentMethods[paymentMethod] ??
+                                    '',
                                 style: const TextStyle(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -241,6 +279,30 @@ class PaymentSuccessPage extends StatelessWidget {
                               ],
                             ),
                           ],
+
+                          // Add user section if user exists
+                          if (user != null) ...[
+                            const SizedBox(height: 12),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'Kasir:',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                Text(
+                                  user!.name,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -265,12 +327,16 @@ class PaymentSuccessPage extends StatelessWidget {
                                       transactionDate: transactionDate,
                                       items: items,
                                       store: store,
-                                      user:
-                                          null, // Add user parameter (null for now, can be improved later)
+                                      user: _convertAuthUserToTransactionsUser(
+                                        user,
+                                      ), // Convert and pass the user object
                                       subtotal: subtotal,
                                       discount: discount,
                                       total: total,
-                                      paymentMethod: paymentMethod,
+                                      paymentMethod:
+                                          PaymentConstants
+                                              .paymentMethods[paymentMethod] ??
+                                          '',
                                       notes: notes,
                                     ),
                               ),

@@ -7,6 +7,8 @@ import '../../../../data/models/cart_item.dart';
 import '../../../../data/models/customer.dart' as CartCustomer;
 import '../../../customers/data/models/customer.dart' as DialogCustomer;
 import '../../../transactions/data/models/store.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../dashboard/providers/store_provider.dart';
 import '../utils/pos_ui_helpers.dart';
 import '../pages/payment_confirmation_page.dart';
 import '../pages/order_confirmation_page.dart';
@@ -26,6 +28,90 @@ class PaymentService {
       phone: cartCustomer.phone,
       createdAt: cartCustomer.createdAt,
       updatedAt: cartCustomer.updatedAt,
+    );
+  }
+
+  // Get storeId from selected store in StoreProvider, fallback to user profile
+  static int _getStoreIdFromUser(BuildContext context) {
+    try {
+      // First try to get selected store from StoreProvider
+      final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+      final selectedStoreId = storeProvider.getSelectedStoreId();
+
+      // StoreProvider has a default fallback value, so use it directly
+      return selectedStoreId;
+    } catch (e) {
+      debugPrint('Error getting storeId from StoreProvider: $e');
+
+      // Fallback to first store from user profile
+      try {
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        final user = authProvider.user;
+
+        if (user != null && user.stores.isNotEmpty) {
+          return user.stores.first.id;
+        }
+      } catch (e2) {
+        debugPrint('Error getting storeId from user profile: $e2');
+      }
+    }
+
+    // Default fallback storeId
+    return 1;
+  }
+
+  // Get store information from StoreProvider, fallback to user profile
+  static Store _getStoreFromUser(BuildContext context) {
+    try {
+      // First try to get selected store from StoreProvider
+      final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+      final selectedStore = storeProvider.selectedStore;
+
+      if (selectedStore != null) {
+        return Store(
+          id: selectedStore.id,
+          name: selectedStore.name,
+          address: selectedStore.address,
+          phoneNumber: selectedStore.phoneNumber,
+          isActive: selectedStore.isActive,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error getting store from StoreProvider: $e');
+    }
+
+    // Fallback to first store from user profile
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+
+      if (user != null && user.stores.isNotEmpty) {
+        final userStore = user.stores.first;
+        return Store(
+          id: userStore.id,
+          name: userStore.name,
+          address: userStore.address,
+          phoneNumber: userStore.phoneNumber,
+          isActive: userStore.isActive,
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error getting store from user profile: $e');
+    }
+
+    // Default fallback store
+    return Store(
+      id: 1,
+      name: 'Sun POS Store',
+      address: 'Jl. Contoh No. 123, Jakarta',
+      phoneNumber: '021-12345678',
+      isActive: true,
+      createdAt: DateTime.now(),
+      updatedAt: DateTime.now(),
     );
   }
 
@@ -90,8 +176,9 @@ class PaymentService {
           transactionId: cartProvider.draftTransactionId!,
           cartItems: cartProvider.items,
           totalAmount: cartProvider.total,
-          notes: 'Updated draft transaction',
+          notes: '',
           paymentMethod: 'cash',
+          storeId: _getStoreIdFromUser(context),
           customerName: cartProvider.selectedCustomer?.name ?? 'Customer',
           customerPhone: cartProvider.selectedCustomer?.phone,
           status: 'draft', // Draft status for cart items
@@ -107,8 +194,9 @@ class PaymentService {
         final response = await transactionProvider.processPayment(
           cartItems: cartProvider.items,
           totalAmount: cartProvider.total,
-          notes: 'New draft transaction',
+          notes: '',
           paymentMethod: 'cash',
+          storeId: _getStoreIdFromUser(context),
           customerName: cartProvider.selectedCustomer?.name ?? 'Customer',
           customerPhone: cartProvider.selectedCustomer?.phone,
           status: 'draft', // Draft status for cart items
@@ -164,7 +252,13 @@ class PaymentService {
               ), // Convert and pass selected customer
               initialCustomerName: cartProvider.customerName,
               initialCustomerPhone: cartProvider.customerPhone,
-              onConfirm: (customerName, customerPhone) {
+              onConfirm: (
+                customerName,
+                customerPhone,
+                paymentMethod,
+                cashAmount,
+                transferAmount,
+              ) {
                 // Check if context is still valid before operations
                 if (context.mounted) {
                   _confirmPayment(
@@ -172,6 +266,7 @@ class PaymentService {
                     cartProvider,
                     customerName,
                     customerPhone,
+                    paymentMethod,
                     notesController,
                     cashAmount,
                     transferAmount,
@@ -188,9 +283,10 @@ class PaymentService {
     CartProvider cartProvider,
     String customerName,
     String customerPhone,
+    String paymentMethod,
     TextEditingController notesController,
     double? cashAmount,
-    double transferAmount,
+    double? transferAmount,
   ) async {
     try {
       // Set customer information in cart provider
@@ -221,12 +317,13 @@ class PaymentService {
           cartItems: cartProvider.items,
           totalAmount: cartProvider.total,
           notes: notesController.text.trim(),
-          paymentMethod: 'cash',
+          paymentMethod: paymentMethod,
+          storeId: _getStoreIdFromUser(context),
           customerName: cartProvider.customerName ?? 'Customer',
           customerPhone: cartProvider.customerPhone,
           status: 'pending', // Change status from draft to pending
           cashAmount: cashAmount,
-          transferAmount: transferAmount,
+          transferAmount: transferAmount ?? 0.0,
         );
 
         debugPrint('✅ Draft transaction updated to pending successfully');
@@ -238,12 +335,13 @@ class PaymentService {
           cartItems: cartProvider.items,
           totalAmount: cartProvider.total,
           notes: notesController.text.trim(),
-          paymentMethod: 'cash',
+          paymentMethod: paymentMethod,
+          storeId: _getStoreIdFromUser(context),
           customerName: cartProvider.customerName ?? 'Customer',
           customerPhone: cartProvider.customerPhone,
           status: 'pending', // Change status to pending for paid transactions
           cashAmount: cashAmount,
-          transferAmount: transferAmount,
+          transferAmount: transferAmount ?? 0.0,
         );
 
         debugPrint('✅ New pending transaction created successfully');
@@ -285,16 +383,8 @@ class PaymentService {
         cartProvider.clearCart();
         notesController.clear();
 
-        // Create mock store data
-        final store = Store(
-          id: 1,
-          name: 'Sun POS Store',
-          address: 'Jl. Contoh No. 123, Jakarta',
-          phoneNumber: '021-12345678',
-          isActive: true,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
+        // Get store information from user profile
+        final store = _getStoreFromUser(context);
 
         // Navigate to success page
         if (context.mounted) {
@@ -310,6 +400,8 @@ class PaymentService {
                     store: transactionResponse.data?.store ?? store,
                     cartItems: cartItems,
                     notes: notesController.text.trim(),
+                    user:
+                        Provider.of<AuthProvider>(context, listen: false).user,
                   ),
             ),
           );
@@ -346,16 +438,8 @@ class PaymentService {
     CartProvider cartProvider,
     TextEditingController notesController,
   ) {
-    // Get store information - you may need to adjust this based on your Store model location
-    final store = Store(
-      id: 1,
-      name: "SunPos Store",
-      address: "Jl. Contoh No. 123",
-      phoneNumber: "021-12345678",
-      isActive: true,
-      createdAt: DateTime.now(),
-      updatedAt: DateTime.now(),
-    );
+    // Get store information from user profile
+    final store = _getStoreFromUser(context);
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -449,6 +533,7 @@ class PaymentService {
           totalAmount: updatedTotalAmount,
           notes: notesController.text.trim(),
           paymentMethod: 'cash',
+          storeId: _getStoreIdFromUser(context),
           customerName: cartProvider.customerName ?? 'Customer',
           customerPhone: cartProvider.customerPhone,
           status: 'pending', // Change status from draft to pending
@@ -466,6 +551,7 @@ class PaymentService {
           totalAmount: updatedTotalAmount,
           notes: notesController.text.trim(),
           paymentMethod: 'cash',
+          storeId: _getStoreIdFromUser(context),
           customerName: cartProvider.customerName ?? 'Customer',
           customerPhone: cartProvider.customerPhone,
           status: 'pending', // Change status to pending for orders
@@ -477,16 +563,8 @@ class PaymentService {
       }
 
       if (transactionResponse != null) {
-        // Prepare data for OrderSuccessPage
-        final store = Store(
-          id: 1,
-          name: 'Sun POS',
-          address: 'Alamat Toko',
-          phoneNumber: '123-456-7890',
-          isActive: true,
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-        );
+        // Get store information from user profile
+        final store = _getStoreFromUser(context);
 
         // Get transaction number from response
         final transactionNumber =

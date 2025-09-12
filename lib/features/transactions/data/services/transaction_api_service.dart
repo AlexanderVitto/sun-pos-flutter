@@ -382,4 +382,60 @@ class TransactionApiService {
       }
     }
   }
+
+  /// Update transaction with custom data
+  Future<Map<String, dynamic>> updateTransactionWithData(
+    int transactionId,
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final token = await _secureStorage.getAccessToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Access token not found');
+      }
+
+      final url = Uri.parse('$baseUrl/transactions/$transactionId');
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      };
+
+      final body = jsonEncode(data);
+
+      final response = await http.put(url, headers: headers, body: body);
+
+      if (response.statusCode == 200) {
+        return jsonDecode(response.body);
+      } else if (response.statusCode == 401) {
+        throw Exception('401: Unauthorized access');
+      } else if (response.statusCode == 404) {
+        throw Exception('Transaction not found');
+      } else if (response.statusCode == 422) {
+        final responseData = jsonDecode(response.body);
+        final errorMessage = _extractValidationErrors(responseData);
+        throw Exception('Validation error: $errorMessage');
+      } else if (response.statusCode == 400) {
+        final responseData = jsonDecode(response.body);
+        final message = responseData['message'] ?? 'Bad request';
+        throw Exception('Bad request: $message');
+      } else if (response.statusCode >= 500) {
+        throw Exception(
+          'Server error (${response.statusCode}): Please try again later',
+        );
+      } else {
+        throw Exception(
+          'Failed to update transaction (${response.statusCode})',
+        );
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('Network error: ${e.toString()}');
+      }
+    }
+  }
 }

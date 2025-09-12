@@ -36,6 +36,7 @@ class _DashboardPageState extends State<DashboardPage>
 
   // Persistent providers that maintain state across page switches
   late final ProductProvider _productProvider;
+  late final StoreProvider _storeProvider;
 
   @override
   void initState() {
@@ -45,56 +46,17 @@ class _DashboardPageState extends State<DashboardPage>
 
     // Initialize providers once to maintain state
     _productProvider = ProductProvider();
-
-    _initializeStoreProvider();
+    _storeProvider = StoreProvider();
 
     // Add observer for app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
 
-    // Initialize StoreProvider and listen for AuthProvider changes
+    // Ensure products are loaded (fallback to dummy if needed)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _listenToAuthProvider();
       _initializeProvidersData();
       _startAutoRefresh();
       _listenToTransactionEvents();
     });
-  }
-
-  void _initializeStoreProvider() {
-    // Initialize store from user profile immediately
-    final authProvider = context.read<AuthProvider>();
-    final storeProvider = context.read<StoreProvider>();
-    final user = authProvider.user;
-
-    if (user != null &&
-        user.stores.isNotEmpty &&
-        !storeProvider.hasSelectedStore) {
-      storeProvider.initializeWithStores(user.stores);
-      debugPrint('🏪 StoreProvider initialized on dashboard load');
-    } else {
-      debugPrint('⏳ Waiting for AuthProvider to load user data...');
-    }
-  }
-
-  void _listenToAuthProvider() {
-    // Listen to AuthProvider changes to initialize store when user data is ready
-    final authProvider = context.read<AuthProvider>();
-
-    void authListener() {
-      if (!mounted) return;
-
-      final user = authProvider.user;
-      final storeProvider = context.read<StoreProvider>();
-
-      if (user != null &&
-          user.stores.isNotEmpty &&
-          !storeProvider.hasSelectedStore) {
-        storeProvider.initializeWithStores(user.stores);
-        debugPrint('🏪 StoreProvider initialized after AuthProvider update');
-      }
-    }
-
-    authProvider.addListener(authListener);
   }
 
   void _listenToTransactionEvents() {
@@ -135,6 +97,13 @@ class _DashboardPageState extends State<DashboardPage>
   }
 
   void _initializeProvidersData() async {
+    // Initialize store from user profile
+    final authProvider = context.read<AuthProvider>();
+    final user = authProvider.user;
+    if (user != null && user.stores.isNotEmpty) {
+      _storeProvider.initializeWithStores(user.stores);
+    }
+
     // Wait a bit for ProductProvider to finish loading from API
     await Future.delayed(const Duration(milliseconds: 1000));
 
@@ -152,6 +121,7 @@ class _DashboardPageState extends State<DashboardPage>
   void dispose() {
     _refreshTimer?.cancel();
     _transactionEventSubscription?.cancel();
+    _storeProvider.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -1739,85 +1709,90 @@ class _DashboardPageState extends State<DashboardPage>
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        final user = authProvider.user;
+    return ChangeNotifierProvider<StoreProvider>.value(
+      value: _storeProvider,
+      child: Consumer<AuthProvider>(
+        builder: (context, authProvider, child) {
+          final user = authProvider.user;
 
-        if (user == null) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
+          if (user == null) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
 
-        final userRoles = user.roleNames;
-        final availablePages = _getAvailablePages(userRoles);
-        final availableNavItems = _getAvailableNavItems(userRoles);
+          final userRoles = user.roleNames;
+          final availablePages = _getAvailablePages(userRoles);
+          final availableNavItems = _getAvailableNavItems(userRoles);
 
-        // Ensure selectedIndex doesn't exceed available pages
-        if (_selectedIndex >= availablePages.length) {
-          _selectedIndex = 0;
-        }
+          // Ensure selectedIndex doesn't exceed available pages
+          if (_selectedIndex >= availablePages.length) {
+            _selectedIndex = 0;
+          }
 
-        // For kasir, if they can't access dashboard, default to POS
-        if (!RolePermissions.canAccessDashboard(userRoles) &&
-            _selectedIndex == 0) {
-          _selectedIndex = RolePermissions.canAccessPOS(userRoles) ? 0 : 0;
-        }
+          // For kasir, if they can't access dashboard, default to POS
+          if (!RolePermissions.canAccessDashboard(userRoles) &&
+              _selectedIndex == 0) {
+            _selectedIndex = RolePermissions.canAccessPOS(userRoles) ? 0 : 0;
+          }
 
-        return Scaffold(
-          backgroundColor: const Color(0xFFf8fafc),
-          body:
-              availablePages.isNotEmpty
-                  ? availablePages[_selectedIndex]
-                  : const Center(child: Text('No accessible features')),
-          bottomNavigationBar:
-              availableNavItems.isNotEmpty
-                  ? Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, -2),
-                        ),
-                      ],
-                    ),
-                    child: BottomNavigationBar(
-                      type: BottomNavigationBarType.fixed,
-                      currentIndex: _selectedIndex,
-                      onTap: (index) {
-                        setState(() {
-                          _selectedIndex = index;
-                        });
-
-                        // Refresh transaction data when returning to dashboard
-                        if (index == 0) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            final transactionProvider =
-                                context.read<TransactionListProvider>();
-                            transactionProvider.loadTransactions(refresh: true);
+          return Scaffold(
+            backgroundColor: const Color(0xFFf8fafc),
+            body:
+                availablePages.isNotEmpty
+                    ? availablePages[_selectedIndex]
+                    : const Center(child: Text('No accessible features')),
+            bottomNavigationBar:
+                availableNavItems.isNotEmpty
+                    ? Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: const Offset(0, -2),
+                          ),
+                        ],
+                      ),
+                      child: BottomNavigationBar(
+                        type: BottomNavigationBarType.fixed,
+                        currentIndex: _selectedIndex,
+                        onTap: (index) {
+                          setState(() {
+                            _selectedIndex = index;
                           });
-                        }
-                      },
-                      selectedItemColor: const Color(0xFF6366f1),
-                      unselectedItemColor: Colors.grey[400],
-                      backgroundColor: Colors.white,
-                      elevation: 0,
-                      selectedLabelStyle: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
+
+                          // Refresh transaction data when returning to dashboard
+                          if (index == 0) {
+                            WidgetsBinding.instance.addPostFrameCallback((_) {
+                              final transactionProvider =
+                                  context.read<TransactionListProvider>();
+                              transactionProvider.loadTransactions(
+                                refresh: true,
+                              );
+                            });
+                          }
+                        },
+                        selectedItemColor: const Color(0xFF6366f1),
+                        unselectedItemColor: Colors.grey[400],
+                        backgroundColor: Colors.white,
+                        elevation: 0,
+                        selectedLabelStyle: const TextStyle(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 12,
+                        ),
+                        unselectedLabelStyle: const TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                        ),
+                        items: availableNavItems,
                       ),
-                      unselectedLabelStyle: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                      ),
-                      items: availableNavItems,
-                    ),
-                  )
-                  : null,
-        );
-      },
+                    )
+                    : null,
+          );
+        },
+      ),
     );
   }
 }
