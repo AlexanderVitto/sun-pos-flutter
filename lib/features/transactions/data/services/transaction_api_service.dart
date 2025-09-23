@@ -5,7 +5,7 @@ import '../models/create_transaction_request.dart';
 import '../models/create_transaction_response.dart';
 
 class TransactionApiService {
-  static const String baseUrl = 'https://sfpos.app/api/v1';
+  static const String baseUrl = 'https://sfxsys.com/api/v1';
   final SecureStorageService _secureStorage = SecureStorageService();
 
   /// Create a new transaction

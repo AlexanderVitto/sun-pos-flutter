@@ -5,7 +5,7 @@ import '../../../../core/services/secure_storage_service.dart';
 import '../models/pending_transaction_api_models.dart';
 
 class PendingTransactionApiService {
-  static const String baseUrl = 'https://sfpos.app/api/v1';
+  static const String baseUrl = 'https://sfxsys.com/api/v1';
   final SecureStorageService _secureStorage = SecureStorageService();
 
   /// Get pending transactions from API

@@ -12,6 +12,7 @@ class CreateTransactionRequest {
   final String? status;
   final double? cashAmount;
   final double transferAmount;
+  final String? outstandingReminderDate;
 
   const CreateTransactionRequest({
     required this.storeId,
@@ -25,6 +26,7 @@ class CreateTransactionRequest {
     this.status,
     this.cashAmount,
     this.transferAmount = 0,
+    this.outstandingReminderDate,
   });
 
   Map<String, dynamic> toJson() {
@@ -40,6 +42,7 @@ class CreateTransactionRequest {
       'status': status,
       'cash_amount': cashAmount,
       'transfer_amount': transferAmount,
+      'outstanding_reminder_date': outstandingReminderDate,
     };
   }
 
@@ -59,6 +62,7 @@ class CreateTransactionRequest {
       status: json['status'],
       cashAmount: json['cash_amount']?.toDouble(),
       transferAmount: json['transfer_amount']?.toDouble() ?? 0,
+      outstandingReminderDate: json['outstanding_reminder_date'],
     );
   }
 
@@ -97,6 +101,9 @@ class CreateTransactionRequest {
     String? customerName,
     String? customerPhone,
     String? status,
+    double? cashAmount,
+    double? transferAmount,
+    String? outstandingReminderDate,
   }) {
     return CreateTransactionRequest(
       storeId: storeId ?? this.storeId,
@@ -108,6 +115,10 @@ class CreateTransactionRequest {
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
       status: status ?? this.status,
+      cashAmount: cashAmount ?? this.cashAmount,
+      transferAmount: transferAmount ?? this.transferAmount,
+      outstandingReminderDate:
+          outstandingReminderDate ?? this.outstandingReminderDate,
     );
   }
 }

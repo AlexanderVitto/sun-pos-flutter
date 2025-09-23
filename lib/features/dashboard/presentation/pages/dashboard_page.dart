@@ -987,13 +987,13 @@ class _DashboardPageState extends State<DashboardPage>
             child: Icon(icon, color: Colors.white, size: 24),
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 15),
 
           // Value with modern typography
           Text(
             value,
             style: const TextStyle(
-              fontSize: 24,
+              fontSize: 16,
               fontWeight: FontWeight.w800,
               color: Color(0xFF1a1a1a),
               letterSpacing: -0.5,

@@ -13,15 +13,16 @@ class Product {
   Product({
     required this.id,
     required this.name,
-    required this.code,
-    required this.description,
-    required this.price,
-    required this.stock,
-    required this.category,
+    this.code = '',
+    this.description = '',
+    this.price = 0.0,
+    this.stock = 0,
+    this.category = 'General',
     this.imagePath,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) : createdAt = createdAt ?? DateTime.now(),
+       updatedAt = updatedAt ?? DateTime.now();
 
   Product copyWith({
     int? id,
@@ -66,18 +67,18 @@ class Product {
       name: json['product_name'] ?? '',
       code: json['product_id'] ?? '',
       description: json['description'] ?? '',
-      price: (json['unit_price'] ?? 0).toDouble(),
+      price: (json['unit_price'] ?? 0.0).toDouble(),
       stock: json['quantity'] ?? 0,
-      category: json['category'] ?? 'General', // Default category
-      imagePath: json['imagePath'], // Null-safe, can be null
+      category: json['category'] ?? 'General',
+      imagePath: json['imagePath'],
       createdAt:
           json['createdAt'] != null
               ? DateTime.parse(json['createdAt'])
-              : DateTime.now(), // Default to current time
+              : null, // Will use default from constructor
       updatedAt:
           json['updatedAt'] != null
               ? DateTime.parse(json['updatedAt'])
-              : DateTime.now(), // Default to current time
+              : null, // Will use default from constructor
     );
   }
 

@@ -11,20 +11,37 @@ import '../../../../data/models/product.dart';
 import '../../../sales/presentation/pages/payment_success_page.dart';
 import '../../../../shared/widgets/payment_method_widgets.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../sales/providers/transaction_provider.dart';
 
 class TransactionItemDetail {
+  final int id;
+  final int productId;
+  final int? productVariantId;
   final String productName;
   final String variant;
   final int quantity;
   final double unitPrice;
   final double subtotal;
+  final double totalAmount;
+  final Map<String, dynamic>? product;
+  final Map<String, dynamic>? productVariant;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   const TransactionItemDetail({
+    required this.id,
+    required this.productId,
+    this.productVariantId,
     required this.productName,
     required this.variant,
     required this.quantity,
     required this.unitPrice,
     required this.subtotal,
+    required this.totalAmount,
+    this.product,
+    this.productVariant,
+    required this.createdAt,
+    required this.updatedAt,
   });
 }
 
@@ -40,8 +57,26 @@ class TransactionDetailPage extends StatefulWidget {
 class _TransactionDetailPageState extends State<TransactionDetailPage> {
   final TransactionApiService _apiService = TransactionApiService();
   List<TransactionItemDetail>? _transactionItems;
+  List<CartItem>? _cartItems;
   bool _isLoadingItems = true;
   String? _errorMessage;
+
+  // Get storeId from user profile
+  int _getStoreIdFromUser(BuildContext context) {
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+
+      if (user != null && user.stores.isNotEmpty) {
+        return user.stores.first.id;
+      }
+    } catch (e) {
+      debugPrint('Error getting storeId from user profile: $e');
+    }
+
+    // Default fallback storeId
+    return 1;
+  }
 
   @override
   void initState() {
@@ -83,7 +118,27 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         if (itemsData != null && itemsData.isNotEmpty) {
           items =
               itemsData.map((item) {
+                final unitPrice =
+                    (item['unit_price']?.toDouble() ??
+                            item['price']?.toDouble() ??
+                            item['price_per_unit']?.toDouble() ??
+                            0)
+                        .toDouble();
+                final quantity =
+                    item['quantity']?.toInt() ?? item['qty']?.toInt() ?? 1;
+                final subtotal =
+                    (item['subtotal']?.toDouble() ??
+                            item['total']?.toDouble() ??
+                            item['total_price']?.toDouble() ??
+                            (unitPrice * quantity))
+                        .toDouble();
+
                 return TransactionItemDetail(
+                  id:
+                      item['id']?.toInt() ??
+                      DateTime.now().millisecondsSinceEpoch,
+                  productId: item['product_id']?.toInt() ?? 0,
+                  productVariantId: item['product_variant_id']?.toInt(),
                   productName:
                       item['product_name']?.toString() ??
                       item['name']?.toString() ??
@@ -94,23 +149,44 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                       item['variation']?.toString() ??
                       item['size']?.toString() ??
                       '',
-                  quantity:
-                      item['quantity']?.toInt() ?? item['qty']?.toInt() ?? 1,
-                  unitPrice:
-                      (item['unit_price']?.toDouble() ??
-                              item['price']?.toDouble() ??
-                              item['price_per_unit']?.toDouble() ??
-                              0)
-                          .toDouble(),
-                  subtotal:
-                      (item['subtotal']?.toDouble() ??
-                              item['total']?.toDouble() ??
-                              item['total_price']?.toDouble() ??
-                              0)
-                          .toDouble(),
+                  quantity: quantity,
+                  unitPrice: unitPrice,
+                  subtotal: subtotal,
+                  totalAmount:
+                      subtotal, // totalAmount same as subtotal for individual items
+                  product: item['product'] as Map<String, dynamic>?,
+                  productVariant:
+                      item['product_variant'] as Map<String, dynamic>?,
+                  createdAt:
+                      DateTime.tryParse(item['created_at']?.toString() ?? '') ??
+                      DateTime.now(),
+                  updatedAt:
+                      DateTime.tryParse(item['updated_at']?.toString() ?? '') ??
+                      DateTime.now(),
                 );
               }).toList();
         }
+
+        _cartItems =
+            items.map((item) {
+              // Create a mock product based on transaction item
+              final product = Product(
+                id: item.product?['id'] ?? 0,
+                name: item.product?['name'] ?? item.productName,
+                price: item.unitPrice,
+
+                // Add other required fields with mock or default values
+                description: '',
+                stock: 0,
+                category: '',
+              );
+              return CartItem(
+                id: item.id.toString(),
+                product: product,
+                quantity: item.quantity,
+                addedAt: item.createdAt,
+              );
+            }).toList();
       }
 
       setState(() {
@@ -762,7 +838,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    if (transaction.status.toLowerCase() != 'pending') {
+    // Show action buttons for pending and outstanding transactions
+    final status = transaction.status.toLowerCase();
+    if (status != 'pending' && status != 'outstanding') {
       return const SizedBox.shrink();
     }
 
@@ -773,10 +851,22 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: () => _showCompleteTransactionDialog(context),
-                icon: const Icon(LucideIcons.check, size: 18),
-                label: const Text('Selesaikan Transaksi'),
+                icon: Icon(
+                  status == 'outstanding'
+                      ? LucideIcons.dollarSign
+                      : LucideIcons.check,
+                  size: 18,
+                ),
+                label: Text(
+                  status == 'outstanding'
+                      ? 'Bayar Utang'
+                      : 'Selesaikan Transaksi',
+                ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF059669),
+                  backgroundColor:
+                      status == 'outstanding'
+                          ? const Color(0xFFEA580C)
+                          : const Color(0xFF059669),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -815,34 +905,34 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
   void _showCompleteTransactionDialog(BuildContext context) {
     // Convert transaction items to cart items for payment dialog
-    final cartItems =
-        _transactionItems?.map((item) {
-          // Create a mock product based on transaction item
-          final product = Product(
-            id: item.productName.hashCode.abs(),
-            name: item.productName,
-            code: 'MOCK_${item.productName.toUpperCase().replaceAll(' ', '_')}',
-            description:
-                item.variant.isNotEmpty
-                    ? 'Variant: ${item.variant}'
-                    : 'Product from transaction',
-            price: item.unitPrice,
-            stock: 999, // Mock stock
-            category: 'Transaction Item',
-            imagePath: null,
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-          );
+    // final cartItems =
+    //     _transactionItems?.map((item) {
+    //       // Create a mock product based on transaction item
+    //       final product = Product(
+    //         id: item.productName.hashCode.abs(),
+    //         name: item.productName,
+    //         code: 'MOCK_${item.productName.toUpperCase().replaceAll(' ', '_')}',
+    //         description:
+    //             item.variant.isNotEmpty
+    //                 ? 'Variant: ${item.variant}'
+    //                 : 'Product from transaction',
+    //         price: item.unitPrice,
+    //         stock: 999, // Mock stock
+    //         category: 'Transaction Item',
+    //         imagePath: null,
+    //         createdAt: DateTime.now(),
+    //         updatedAt: DateTime.now(),
+    //       );
 
-          return CartItem(
-            id:
-                'cart_${item.productName.toLowerCase().replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}',
-            product: product,
-            quantity: item.quantity,
-            addedAt: DateTime.now(),
-          );
-        }).toList() ??
-        [];
+    //       return CartItem(
+    //         id:
+    //             'cart_${item.productName.toLowerCase().replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}',
+    //         product: product,
+    //         quantity: item.quantity,
+    //         addedAt: DateTime.now(),
+    //       );
+    //     }).toList() ??
+    //     [];
 
     // Create a mock customer if needed
     Customer? selectedCustomer;
@@ -856,9 +946,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       MaterialPageRoute(
         builder:
             (context) => PaymentConfirmationPage(
-              cartItems: cartItems,
+              cartItems: _cartItems ?? [],
               totalAmount: transaction.totalAmount,
-              itemCount: cartItems.length,
+              itemCount: _cartItems?.length ?? 0,
               notesController: notesController,
               selectedCustomer: selectedCustomer,
               onConfirm: (
@@ -867,6 +957,10 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                 paymentMethod,
                 cashAmount,
                 transferAmount,
+                paymentStatus,
+                outstandingReminderDate,
+                updatedCartItems,
+                updatedTotalAmount,
               ) {
                 Navigator.pop(context); // Close page
                 _completeTransaction(
@@ -875,80 +969,14 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                   cashAmount: cashAmount,
                   transferAmount: transferAmount,
                   notes: notesController.text.trim(),
+                  paymentStatus: paymentStatus,
+                  outstandingReminderDate: outstandingReminderDate,
+                  updatedCartItems: updatedCartItems,
+                  updatedTotalAmount: updatedTotalAmount,
                 );
               },
             ),
       ),
-    );
-  }
-
-  void _showCancelTransactionDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(
-                    LucideIcons.x,
-                    color: Color(0xFFEF4444),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text('Batalkan Transaksi'),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Apakah Anda yakin ingin membatalkan transaksi ini?',
-                  style: TextStyle(color: Colors.grey[700], fontSize: 16),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Tindakan ini tidak dapat dibatalkan.',
-                  style: TextStyle(
-                    color: Colors.red[600],
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: Text('Batal', style: TextStyle(color: Colors.grey[600])),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.pop(context);
-                  _cancelTransaction(context);
-                },
-                icon: const Icon(LucideIcons.x, size: 16),
-                label: const Text('Batalkan'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFEF4444),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
     );
   }
 
@@ -958,6 +986,10 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     double? cashAmount,
     double? transferAmount,
     String? notes,
+    String? paymentStatus,
+    String? outstandingReminderDate,
+    List<CartItem>? updatedCartItems,
+    double? updatedTotalAmount,
   }) async {
     // Cache navigator reference before async operations
     final navigator = Navigator.of(context);
@@ -982,56 +1014,72 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     );
 
     try {
-      // Prepare transaction update data
-      Map<String, dynamic> updateData = {'status': 'completed'};
-
-      // Add optional fields if provided
-      if (paymentMethod != null) {
-        updateData['payment_method'] = paymentMethod;
-      }
-      if (cashAmount != null) {
-        updateData['cash_amount'] = cashAmount;
-      }
-      if (transferAmount != null) {
-        updateData['transfer_amount'] = transferAmount;
-      }
-      if (notes != null && notes.isNotEmpty) {
-        updateData['notes'] = notes;
-      }
-
-      // Update transaction via API
-      final response = await _apiService.updateTransactionWithData(
-        transaction.id,
-        updateData,
+      // Get transaction provider
+      final transactionProvider = Provider.of<TransactionProvider>(
+        context,
+        listen: false,
       );
 
-      debugPrint('Update Response: ${response['data']}', wrapWidth: 1024);
+      // Use updatedCartItems if provided and not null, otherwise create from transaction items
+      List<CartItem> cartItemsToUpdate;
+
+      if (updatedCartItems != null && updatedCartItems.isNotEmpty) {
+        // Use the provided updated cart items
+        cartItemsToUpdate = updatedCartItems;
+      } else {
+        // Default to empty list if no cart items or transaction items available
+        cartItemsToUpdate = [];
+      }
+
+      // Use TransactionProvider.updateTransaction method like in _confirmOrder
+      final response = await transactionProvider.updateTransaction(
+        transactionId: transaction.id,
+        cartItems: cartItemsToUpdate,
+        totalAmount: updatedTotalAmount ?? transaction.totalAmount,
+        notes: notes ?? transaction.notes ?? '',
+        paymentMethod: paymentMethod ?? transaction.paymentMethod,
+        storeId: _getStoreIdFromUser(context),
+        customerName: 'Customer', // Default customer name
+        customerPhone: null,
+        status: paymentStatus == 'utang' ? 'outstanding' : 'completed',
+        cashAmount: cashAmount ?? 0,
+        transferAmount: transferAmount ?? 0.0,
+        outstandingReminderDate: outstandingReminderDate,
+      );
+
+      debugPrint('Update Response: $response', wrapWidth: 2024);
 
       // Close loading dialog using cached navigator
       if (mounted && navigator.canPop()) {
         navigator.pop();
       }
 
-      // Check if update was successful
-      if (response['success'] == true || response['status'] == 'success') {
+      // Check if update was successful (TransactionProvider returns non-null response on success)
+      if (response != null) {
         // Show success message
         if (mounted) {
+          final isOutstanding = paymentStatus == 'utang';
           scaffoldMessenger.showSnackBar(
             SnackBar(
               content: Row(
                 children: [
-                  const Icon(
-                    LucideIcons.checkCircle,
+                  Icon(
+                    isOutstanding ? LucideIcons.clock : LucideIcons.checkCircle,
                     color: Colors.white,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'Transaksi ${transaction.transactionNumber} berhasil diselesaikan',
+                    isOutstanding
+                        ? 'Transaksi ${transaction.transactionNumber} berhasil disimpan sebagai utang'
+                        : 'Transaksi ${transaction.transactionNumber} berhasil diselesaikan',
                   ),
                 ],
               ),
-              backgroundColor: const Color(0xFF059669),
+              backgroundColor:
+                  isOutstanding
+                      ? const Color(0xFFEA580C)
+                      : const Color(0xFF059669),
               behavior: SnackBarBehavior.floating,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -1039,46 +1087,35 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             ),
           );
 
-          // // Create mock store data
-          // final store = Store(
-          //   id: 1,
-          //   name: 'Sun POS Store',
-          //   address: 'Jl. Contoh No. 123, Jakarta',
-          //   phoneNumber: '021-12345678',
-          //   isActive: true,
-          //   createdAt: DateTime.now(),
-          //   updatedAt: DateTime.now(),
-          // );
-
           // Convert transaction items to cart items for payment success page
-          final cartItems =
-              _transactionItems?.map((item) {
-                final product = Product(
-                  id: item.productName.hashCode.abs(),
-                  name: item.productName,
-                  code:
-                      'CODE_${item.productName.toUpperCase().replaceAll(' ', '_')}',
-                  description:
-                      item.variant.isNotEmpty
-                          ? 'Variant: ${item.variant}'
-                          : 'Product item',
-                  price: item.unitPrice,
-                  stock: 999,
-                  category: 'Transaction Item',
-                  imagePath: null,
-                  createdAt: DateTime.now(),
-                  updatedAt: DateTime.now(),
-                );
+          // final cartItems =
+          //     _transactionItems?.map((item) {
+          //       final product = Product(
+          //         id: item.productName.hashCode.abs(),
+          //         name: item.productName,
+          //         code:
+          //             'CODE_${item.productName.toUpperCase().replaceAll(' ', '_')}',
+          //         description:
+          //             item.variant.isNotEmpty
+          //                 ? 'Variant: ${item.variant}'
+          //                 : 'Product item',
+          //         price: item.unitPrice,
+          //         stock: 999,
+          //         category: 'Transaction Item',
+          //         imagePath: null,
+          //         createdAt: DateTime.now(),
+          //         updatedAt: DateTime.now(),
+          //       );
 
-                return CartItem(
-                  id:
-                      'item_${item.productName.toLowerCase().replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}',
-                  product: product,
-                  quantity: item.quantity,
-                  addedAt: DateTime.now(),
-                );
-              }).toList() ??
-              [];
+          //       return CartItem(
+          //         id:
+          //             'item_${item.productName.toLowerCase().replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}',
+          //         product: product,
+          //         quantity: item.quantity,
+          //         addedAt: DateTime.now(),
+          //       );
+          //     }).toList() ??
+          //     [];
 
           // Navigate to PaymentSuccessPage instead of just going back
           navigator.pushReplacement(
@@ -1087,10 +1124,10 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                   (context) => PaymentSuccessPage(
                     paymentMethod: paymentMethod ?? transaction.paymentMethod,
                     amountPaid: transaction.totalAmount,
-                    totalAmount: transaction.totalAmount,
+                    totalAmount: updatedTotalAmount ?? transaction.totalAmount,
                     transactionNumber: transaction.transactionNumber,
                     store: transaction.store,
-                    cartItems: cartItems,
+                    cartItems: cartItemsToUpdate,
                     notes: notes ?? transaction.notes,
                     user:
                         Provider.of<AuthProvider>(context, listen: false).user,
@@ -1099,11 +1136,12 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           );
         }
       } else {
-        // Handle unexpected response format
+        // Handle failure from TransactionProvider
         if (mounted) {
           _showErrorMessage(
             scaffoldMessenger,
-            'Terjadi kesalahan saat menyelesaikan transaksi',
+            transactionProvider.errorMessage ??
+                'Gagal menyelesaikan transaksi. Silakan coba lagi.',
           );
         }
       }
@@ -1118,7 +1156,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         String errorMessage = e.toString().replaceAll('Exception: ', '');
         _showErrorMessage(
           scaffoldMessenger,
-          'Gagal menyelesaikan transaksi: $errorMessage',
+          'Terjadi kesalahan: $errorMessage',
         );
       }
     }
@@ -1144,101 +1182,14 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     );
   }
 
-  void _cancelTransaction(BuildContext context) async {
-    // Cache navigator and scaffoldMessenger reference before async operations
-    final navigator = Navigator.of(context);
-    final scaffoldMessenger = ScaffoldMessenger.of(context);
-
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return const AlertDialog(
-          content: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 16),
-              Text('Membatalkan transaksi...'),
-            ],
-          ),
-        );
-      },
-    );
-
-    try {
-      // Update transaction status to cancelled via API
-      final response = await _apiService.updateTransactionStatus(
-        transaction.id,
-        'cancelled',
-      );
-
-      // Close loading dialog using cached navigator
-      if (mounted && navigator.canPop()) {
-        navigator.pop();
-      }
-
-      // Check if update was successful
-      if (response['success'] == true || response['status'] == 'success') {
-        // Show success message
-        if (mounted) {
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(
-                    LucideIcons.xCircle,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text('Transaksi ${transaction.transactionNumber} dibatalkan'),
-                ],
-              ),
-              backgroundColor: const Color(0xFFEF4444),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
-
-          // Navigate back to refresh the transaction list
-          navigator.pop(true);
-        }
-      } else {
-        // Handle unexpected response format
-        if (mounted) {
-          _showErrorMessage(
-            scaffoldMessenger,
-            'Terjadi kesalahan saat membatalkan transaksi',
-          );
-        }
-      }
-    } catch (e) {
-      // Close loading dialog if still open using cached navigator
-      if (mounted && navigator.canPop()) {
-        navigator.pop();
-      }
-
-      // Show error message
-      if (mounted) {
-        String errorMessage = e.toString().replaceAll('Exception: ', '');
-        _showErrorMessage(
-          scaffoldMessenger,
-          'Gagal membatalkan transaksi: $errorMessage',
-        );
-      }
-    }
-  }
-
   IconData _getStatusIcon(String status) {
     switch (status.toLowerCase()) {
       case 'completed':
         return LucideIcons.checkCircle;
       case 'pending':
         return LucideIcons.clock;
+      case 'outstanding':
+        return LucideIcons.alertTriangle;
       case 'cancelled':
         return LucideIcons.xCircle;
       default:
@@ -1252,6 +1203,8 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         return 'Selesai';
       case 'pending':
         return 'Pending';
+      case 'outstanding':
+        return 'Utang';
       case 'cancelled':
         return 'Dibatalkan';
       default:

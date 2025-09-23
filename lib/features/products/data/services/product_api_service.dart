@@ -3,7 +3,7 @@ import '../models/product_response.dart';
 import '../models/product_detail_response.dart';
 
 class ProductApiService {
-  static const String baseUrl = 'https://sfpos.app/api/v1';
+  static const String baseUrl = 'https://sfxsys.com/api/v1';
   final AuthHttpClient _httpClient = AuthHttpClient();
 
   /// Get products with pagination and filtering

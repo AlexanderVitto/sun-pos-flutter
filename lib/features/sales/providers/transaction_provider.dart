@@ -29,6 +29,7 @@ class TransactionProvider extends ChangeNotifier {
     String? status,
     double? cashAmount,
     double transferAmount = 0,
+    String? outstandingReminderDate,
   }) async {
     if (cartItems.isEmpty) {
       _errorMessage = 'Keranjang kosong!';
@@ -52,6 +53,7 @@ class TransactionProvider extends ChangeNotifier {
         status: status,
         cashAmount: cashAmount,
         transferAmount: transferAmount,
+        outstandingReminderDate: outstandingReminderDate,
       );
 
       final response = await _transactionService.createTransaction(
@@ -94,6 +96,7 @@ class TransactionProvider extends ChangeNotifier {
     String? status,
     double? cashAmount,
     double transferAmount = 0,
+    String? outstandingReminderDate,
   }) {
     // Get current date in YYYY-MM-DD format
     final now = DateTime.now();
@@ -129,6 +132,7 @@ class TransactionProvider extends ChangeNotifier {
       status: status ?? 'pending',
       cashAmount: cashAmount,
       transferAmount: transferAmount,
+      outstandingReminderDate: outstandingReminderDate,
     );
   }
 
@@ -143,8 +147,9 @@ class TransactionProvider extends ChangeNotifier {
     String? customerName,
     String? customerPhone,
     String? status,
-    double? cashAmount,
+    double cashAmount = 0,
     double transferAmount = 0,
+    String? outstandingReminderDate,
   }) async {
     if (cartItems.isEmpty) {
       _errorMessage = 'Keranjang kosong!';
@@ -168,6 +173,7 @@ class TransactionProvider extends ChangeNotifier {
         status: status,
         cashAmount: cashAmount,
         transferAmount: transferAmount,
+        outstandingReminderDate: outstandingReminderDate,
       );
 
       final response = await _transactionService.updateTransaction(

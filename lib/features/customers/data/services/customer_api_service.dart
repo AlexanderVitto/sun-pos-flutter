@@ -7,7 +7,7 @@ import '../models/customer.dart';
 import '../models/customer_list_response.dart';
 
 class CustomerApiService {
-  static const String baseUrl = 'https://sfpos.app/api/v1';
+  static const String baseUrl = 'https://sfxsys.com/api/v1';
   final AuthHttpClient _httpClient = AuthHttpClient();
 
   /// Create a new customer

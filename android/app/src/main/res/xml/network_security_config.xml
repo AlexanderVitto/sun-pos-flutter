@@ -12,7 +12,7 @@
     
     <!-- Production API domain with HTTPS -->
     <domain-config cleartextTrafficPermitted="false">
-        <domain includeSubdomains="true">sfpos.app</domain>
+        <domain includeSubdomains="true">sfxsys.com</domain>
         <trust-anchors>
             <certificates src="system"/>
         </trust-anchors>

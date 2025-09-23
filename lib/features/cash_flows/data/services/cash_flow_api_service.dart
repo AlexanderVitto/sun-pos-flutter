@@ -5,7 +5,7 @@ import '../models/create_cash_flow_request.dart';
 import '../models/cash_flow_response.dart';
 
 class CashFlowApiService {
-  static const String baseUrl = 'https://sfpos.app/api/v1';
+  static const String baseUrl = 'https://sfxsys.com/api/v1';
   final SecureStorageService _secureStorage = SecureStorageService();
 
   /// Create a new cash flow entry

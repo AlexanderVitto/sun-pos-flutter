@@ -184,6 +184,7 @@ class PaymentService {
           status: 'draft', // Draft status for cart items
           cashAmount: 0, // No cash amount for draft
           transferAmount: 0, // Default transfer amount for draft
+          outstandingReminderDate: null, // No reminder date for draft
         );
 
         debugPrint('✅ Draft transaction updated successfully');
@@ -202,6 +203,7 @@ class PaymentService {
           status: 'draft', // Draft status for cart items
           cashAmount: 0, // No cash amount for draft
           transferAmount: 0, // Default transfer amount for draft
+          outstandingReminderDate: null, // No reminder date for draft
         );
 
         // Store draft transaction ID for future updates
@@ -258,6 +260,10 @@ class PaymentService {
                 paymentMethod,
                 cashAmount,
                 transferAmount,
+                paymentStatus,
+                outstandingReminderDate,
+                updatedCartItems,
+                updatedTotalAmount,
               ) {
                 // Check if context is still valid before operations
                 if (context.mounted) {
@@ -270,6 +276,10 @@ class PaymentService {
                     notesController,
                     cashAmount,
                     transferAmount,
+                    paymentStatus,
+                    outstandingReminderDate,
+                    updatedCartItems,
+                    updatedTotalAmount,
                   );
                 }
               },
@@ -287,6 +297,10 @@ class PaymentService {
     TextEditingController notesController,
     double? cashAmount,
     double? transferAmount,
+    String paymentStatus,
+    String? outstandingReminderDate,
+    List<CartItem> updatedCartItems,
+    double updatedTotalAmount,
   ) async {
     try {
       // Set customer information in cart provider
@@ -314,16 +328,17 @@ class PaymentService {
         // Use updateTransaction method for existing draft transactions
         transactionResponse = await transactionProvider.updateTransaction(
           transactionId: cartProvider.draftTransactionId!,
-          cartItems: cartProvider.items,
-          totalAmount: cartProvider.total,
+          cartItems: updatedCartItems,
+          totalAmount: updatedTotalAmount,
           notes: notesController.text.trim(),
           paymentMethod: paymentMethod,
           storeId: _getStoreIdFromUser(context),
           customerName: cartProvider.customerName ?? 'Customer',
           customerPhone: cartProvider.customerPhone,
-          status: 'pending', // Change status from draft to pending
-          cashAmount: cashAmount,
+          status: paymentStatus == 'utang' ? 'outstanding' : 'pending',
+          cashAmount: cashAmount ?? 0,
           transferAmount: transferAmount ?? 0.0,
+          outstandingReminderDate: outstandingReminderDate,
         );
 
         debugPrint('✅ Draft transaction updated to pending successfully');
@@ -332,16 +347,17 @@ class PaymentService {
 
         // Process payment using the correct method
         transactionResponse = await transactionProvider.processPayment(
-          cartItems: cartProvider.items,
-          totalAmount: cartProvider.total,
+          cartItems: updatedCartItems,
+          totalAmount: updatedTotalAmount,
           notes: notesController.text.trim(),
           paymentMethod: paymentMethod,
           storeId: _getStoreIdFromUser(context),
           customerName: cartProvider.customerName ?? 'Customer',
           customerPhone: cartProvider.customerPhone,
-          status: 'pending', // Change status to pending for paid transactions
+          status: paymentStatus == 'utang' ? 'outstanding' : 'pending',
           cashAmount: cashAmount,
           transferAmount: transferAmount ?? 0.0,
+          outstandingReminderDate: outstandingReminderDate,
         );
 
         debugPrint('✅ New pending transaction created successfully');
@@ -349,8 +365,8 @@ class PaymentService {
 
       if (transactionResponse != null) {
         // Store cart items before clearing for receipt
-        final cartItems = List<CartItem>.from(cartProvider.items);
-        final totalAmount = cartProvider.total;
+        final cartItems = List<CartItem>.from(updatedCartItems);
+        final totalAmount = updatedTotalAmount;
 
         // Delete pending transaction if it exists
         final pendingProvider = Provider.of<PendingTransactionProvider>(
@@ -539,6 +555,7 @@ class PaymentService {
           status: 'pending', // Change status from draft to pending
           cashAmount: 0, // Orders don't have cash amount since they're pending
           transferAmount: 0, // Default transfer amount for orders
+          outstandingReminderDate: null, // No reminder date for orders
         );
 
         debugPrint('✅ Draft transaction updated to order successfully');
@@ -557,6 +574,7 @@ class PaymentService {
           status: 'pending', // Change status to pending for orders
           cashAmount: 0, // Orders don't have cash amount since they're pending
           transferAmount: 0, // Default transfer amount for orders
+          outstandingReminderDate: null, // No reminder date for orders
         );
 
         debugPrint('✅ New order transaction created successfully');

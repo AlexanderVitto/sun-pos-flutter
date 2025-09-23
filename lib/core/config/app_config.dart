@@ -1,6 +1,6 @@
 class AppConfig {
   // API Configuration
-  static const String baseUrl = 'https://sfpos.app/api/v1';
+  static const String baseUrl = 'https://sfxsys.com/api/v1';
   static const String appName = 'Sun POS';
   static const String appVersion = '1.0.0';
 

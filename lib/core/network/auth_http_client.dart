@@ -1,7 +1,10 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import '../services/secure_storage_service.dart';
+import '../services/ssl_certificate_service.dart';
 import '../utils/app_info_helper.dart';
+import 'ssl_http_client.dart';
 
 /// HTTP Client yang otomatis menambahkan token authorization
 class AuthHttpClient {
@@ -14,7 +17,7 @@ class AuthHttpClient {
   AuthHttpClient._internal();
 
   final SecureStorageService _secureStorage = SecureStorageService();
-  final http.Client _client = http.Client();
+  final http.Client _client = SSLHttpClient();
 
   /// GET request dengan authorization header otomatis
   Future<http.Response> get(
@@ -22,8 +25,22 @@ class AuthHttpClient {
     Map<String, String>? headers,
     bool requireAuth = true,
   }) async {
-    final finalHeaders = await _prepareHeaders(headers, requireAuth);
-    return await _client.get(Uri.parse(url), headers: finalHeaders);
+    try {
+      final finalHeaders = await _prepareHeaders(headers, requireAuth);
+      return await _client.get(Uri.parse(url), headers: finalHeaders);
+    } on HandshakeException catch (e) {
+      final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+      throw Exception(errorMessage);
+    } on SocketException catch (e) {
+      throw Exception('Network connection error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('CERTIFICATE_VERIFY_FAILED') ||
+          e.toString().contains('HandshakeException')) {
+        final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+        throw Exception(errorMessage);
+      }
+      rethrow;
+    }
   }
 
   /// POST request dengan authorization header otomatis
@@ -34,13 +51,27 @@ class AuthHttpClient {
     Encoding? encoding,
     bool requireAuth = true,
   }) async {
-    final finalHeaders = await _prepareHeaders(headers, requireAuth);
-    return await _client.post(
-      Uri.parse(url),
-      headers: finalHeaders,
-      body: body,
-      encoding: encoding,
-    );
+    try {
+      final finalHeaders = await _prepareHeaders(headers, requireAuth);
+      return await _client.post(
+        Uri.parse(url),
+        headers: finalHeaders,
+        body: body,
+        encoding: encoding,
+      );
+    } on HandshakeException catch (e) {
+      final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+      throw Exception(errorMessage);
+    } on SocketException catch (e) {
+      throw Exception('Network connection error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('CERTIFICATE_VERIFY_FAILED') ||
+          e.toString().contains('HandshakeException')) {
+        final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+        throw Exception(errorMessage);
+      }
+      rethrow;
+    }
   }
 
   /// PUT request dengan authorization header otomatis
@@ -51,13 +82,27 @@ class AuthHttpClient {
     Encoding? encoding,
     bool requireAuth = true,
   }) async {
-    final finalHeaders = await _prepareHeaders(headers, requireAuth);
-    return await _client.put(
-      Uri.parse(url),
-      headers: finalHeaders,
-      body: body,
-      encoding: encoding,
-    );
+    try {
+      final finalHeaders = await _prepareHeaders(headers, requireAuth);
+      return await _client.put(
+        Uri.parse(url),
+        headers: finalHeaders,
+        body: body,
+        encoding: encoding,
+      );
+    } on HandshakeException catch (e) {
+      final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+      throw Exception(errorMessage);
+    } on SocketException catch (e) {
+      throw Exception('Network connection error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('CERTIFICATE_VERIFY_FAILED') ||
+          e.toString().contains('HandshakeException')) {
+        final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+        throw Exception(errorMessage);
+      }
+      rethrow;
+    }
   }
 
   /// DELETE request dengan authorization header otomatis
@@ -68,13 +113,27 @@ class AuthHttpClient {
     Encoding? encoding,
     bool requireAuth = true,
   }) async {
-    final finalHeaders = await _prepareHeaders(headers, requireAuth);
-    return await _client.delete(
-      Uri.parse(url),
-      headers: finalHeaders,
-      body: body,
-      encoding: encoding,
-    );
+    try {
+      final finalHeaders = await _prepareHeaders(headers, requireAuth);
+      return await _client.delete(
+        Uri.parse(url),
+        headers: finalHeaders,
+        body: body,
+        encoding: encoding,
+      );
+    } on HandshakeException catch (e) {
+      final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+      throw Exception(errorMessage);
+    } on SocketException catch (e) {
+      throw Exception('Network connection error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('CERTIFICATE_VERIFY_FAILED') ||
+          e.toString().contains('HandshakeException')) {
+        final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+        throw Exception(errorMessage);
+      }
+      rethrow;
+    }
   }
 
   /// PATCH request dengan authorization header otomatis
@@ -85,13 +144,27 @@ class AuthHttpClient {
     Encoding? encoding,
     bool requireAuth = true,
   }) async {
-    final finalHeaders = await _prepareHeaders(headers, requireAuth);
-    return await _client.patch(
-      Uri.parse(url),
-      headers: finalHeaders,
-      body: body,
-      encoding: encoding,
-    );
+    try {
+      final finalHeaders = await _prepareHeaders(headers, requireAuth);
+      return await _client.patch(
+        Uri.parse(url),
+        headers: finalHeaders,
+        body: body,
+        encoding: encoding,
+      );
+    } on HandshakeException catch (e) {
+      final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+      throw Exception(errorMessage);
+    } on SocketException catch (e) {
+      throw Exception('Network connection error: ${e.message}');
+    } catch (e) {
+      if (e.toString().contains('CERTIFICATE_VERIFY_FAILED') ||
+          e.toString().contains('HandshakeException')) {
+        final errorMessage = SSLCertificateService.getSSLErrorMessage(e);
+        throw Exception(errorMessage);
+      }
+      rethrow;
+    }
   }
 
   /// Menyiapkan headers dengan token authorization dan device information
