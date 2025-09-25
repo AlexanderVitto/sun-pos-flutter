@@ -28,6 +28,9 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
   NavigatorState? _navigator;
   final TextEditingController _notesController = TextEditingController();
 
+  // Map to store quantity for each product
+  final Map<int, int> _productQuantities = {};
+
   @override
   void initState() {
     super.initState();
@@ -77,6 +80,35 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
     _cartProvider?.removeListener(_onCartChanged);
     _notesController.dispose();
     super.dispose();
+  }
+
+  // Helper methods for quantity management
+  int _getProductQuantity(int productId) {
+    return _productQuantities[productId] ?? 1;
+  }
+
+  void _updateProductQuantity(int productId, int quantity) {
+    setState(() {
+      if (quantity <= 0) {
+        _productQuantities.remove(productId);
+      } else {
+        _productQuantities[productId] = quantity;
+      }
+    });
+  }
+
+  void _increaseQuantity(int productId, int maxStock) {
+    final currentQuantity = _getProductQuantity(productId);
+    if (currentQuantity < maxStock) {
+      _updateProductQuantity(productId, currentQuantity + 1);
+    }
+  }
+
+  void _decreaseQuantity(int productId) {
+    final currentQuantity = _getProductQuantity(productId);
+    if (currentQuantity > 1) {
+      _updateProductQuantity(productId, currentQuantity - 1);
+    }
   }
 
   @override
@@ -839,34 +871,158 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
                   ),
                   const SizedBox(height: 4),
 
-                  // Add to Cart Button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 32,
-                    child: ElevatedButton(
-                      onPressed:
-                          product.stock > 0 ? () => _addToCart(product) : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[600],
-                        foregroundColor: Colors.white,
-                        padding: EdgeInsets.zero,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                  // Add to Cart Button with Quantity Controls
+                  Consumer<CartProvider>(
+                    builder: (context, cartProvider, child) {
+                      final existingItem = cartProvider.getItemByProductId(
+                        product.id,
+                      );
+                      final isProductInCart = existingItem != null;
+                      final currentQuantity = _getProductQuantity(product.id);
+
+                      return Column(
                         children: [
-                          const Icon(Icons.add_shopping_cart, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            '+ Keranjang',
-                            style: const TextStyle(fontSize: 12),
+                          // Quantity Controls
+                          Container(
+                            height: 32,
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey[300]!),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                // Decrease button
+                                Expanded(
+                                  child: InkWell(
+                                    onTap:
+                                        currentQuantity > 1
+                                            ? () =>
+                                                _decreaseQuantity(product.id)
+                                            : null,
+                                    child: Container(
+                                      height: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            currentQuantity > 1
+                                                ? Colors.grey[100]
+                                                : Colors.grey[50],
+                                        borderRadius: const BorderRadius.only(
+                                          topLeft: Radius.circular(7),
+                                          bottomLeft: Radius.circular(7),
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.remove,
+                                        size: 16,
+                                        color:
+                                            currentQuantity > 1
+                                                ? Colors.grey[700]
+                                                : Colors.grey[400],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Quantity display
+                                Expanded(
+                                  child: Container(
+                                    height: double.infinity,
+                                    color: Colors.white,
+                                    child: Center(
+                                      child: Text(
+                                        '$currentQuantity',
+                                        style: const TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Increase button
+                                Expanded(
+                                  child: InkWell(
+                                    onTap:
+                                        currentQuantity < product.stock
+                                            ? () => _increaseQuantity(
+                                              product.id,
+                                              product.stock,
+                                            )
+                                            : null,
+                                    child: Container(
+                                      height: double.infinity,
+                                      decoration: BoxDecoration(
+                                        color:
+                                            currentQuantity < product.stock
+                                                ? Colors.grey[100]
+                                                : Colors.grey[50],
+                                        borderRadius: const BorderRadius.only(
+                                          topRight: Radius.circular(7),
+                                          bottomRight: Radius.circular(7),
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        Icons.add,
+                                        size: 16,
+                                        color:
+                                            currentQuantity < product.stock
+                                                ? Colors.grey[700]
+                                                : Colors.grey[400],
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+
+                          // Add to Cart Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 32,
+                            child: ElevatedButton(
+                              onPressed:
+                                  product.stock > 0
+                                      ? () => _addToCart(product)
+                                      : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                    isProductInCart
+                                        ? Colors
+                                            .orange[600] // Changed color - Orange if in cart
+                                        : Colors
+                                            .purple[600], // Changed color - Purple if not in cart
+                                foregroundColor: Colors.white,
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                elevation: 0,
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    isProductInCart
+                                        ? Icons.add_shopping_cart
+                                        : Icons.shopping_cart_outlined,
+                                    size: 14,
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    isProductInCart
+                                        ? '+ Tambah (${existingItem.quantity})'
+                                        : '+ Keranjang',
+                                    style: const TextStyle(fontSize: 12),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
-                      ),
-                    ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -878,12 +1034,14 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
   }
 
   void _addToCart(Product product) {
+    final quantity = _getProductQuantity(product.id);
+
     print(
-      '🛒 DEBUG: Adding ${product.name} to cart - Provider: ${_cartProvider.hashCode}',
+      '🛒 DEBUG: Adding ${product.name} x$quantity to cart - Provider: ${_cartProvider.hashCode}',
     );
 
     // Use cached provider instance instead of Provider.of
-    _cartProvider!.addItem(product);
+    _cartProvider!.addItem(product, quantity: quantity, context: context);
 
     print(
       '🛒 DEBUG: After adding - Items count: ${_cartProvider!.items.length}',
@@ -891,7 +1049,7 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${product.name} ditambahkan ke keranjang'),
+        content: Text('${product.name} x$quantity ditambahkan ke keranjang'),
         duration: const Duration(seconds: 1),
         backgroundColor: Colors.green,
       ),
@@ -1683,7 +1841,7 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
       paidAmount: _cartProvider!.total, // Assuming exact payment for now
       notes:
           _notesController.text.trim().isEmpty
-              ? 'POS Transaction - ${_cartProvider!.items.length} items'
+              ? ''
               : _notesController.text.trim(),
       transactionDate: transactionDate,
       details: details,

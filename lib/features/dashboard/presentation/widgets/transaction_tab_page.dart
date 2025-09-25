@@ -154,24 +154,27 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Transaksi',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -1,
+                Flexible(
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Transaksi',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                          letterSpacing: -1,
+                        ),
                       ),
-                    ),
-                    Text(
-                      'Kelola transaksi pending dan selesai',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
-                  ],
+                      Text(
+                        'Kelola transaksi pending, outstanding, dan selesai',
+                        style: TextStyle(color: Colors.white70, fontSize: 16),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -339,6 +342,8 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
               children: [
                 _buildStatusChip('pending', 'Pending', provider),
                 const SizedBox(width: 12),
+                _buildStatusChip('outstanding', 'Outstanding', provider),
+                const SizedBox(width: 12),
                 _buildStatusChip('completed', 'Success', provider),
               ],
             ),
@@ -485,8 +490,21 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
         emptyIcon = LucideIcons.searchX;
       } else {
         emptyMessage = 'Belum ada transaksi';
-        emptyDescription =
-            'Transaksi ${_selectedStatus == 'pending' ? 'pending' : 'yang selesai'} akan muncul di sini';
+        String statusText;
+        switch (_selectedStatus) {
+          case 'pending':
+            statusText = 'pending';
+            break;
+          case 'outstanding':
+            statusText = 'outstanding';
+            break;
+          case 'completed':
+            statusText = 'yang selesai';
+            break;
+          default:
+            statusText = _selectedStatus;
+        }
+        emptyDescription = 'Transaksi $statusText akan muncul di sini';
         emptyIcon = LucideIcons.receipt;
       }
 
@@ -711,6 +729,8 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     switch (status.toLowerCase()) {
       case 'pending':
         return const Color(0xFFF59E0B); // Orange
+      case 'outstanding':
+        return const Color(0xFF8B5CF6); // Purple
       case 'completed':
         return const Color(0xFF10B981); // Green
       case 'cancelled':
@@ -724,6 +744,8 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     switch (status.toLowerCase()) {
       case 'pending':
         return 'Pending';
+      case 'outstanding':
+        return 'Outstanding';
       case 'completed':
         return 'Selesai';
       case 'cancelled':

@@ -196,13 +196,17 @@ class _POSTransactionView extends StatelessWidget {
             isTablet
                 ? TabletLayout(
                   viewModel: viewModel,
-                  onAddToCart: (product) => _addToCart(product, context),
+                  onAddToCart:
+                      (product, quantity) =>
+                          _addToCart(product, quantity, context),
                   onPaymentPressed: () => _processPayment(context),
                   onOrderPressed: () => _processOrder(context),
                 )
                 : MobileLayout(
                   viewModel: viewModel,
-                  onAddToCart: (product) => _addToCart(product, context),
+                  onAddToCart:
+                      (product, quantity) =>
+                          _addToCart(product, quantity, context),
                   onProductTap:
                       (product) => _navigateToProductDetail(product, context),
                 ),
@@ -217,8 +221,8 @@ class _POSTransactionView extends StatelessWidget {
     );
   }
 
-  void _addToCart(Product product, BuildContext context) {
-    debugPrint('🛒 Adding product to cart: ${product.name}');
+  void _addToCart(Product product, int quantity, BuildContext context) {
+    debugPrint('🛒 Adding product to cart: ${product.name} x$quantity');
     final viewModel = Provider.of<POSTransactionViewModel>(
       context,
       listen: false,
@@ -231,13 +235,13 @@ class _POSTransactionView extends StatelessWidget {
         '🛒 Before adding - total items: ${cartProvider.items.length}',
       );
 
-      cartProvider.addItem(product, context: context);
+      cartProvider.addItem(product, quantity: quantity, context: context);
 
       debugPrint('🛒 After adding - total items: ${cartProvider.items.length}');
 
       PosUIHelpers.showSuccessSnackbar(
         context,
-        '${product.name} ditambahkan ke keranjang',
+        '${product.name} x$quantity ditambahkan ke keranjang',
       );
 
       // Load transactions after adding item to cart

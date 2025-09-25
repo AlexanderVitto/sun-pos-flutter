@@ -823,7 +823,157 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 
             const SizedBox(height: 16),
 
-            // Discount Card
+            // // Discount Card
+            // Card(
+            //   elevation: 2,
+            //   shape: RoundedRectangleBorder(
+            //     borderRadius: BorderRadius.circular(12),
+            //   ),
+            //   child: Padding(
+            //     padding: const EdgeInsets.all(20),
+            //     child: Column(
+            //       crossAxisAlignment: CrossAxisAlignment.start,
+            //       children: [
+            //         Row(
+            //           children: [
+            //             Container(
+            //               padding: const EdgeInsets.all(8),
+            //               decoration: BoxDecoration(
+            //                 color: Colors.red.shade600,
+            //                 borderRadius: BorderRadius.circular(8),
+            //               ),
+            //               child: const Icon(
+            //                 Icons.percent,
+            //                 color: Colors.white,
+            //                 size: 20,
+            //               ),
+            //             ),
+            //             const SizedBox(width: 12),
+            //             const Text(
+            //               'Diskon Per Item',
+            //               style: TextStyle(
+            //                 fontSize: 18,
+            //                 fontWeight: FontWeight.bold,
+            //                 color: Colors.black87,
+            //               ),
+            //             ),
+            //           ],
+            //         ),
+            //         const SizedBox(height: 16),
+            //         Row(
+            //           children: [
+            //             Expanded(
+            //               child: TextField(
+            //                 controller: _discountController,
+            //                 keyboardType: TextInputType.number,
+            //                 onChanged: (_) => _updateDiscount(),
+            //                 decoration: InputDecoration(
+            //                   labelText: 'Diskon Per Item (%)',
+            //                   hintText: '0',
+            //                   helperText:
+            //                       'Diskon akan diterapkan ke setiap item',
+            //                   suffixText: '%',
+            //                   border: OutlineInputBorder(
+            //                     borderRadius: BorderRadius.circular(8),
+            //                   ),
+            //                   focusedBorder: OutlineInputBorder(
+            //                     borderRadius: BorderRadius.circular(8),
+            //                     borderSide: BorderSide(
+            //                       color: Colors.red.shade600,
+            //                       width: 2,
+            //                     ),
+            //                   ),
+            //                   contentPadding: const EdgeInsets.symmetric(
+            //                     horizontal: 12,
+            //                     vertical: 16,
+            //                   ),
+            //                 ),
+            //               ),
+            //             ),
+            //             const SizedBox(width: 16),
+            //             Container(
+            //               padding: const EdgeInsets.all(16),
+            //               decoration: BoxDecoration(
+            //                 color: Colors.red.shade50,
+            //                 borderRadius: BorderRadius.circular(8),
+            //                 border: Border.all(color: Colors.red.shade200),
+            //               ),
+            //               child: Text(
+            //                 'Rp ${discountAmount.toStringAsFixed(0)}',
+            //                 style: TextStyle(
+            //                   fontSize: 16,
+            //                   fontWeight: FontWeight.bold,
+            //                   color: Colors.red.shade700,
+            //                 ),
+            //               ),
+            //             ),
+            //           ],
+            //         ),
+            //         const SizedBox(height: 12),
+            //         Container(
+            //           width: double.infinity,
+            //           padding: const EdgeInsets.all(12),
+            //           decoration: BoxDecoration(
+            //             color: Colors.grey.shade50,
+            //             borderRadius: BorderRadius.circular(8),
+            //             border: Border.all(color: Colors.grey.shade300),
+            //           ),
+            //           child: Column(
+            //             children: [
+            //               Row(
+            //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //                 children: [
+            //                   Text(
+            //                     'Subtotal (sebelum diskon):',
+            //                     style: TextStyle(
+            //                       fontSize: 14,
+            //                       color: Colors.grey.shade700,
+            //                     ),
+            //                   ),
+            //                   Text(
+            //                     'Rp ${subtotal.toStringAsFixed(0)}',
+            //                     style: TextStyle(
+            //                       fontSize: 14,
+            //                       fontWeight: FontWeight.w600,
+            //                       color: Colors.grey.shade700,
+            //                     ),
+            //                   ),
+            //                 ],
+            //               ),
+            //               if (_discountPercentage > 0) ...[
+            //                 const SizedBox(height: 8),
+            //                 Row(
+            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            //                   children: [
+            //                     Text(
+            //                       'Total setelah diskon:',
+            //                       style: TextStyle(
+            //                         fontSize: 14,
+            //                         fontWeight: FontWeight.w600,
+            //                         color: Colors.green.shade700,
+            //                       ),
+            //                     ),
+            //                     Text(
+            //                       'Rp ${subtotalAfterDiscount.toStringAsFixed(0)}',
+            //                       style: TextStyle(
+            //                         fontSize: 14,
+            //                         fontWeight: FontWeight.bold,
+            //                         color: Colors.green.shade700,
+            //                       ),
+            //                     ),
+            //                   ],
+            //                 ),
+            //               ],
+            //             ],
+            //           ),
+            //         ),
+            //       ],
+            //     ),
+            //   ),
+            // ),
+            const SizedBox(height: 16),
+
+            // Notes Card
             Card(
               elevation: 2,
               shape: RoundedRectangleBorder(
@@ -839,18 +989,18 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.red.shade600,
+                            color: Colors.indigo.shade600,
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
-                            Icons.percent,
+                            Icons.note,
                             color: Colors.white,
                             size: 20,
                           ),
                         ),
                         const SizedBox(width: 12),
                         const Text(
-                          'Diskon Per Item',
+                          'Catatan Pesanan',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -860,175 +1010,43 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                       ],
                     ),
                     const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _discountController,
-                            keyboardType: TextInputType.number,
-                            onChanged: (_) => _updateDiscount(),
-                            decoration: InputDecoration(
-                              labelText: 'Diskon Per Item (%)',
-                              hintText: '0',
-                              helperText:
-                                  'Diskon akan diterapkan ke setiap item',
-                              suffixText: '%',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: BorderSide(
-                                  color: Colors.red.shade600,
-                                  width: 2,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 16,
-                              ),
-                            ),
+                    TextField(
+                      controller: widget.notesController,
+                      maxLines: 4,
+                      decoration: InputDecoration(
+                        hintText: 'Tambahkan catatan pesanan (opsional)...',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: Colors.indigo.shade600,
+                            width: 2,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: Colors.red.shade50,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.red.shade200),
-                          ),
-                          child: Text(
-                            'Rp ${discountAmount.toStringAsFixed(0)}',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red.shade700,
-                            ),
-                          ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(color: Colors.grey.shade300),
                         ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.grey.shade300),
+                        filled: true,
+                        fillColor: Colors.grey.shade50,
+                        contentPadding: const EdgeInsets.all(16),
+                        helperText:
+                            'Catatan akan disertakan dalam receipt dan detail pesanan',
+                        helperStyle: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Subtotal (sebelum diskon):',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                              Text(
-                                'Rp ${subtotal.toStringAsFixed(0)}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: Colors.grey.shade700,
-                                ),
-                              ),
-                            ],
-                          ),
-                          if (_discountPercentage > 0) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  'Total setelah diskon:',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.green.shade700,
-                                  ),
-                                ),
-                                Text(
-                                  'Rp ${subtotalAfterDiscount.toStringAsFixed(0)}',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.green.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
+                      style: const TextStyle(fontSize: 16),
+                      textCapitalization: TextCapitalization.sentences,
                     ),
                   ],
                 ),
               ),
             ),
-
-            const SizedBox(height: 16),
-
-            // Notes Card
-            if (widget.notesController.text.isNotEmpty)
-              Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: Colors.indigo.shade600,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(
-                              Icons.note,
-                              color: Colors.white,
-                              size: 20,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          const Text(
-                            'Catatan Pesanan',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade50,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.shade300),
-                        ),
-                        child: Text(
-                          widget.notesController.text,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
 
             const SizedBox(height: 100), // Space for bottom bar
           ],

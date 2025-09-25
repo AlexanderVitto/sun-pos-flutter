@@ -410,6 +410,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
         title: const Text(
           'Pilih Pelanggan',
           style: TextStyle(
+            color: Color(0xFF1E293B),
             fontSize: 20,
             fontWeight: FontWeight.w700,
             letterSpacing: -0.5,

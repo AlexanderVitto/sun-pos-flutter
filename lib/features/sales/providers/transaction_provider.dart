@@ -121,10 +121,7 @@ class TransactionProvider extends ChangeNotifier {
       storeId: storeId,
       paymentMethod: paymentMethod,
       paidAmount: totalAmount,
-      notes:
-          notes?.trim().isEmpty == true
-              ? 'POS Transaction - ${cartItems.length} items'
-              : notes?.trim() ?? 'POS Transaction',
+      notes: notes?.trim() ?? '',
       transactionDate: transactionDate,
       details: details,
       customerName: customerName,

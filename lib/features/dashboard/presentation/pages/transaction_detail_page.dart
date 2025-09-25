@@ -1039,7 +1039,8 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         notes: notes ?? transaction.notes ?? '',
         paymentMethod: paymentMethod ?? transaction.paymentMethod,
         storeId: _getStoreIdFromUser(context),
-        customerName: 'Customer', // Default customer name
+        customerName:
+            transaction.customer?.name ?? 'Customer', // Default customer name
         customerPhone: null,
         status: paymentStatus == 'utang' ? 'outstanding' : 'completed',
         cashAmount: cashAmount ?? 0,
@@ -1059,33 +1060,33 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         // Show success message
         if (mounted) {
           final isOutstanding = paymentStatus == 'utang';
-          scaffoldMessenger.showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  Icon(
-                    isOutstanding ? LucideIcons.clock : LucideIcons.checkCircle,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    isOutstanding
-                        ? 'Transaksi ${transaction.transactionNumber} berhasil disimpan sebagai utang'
-                        : 'Transaksi ${transaction.transactionNumber} berhasil diselesaikan',
-                  ),
-                ],
-              ),
-              backgroundColor:
-                  isOutstanding
-                      ? const Color(0xFFEA580C)
-                      : const Color(0xFF059669),
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-          );
+          // scaffoldMessenger.showSnackBar(
+          //   SnackBar(
+          //     content: Row(
+          //       children: [
+          //         Icon(
+          //           isOutstanding ? LucideIcons.clock : LucideIcons.checkCircle,
+          //           color: Colors.white,
+          //           size: 20,
+          //         ),
+          //         const SizedBox(width: 8),
+          //         Text(
+          //           isOutstanding
+          //               ? 'Transaksi ${transaction.transactionNumber} berhasil disimpan sebagai utang'
+          //               : 'Transaksi ${transaction.transactionNumber} berhasil diselesaikan',
+          //         ),
+          //       ],
+          //     ),
+          //     backgroundColor:
+          //         isOutstanding
+          //             ? const Color(0xFFEA580C)
+          //             : const Color(0xFF059669),
+          //     behavior: SnackBarBehavior.floating,
+          //     shape: RoundedRectangleBorder(
+          //       borderRadius: BorderRadius.circular(8),
+          //     ),
+          //   ),
+          // );
 
           // Convert transaction items to cart items for payment success page
           // final cartItems =

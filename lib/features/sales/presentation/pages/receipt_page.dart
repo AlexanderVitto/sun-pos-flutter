@@ -489,80 +489,60 @@ class _ReceiptPageState extends State<ReceiptPage> {
         ),
         const SizedBox(height: 16),
 
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.blue[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.blue[200]!),
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.info_outline, size: 16, color: Colors.blue[700]),
-                  const SizedBox(width: 8),
-                  Text(
-                    'Informasi',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[700],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Barang yang sudah dibeli tidak dapat ditukar kembali kecuali ada kerusakan dari pihak toko',
-                style: TextStyle(fontSize: 12, color: Colors.blue[600]),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
+        // Container(
+        //   padding: const EdgeInsets.all(12),
+        //   decoration: BoxDecoration(
+        //     color: Colors.blue[50],
+        //     borderRadius: BorderRadius.circular(8),
+        //     border: Border.all(color: Colors.blue[200]!),
+        //   ),
+        //   child: Column(
+        //     children: [
+        //       Row(
+        //         mainAxisAlignment: MainAxisAlignment.center,
+        //         children: [
+        //           Icon(Icons.info_outline, size: 16, color: Colors.blue[700]),
+        //           const SizedBox(width: 8),
+        //           Text(
+        //             'Informasi',
+        //             style: TextStyle(
+        //               fontWeight: FontWeight.bold,
+        //               color: Colors.blue[700],
+        //             ),
+        //           ),
+        //         ],
+        //       ),
+        //       const SizedBox(height: 8),
+        //       Text(
+        //         'Barang yang sudah dibeli tidak dapat ditukar kembali kecuali ada kerusakan dari pihak toko',
+        //         style: TextStyle(fontSize: 12, color: Colors.blue[600]),
+        //         textAlign: TextAlign.center,
+        //       ),
+        //     ],
+        //   ),
+        // ),
 
-        Text(
-          'Powered by POS System Flutter',
-          style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-        ),
+        // const SizedBox(height: 16),
+
+        // Text(
+        //   'Powered by POS System Flutter',
+        //   style: TextStyle(fontSize: 10, color: Colors.grey[500]),
+        // ),
       ],
     );
   }
 
   Widget _buildNotesSection() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.orange[50],
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.orange[200]!),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(Icons.note_outlined, size: 16, color: Colors.orange[700]),
-              const SizedBox(width: 8),
-              Text(
-                'Catatan',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.orange[700],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text(
-            widget.notes!,
-            style: TextStyle(fontSize: 14, color: Colors.orange[800]),
-          ),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Catatan:',
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text(widget.notes!, style: const TextStyle(fontSize: 14)),
+      ],
     );
   }
 

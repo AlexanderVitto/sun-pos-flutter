@@ -7,7 +7,7 @@ import '../view_models/pos_transaction_view_model.dart';
 
 class TabletLayout extends StatelessWidget {
   final POSTransactionViewModel viewModel;
-  final void Function(Product) onAddToCart;
+  final void Function(Product, int) onAddToCart; // Updated to include quantity
   final VoidCallback onPaymentPressed;
   final VoidCallback? onOrderPressed;
 

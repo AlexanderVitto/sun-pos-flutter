@@ -6,7 +6,7 @@ import '../view_models/pos_transaction_view_model.dart';
 
 class MobileLayout extends StatelessWidget {
   final POSTransactionViewModel viewModel;
-  final void Function(Product) onAddToCart;
+  final void Function(Product, int) onAddToCart; // Updated to include quantity
   final void Function(Product) onProductTap;
 
   const MobileLayout({

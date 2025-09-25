@@ -8,7 +8,7 @@ class ProductGrid extends StatelessWidget {
   final int crossAxisCount;
   final String searchQuery;
   final String selectedCategory;
-  final Function(Product) onAddToCart;
+  final Function(Product, int) onAddToCart; // Updated to include quantity
   final Function(Product)? onProductTap; // Add onTap functionality
 
   const ProductGrid({
@@ -66,7 +66,8 @@ class ProductGrid extends StatelessWidget {
             return ProductCard(
               product: product,
               onTap: onProductTap != null ? () => onProductTap!(product) : null,
-              onAddToCart: () => onAddToCart(product),
+              onAddToCart:
+                  (product, quantity) => onAddToCart(product, quantity),
             );
           },
         );

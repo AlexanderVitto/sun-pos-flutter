@@ -53,7 +53,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   final TextEditingController _cashAmountController = TextEditingController();
   final TextEditingController _transferAmountController =
       TextEditingController();
-  
+
   // Controller for amount paid in cash payment method
   final TextEditingController _amountPaidController = TextEditingController();
 
@@ -126,9 +126,11 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
     // For cash payment, check if amount paid is filled and sufficient
     if (_selectedPaymentMethod == 'cash') {
-      final amountPaid = double.tryParse(
-        _amountPaidController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
-      ) ?? 0.0;
+      final amountPaid =
+          double.tryParse(
+            _amountPaidController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+          ) ??
+          0.0;
       return amountPaid > 0 && amountPaid >= _calculateTotalWithEditedPrices();
     }
 
@@ -232,9 +234,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         updatedTotalAmount,
       );
       // Navigation will be handled by the calling page
-      if (mounted) {
-        Navigator.of(context).pop();
-      }
+      // if (mounted) {
+      //   Navigator.of(context).pop();
+      // }
     } catch (e) {
       // Show error if needed
       if (mounted) {
@@ -1412,9 +1414,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                               ),
                               errorBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: Colors.red,
-                                ),
+                                borderSide: const BorderSide(color: Colors.red),
                               ),
                               contentPadding: const EdgeInsets.symmetric(
                                 horizontal: 16,
@@ -1471,22 +1471,28 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                 ),
                                 Builder(
                                   builder: (context) {
-                                    final amountPaid = double.tryParse(
-                                      _amountPaidController.text.replaceAll(
-                                        RegExp(r'[^0-9.]'),
-                                        '',
-                                      ),
-                                    ) ?? 0.0;
-                                    
-                                    final totalRequired = _calculateTotalWithEditedPrices();
+                                    final amountPaid =
+                                        double.tryParse(
+                                          _amountPaidController.text.replaceAll(
+                                            RegExp(r'[^0-9.]'),
+                                            '',
+                                          ),
+                                        ) ??
+                                        0.0;
+
+                                    final totalRequired =
+                                        _calculateTotalWithEditedPrices();
                                     final isValid = amountPaid >= totalRequired;
-                                    
+
                                     return Text(
                                       'Rp ${amountPaid.toStringAsFixed(0)}',
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
-                                        color: isValid ? Colors.green.shade700 : Colors.red.shade600,
+                                        color:
+                                            isValid
+                                                ? Colors.green.shade700
+                                                : Colors.red.shade600,
                                       ),
                                     );
                                   },
@@ -1496,19 +1502,23 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                             const SizedBox(height: 8),
                             Builder(
                               builder: (context) {
-                                final amountPaid = double.tryParse(
-                                  _amountPaidController.text.replaceAll(
-                                    RegExp(r'[^0-9.]'),
-                                    '',
-                                  ),
-                                ) ?? 0.0;
-                                
-                                final totalRequired = _calculateTotalWithEditedPrices();
+                                final amountPaid =
+                                    double.tryParse(
+                                      _amountPaidController.text.replaceAll(
+                                        RegExp(r'[^0-9.]'),
+                                        '',
+                                      ),
+                                    ) ??
+                                    0.0;
+
+                                final totalRequired =
+                                    _calculateTotalWithEditedPrices();
                                 final change = amountPaid - totalRequired;
-                                
+
                                 if (amountPaid > totalRequired) {
                                   return Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
                                       const Text(
                                         'Kembalian:',
