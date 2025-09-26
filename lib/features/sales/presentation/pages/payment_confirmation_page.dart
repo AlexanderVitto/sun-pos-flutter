@@ -2195,7 +2195,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
                 if (newPrice != null && newPrice >= 0) {
                   setState(() {
-                    _editedPrices[item.id] = newPrice;
+                    _editedPrices[item.id.toString()] = newPrice;
                   });
                   Navigator.of(context).pop();
                 } else {

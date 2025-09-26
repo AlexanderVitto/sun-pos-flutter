@@ -26,6 +26,7 @@ class TransactionApiService {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       };
+      print('Request JSON: ${jsonEncode(request.toJson())}'); // Debug print
 
       final response = await http.post(
         url,
@@ -238,6 +239,8 @@ class TransactionApiService {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       };
+
+      print('Request JSON: ${jsonEncode(request.toJson())}'); // Debug print
 
       final response = await http.put(
         url,

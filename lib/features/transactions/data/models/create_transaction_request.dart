@@ -1,12 +1,12 @@
 import 'transaction_detail.dart';
 
 class CreateTransactionRequest {
-  final int storeId;
-  final String paymentMethod;
-  final double paidAmount;
+  final int? storeId;
+  final String? paymentMethod;
+  final double? paidAmount;
   final String? notes;
-  final String transactionDate;
-  final List<TransactionDetail> details;
+  final String? transactionDate;
+  final List<TransactionDetail>? details;
   final String? customerName;
   final String? customerPhone;
   final String? status;
@@ -15,12 +15,12 @@ class CreateTransactionRequest {
   final String? outstandingReminderDate;
 
   const CreateTransactionRequest({
-    required this.storeId,
-    required this.paymentMethod,
-    required this.paidAmount,
+    this.storeId,
+    this.paymentMethod,
+    this.paidAmount,
     this.notes,
-    required this.transactionDate,
-    required this.details,
+    this.transactionDate,
+    this.details,
     this.customerName,
     this.customerPhone,
     this.status,
@@ -30,20 +30,27 @@ class CreateTransactionRequest {
   });
 
   Map<String, dynamic> toJson() {
-    return {
-      'store_id': storeId,
-      'payment_method': paymentMethod,
-      'paid_amount': paidAmount,
-      'notes': notes,
-      'transaction_date': transactionDate,
-      'details': details.map((detail) => detail.toJson()).toList(),
-      'customer_name': customerName,
-      'customer_phone': customerPhone,
-      'status': status,
-      'cash_amount': cashAmount,
-      'transfer_amount': transferAmount,
-      'outstanding_reminder_date': outstandingReminderDate,
-    };
+    final Map<String, dynamic> json = {};
+
+    if (storeId != null) json['store_id'] = storeId;
+    if (paymentMethod != null) json['payment_method'] = paymentMethod;
+    if (paidAmount != null) json['paid_amount'] = paidAmount;
+    if (notes != null) json['notes'] = notes;
+    if (transactionDate != null) json['transaction_date'] = transactionDate;
+    if (details != null) {
+      json['details'] = details!.map((detail) => detail.toJson()).toList();
+    }
+    if (customerName != null) json['customer_name'] = customerName;
+    if (customerPhone != null) json['customer_phone'] = customerPhone;
+    if (status != null) json['status'] = status;
+    if (cashAmount != null) json['cash_amount'] = cashAmount;
+    // transferAmount has default value 0, so always include it
+    json['transfer_amount'] = transferAmount;
+    if (outstandingReminderDate != null) {
+      json['outstanding_reminder_date'] = outstandingReminderDate;
+    }
+
+    return json;
   }
 
   factory CreateTransactionRequest.fromJson(Map<String, dynamic> json) {
@@ -68,21 +75,26 @@ class CreateTransactionRequest {
 
   // Calculate total amount from all details
   double get totalAmount {
-    return details.fold(0.0, (sum, detail) => sum + detail.subtotal);
+    return details?.fold(0.0, (sum, detail) => sum ?? 0 + detail.subtotal) ??
+        0.0;
   }
 
   // Calculate change amount
   double get changeAmount {
-    final change = paidAmount - totalAmount;
+    final change = paidAmount ?? 0 - totalAmount;
     return change > 0 ? change : 0.0;
   }
 
   // Validate if paid amount is sufficient
-  bool get isPaidAmountSufficient => paidAmount >= totalAmount;
+  bool get isPaidAmountSufficient => (paidAmount ?? 0) >= totalAmount;
 
   // Get total items count
   int get totalItems {
-    return details.fold(0, (sum, detail) => sum + detail.quantity);
+    return details?.fold(
+          0,
+          (sum, detail) => sum ?? 0 + (detail.quantity ?? 0),
+        ) ??
+        0;
   }
 
   @override

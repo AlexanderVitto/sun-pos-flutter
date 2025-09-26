@@ -448,12 +448,6 @@ class _PrinterSettingsDialogState extends State<PrinterSettingsDialog>
                           activeColor: Colors.green[600],
                         ),
                         const SizedBox(width: 8),
-                        const Expanded(
-                          child: Text(
-                            'Auto-connect saat buka aplikasi',
-                            style: TextStyle(fontSize: 12),
-                          ),
-                        ),
                       ],
                     ),
                   ),

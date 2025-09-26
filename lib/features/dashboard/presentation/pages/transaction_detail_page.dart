@@ -9,6 +9,7 @@ import '../../../customers/data/models/customer.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../../data/models/product.dart';
 import '../../../sales/presentation/pages/payment_success_page.dart';
+import '../../../sales/presentation/pages/receipt_page.dart';
 import '../../../../shared/widgets/payment_method_widgets.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../sales/providers/transaction_provider.dart';
@@ -181,7 +182,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                 category: '',
               );
               return CartItem(
-                id: item.id.toString(),
+                id: item.id,
                 product: product,
                 quantity: item.quantity,
                 addedAt: item.createdAt,
@@ -838,8 +839,37 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   }
 
   Widget _buildActionButtons(BuildContext context) {
-    // Show action buttons for pending and outstanding transactions
     final status = transaction.status.toLowerCase();
+
+    // Show "Lihat Struk" button for completed transactions
+    if (status == 'completed') {
+      return Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => _navigateToReceipt(),
+              icon: const Icon(LucideIcons.receipt, size: 20),
+              label: const Text(
+                'Lihat Struk',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF059669),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Show action buttons for pending and outstanding transactions
     if (status != 'pending' && status != 'outstanding') {
       return const SizedBox.shrink();
     }
@@ -1059,35 +1089,6 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       if (response != null) {
         // Show success message
         if (mounted) {
-          final isOutstanding = paymentStatus == 'utang';
-          // scaffoldMessenger.showSnackBar(
-          //   SnackBar(
-          //     content: Row(
-          //       children: [
-          //         Icon(
-          //           isOutstanding ? LucideIcons.clock : LucideIcons.checkCircle,
-          //           color: Colors.white,
-          //           size: 20,
-          //         ),
-          //         const SizedBox(width: 8),
-          //         Text(
-          //           isOutstanding
-          //               ? 'Transaksi ${transaction.transactionNumber} berhasil disimpan sebagai utang'
-          //               : 'Transaksi ${transaction.transactionNumber} berhasil diselesaikan',
-          //         ),
-          //       ],
-          //     ),
-          //     backgroundColor:
-          //         isOutstanding
-          //             ? const Color(0xFFEA580C)
-          //             : const Color(0xFF059669),
-          //     behavior: SnackBarBehavior.floating,
-          //     shape: RoundedRectangleBorder(
-          //       borderRadius: BorderRadius.circular(8),
-          //     ),
-          //   ),
-          // );
-
           // Convert transaction items to cart items for payment success page
           // final cartItems =
           //     _transactionItems?.map((item) {
@@ -1210,6 +1211,96 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         return 'Dibatalkan';
       default:
         return status;
+    }
+  }
+
+  void _navigateToReceipt() {
+    // Konversi data transaksi ke format CartItem untuk ReceiptPage
+    List<CartItem> receiptItems = [];
+
+    // Gunakan _cartItems jika tersedia, jika tidak buat dari _transactionItems
+    if (_cartItems != null && _cartItems!.isNotEmpty) {
+      receiptItems = _cartItems!;
+    } else if (_transactionItems != null && _transactionItems!.isNotEmpty) {
+      receiptItems =
+          _transactionItems!.map((item) {
+            final product = Product(
+              id: item.productId,
+              name: item.productName,
+              code: item.productId.toString(),
+              description:
+                  item.variant.isNotEmpty
+                      ? 'Variant: ${item.variant}'
+                      : 'Item transaksi',
+              price: item.unitPrice,
+              stock: 1,
+              category: 'General',
+            );
+
+            return CartItem(
+              id: item.id,
+              product: product,
+              quantity: item.quantity,
+              addedAt: item.createdAt,
+            );
+          }).toList();
+    } else {
+      // Fallback: buat placeholder items berdasarkan total dan jumlah item
+      if (transaction.detailsCount > 0) {
+        double averagePrice =
+            transaction.totalAmount / transaction.detailsCount;
+        for (int i = 0; i < transaction.detailsCount; i++) {
+          receiptItems.add(
+            CartItem(
+              id: i + 1,
+              product: Product(
+                id: i + 1,
+                name: 'Item ${i + 1}',
+                code: 'ITEM${i + 1}',
+                description: 'Item transaksi',
+                price: averagePrice,
+                stock: 1,
+                category: 'General',
+              ),
+              quantity: 1,
+              addedAt: transaction.transactionDate,
+            ),
+          );
+        }
+      }
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (context) => ReceiptPage(
+              receiptId: transaction.transactionNumber,
+              transactionDate: transaction.transactionDate,
+              items: receiptItems,
+              store: transaction.store,
+              user: transaction.user,
+              subtotal: transaction.totalAmount,
+              discount: 0.0,
+              total: transaction.totalAmount,
+              paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
+              notes: transaction.notes,
+            ),
+      ),
+    );
+  }
+
+  String _getPaymentMethodText(String paymentMethod) {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cash':
+        return 'Tunai';
+      case 'card':
+        return 'Kartu';
+      case 'transfer':
+        return 'Transfer';
+      case 'e-wallet':
+        return 'E-Wallet';
+      default:
+        return paymentMethod;
     }
   }
 }

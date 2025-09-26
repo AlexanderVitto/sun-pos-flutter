@@ -151,10 +151,10 @@ class TransactionHelper {
 
     for (int i = 0; i < details.length; i++) {
       final detail = details[i];
-      if (detail.quantity <= 0) {
+      if ((detail.quantity ?? 0) <= 0) {
         return 'Item ${i + 1}: Quantity must be greater than 0';
       }
-      if (detail.unitPrice < 0) {
+      if ((detail.unitPrice ?? 0) < 0) {
         return 'Item ${i + 1}: Unit price cannot be negative';
       }
     }
@@ -165,15 +165,15 @@ class TransactionHelper {
   /// Validasi request transaksi secara lengkap
   static String? validateTransactionRequest(CreateTransactionRequest request) {
     // Validate details
-    final detailsError = validateTransactionDetails(request.details);
+    final detailsError = validateTransactionDetails(request.details ?? []);
     if (detailsError != null) return detailsError;
 
     // Validate paid amount
-    if (request.paidAmount <= 0) {
+    if ((request.paidAmount ?? 0) <= 0) {
       return 'Paid amount must be greater than 0';
     }
 
-    if (!validatePaidAmount(request.paidAmount, request.details)) {
+    if (!validatePaidAmount(request.paidAmount ?? 0, request.details ?? [])) {
       return 'Paid amount is insufficient';
     }
 

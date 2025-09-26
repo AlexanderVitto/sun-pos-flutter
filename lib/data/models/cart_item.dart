@@ -1,7 +1,7 @@
 import '../models/product.dart';
 
 class CartItem {
-  final String id;
+  final int id;
   final Product product;
   int quantity;
   final DateTime addedAt;
@@ -16,7 +16,7 @@ class CartItem {
   double get subtotal => product.price * quantity;
 
   CartItem copyWith({
-    String? id,
+    int? id,
     Product? product,
     int? quantity,
     DateTime? addedAt,

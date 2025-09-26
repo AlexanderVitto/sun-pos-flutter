@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 import '../../providers/transaction_list_provider.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../shared/widgets/custom_app_bar.dart';
+import '../../../sales/presentation/pages/receipt_page.dart';
+import '../../../../data/models/cart_item.dart';
+import '../../../../data/models/product.dart';
 
 class TransactionListPage extends StatefulWidget {
   const TransactionListPage({Key? key}) : super(key: key);
@@ -790,6 +793,17 @@ class TransactionDetailsDialog extends StatelessWidget {
         ),
       ),
       actions: [
+        // Tombol Lihat Struk untuk transaksi completed
+        if (transaction.status.toLowerCase() == 'completed')
+          ElevatedButton.icon(
+            onPressed: () => _navigateToReceipt(context, transaction),
+            icon: const Icon(Icons.receipt_long),
+            label: const Text('Lihat Struk'),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green[600],
+              foregroundColor: Colors.white,
+            ),
+          ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
           child: const Text('Tutup'),
@@ -813,6 +827,53 @@ class TransactionDetailsDialog extends StatelessWidget {
           ),
           Expanded(child: Text(value)),
         ],
+      ),
+    );
+  }
+
+  void _navigateToReceipt(BuildContext context, transaction) {
+    // Konversi data transaksi ke format CartItem untuk ReceiptPage
+    List<CartItem> receiptItems = [];
+
+    // Karena kita tidak memiliki detail item dari transaction list,
+    // kita akan membuat placeholder CartItem berdasarkan total dan jumlah item
+    if (transaction.detailsCount > 0) {
+      double averagePrice = transaction.totalAmount / transaction.detailsCount;
+      for (int i = 0; i < transaction.detailsCount; i++) {
+        receiptItems.add(
+          CartItem(
+            id: i + 1,
+            product: Product(
+              id: i + 1,
+              name: 'Item ${i + 1}',
+              code: 'ITEM${i + 1}',
+              description: 'Item transaksi',
+              price: averagePrice,
+              stock: 1,
+              category: 'General',
+            ),
+            quantity: 1,
+            addedAt: transaction.transactionDate,
+          ),
+        );
+      }
+    }
+    Navigator.of(context).pop(); // Tutup dialog
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (context) => ReceiptPage(
+              receiptId: transaction.transactionNumber,
+              transactionDate: transaction.transactionDate,
+              items: receiptItems,
+              store: transaction.store,
+              user: transaction.user,
+              subtotal: transaction.totalAmount,
+              discount: 0.0,
+              total: transaction.totalAmount,
+              paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
+              notes: transaction.notes,
+            ),
       ),
     );
   }

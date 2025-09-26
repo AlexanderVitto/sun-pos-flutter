@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 import '../../../data/models/product.dart';
 import '../../../data/models/cart_item.dart';
@@ -7,6 +8,7 @@ import '../../../data/models/sale.dart';
 import '../../customers/data/models/customer.dart' as api_customer;
 import '../../auth/data/models/user.dart';
 import '../presentation/services/payment_service.dart';
+import '../../products/providers/product_provider.dart';
 
 class CartProvider extends ChangeNotifier {
   final List<CartItem> _items = [];
@@ -56,7 +58,7 @@ class CartProvider extends ChangeNotifier {
 
     // Check if product already exists in cart
     final existingIndex = _items.indexWhere(
-      (item) => item.product.id == product.id,
+      (item) => item.product.productVariantId == product.productVariantId,
     );
 
     if (existingIndex >= 0) {
@@ -83,7 +85,7 @@ class CartProvider extends ChangeNotifier {
 
       // Add new item
       final cartItem = CartItem(
-        id: _uuid.v4(),
+        id: DateTime.now().millisecondsSinceEpoch,
         product: product,
         quantity: quantity,
         addedAt: DateTime.now(),
@@ -104,7 +106,7 @@ class CartProvider extends ChangeNotifier {
 
   // Update item quantity
   void updateItemQuantity(
-    String itemId,
+    int itemId,
     int newQuantity, {
     BuildContext? context,
   }) {
@@ -164,7 +166,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   // Decrease item quantity
-  void decreaseQuantity(String itemId, {BuildContext? context}) {
+  void decreaseQuantity(int itemId, {BuildContext? context}) {
     final index = _items.indexWhere((item) => item.id == itemId);
     if (index == -1) return;
 
@@ -210,7 +212,7 @@ class CartProvider extends ChangeNotifier {
   }
 
   // Remove item from cart
-  void removeItem(String itemId, {BuildContext? context}) {
+  void removeItem(int itemId, {BuildContext? context}) {
     _items.removeWhere((item) => item.id == itemId);
     _clearError();
     notifyListeners();
@@ -262,7 +264,9 @@ class CartProvider extends ChangeNotifier {
         createdAt: apiCustomer.createdAt,
         updatedAt: apiCustomer.updatedAt,
       );
-      debugPrint('🛒 Customer set: ${_selectedCustomer?.name}');
+      debugPrint(
+        '🛒 Customer set: ${_selectedCustomer?.name}, ${_selectedCustomer?.phone}',
+      );
     }
     notifyListeners();
   }
@@ -494,9 +498,32 @@ class CartProvider extends ChangeNotifier {
         context: context,
         cartProvider: this,
       );
+
+      // Reload products after successful draft transaction processing
+      _reloadProductsData(context);
     } catch (e) {
       // Silent failure to not interrupt user experience
       debugPrint('Failed to process draft transaction: ${e.toString()}');
+    }
+  }
+
+  // Reload products data after draft transaction
+  void _reloadProductsData(BuildContext context) {
+    try {
+      // Find ProductProvider and reload data
+      final productProvider = Provider.of<ProductProvider>(
+        context,
+        listen: false,
+      );
+
+      // Call refreshProducts method from ProductProvider
+      productProvider.refreshProducts();
+
+      debugPrint(
+        '🛒 Products data reloaded after draft transaction using ProductProvider',
+      );
+    } catch (e) {
+      debugPrint('Failed to reload products data: ${e.toString()}');
     }
   }
 
@@ -509,4 +536,21 @@ class CartProvider extends ChangeNotifier {
 
   // Check if this is an existing draft transaction
   bool get hasExistingDraftTransaction => _draftTransactionId != null;
+
+  // Public method to manually reload products data
+  void reloadProductsData(BuildContext context) {
+    _reloadProductsData(context);
+  }
+
+  // Alternative method with ProductProvider directly (recommended)
+  void reloadProductsWithProvider(ProductProvider productProvider) {
+    try {
+      productProvider.refreshProducts();
+      debugPrint(
+        '🛒 Products reloaded using ProductProvider.refreshProducts()',
+      );
+    } catch (e) {
+      debugPrint('Failed to reload products with provider: ${e.toString()}');
+    }
+  }
 }

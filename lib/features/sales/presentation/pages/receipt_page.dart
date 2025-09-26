@@ -39,6 +39,40 @@ class ReceiptPage extends StatefulWidget {
 
 class _ReceiptPageState extends State<ReceiptPage> {
   ThermalPrinterService? _connectedPrinter;
+  bool _isInitializingPrinter = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializePrinter();
+  }
+
+  Future<void> _initializePrinter() async {
+    try {
+      // Coba buat instance printer dan cek apakah ada printer tersimpan
+      final printer = ThermalPrinterService();
+
+      // Cek apakah sudah ada printer yang tersimpan
+      final hasSaved = await printer.hasSavedPrinter();
+
+      if (hasSaved) {
+        // Coba auto-reconnect ke printer terakhir yang tersimpan
+        final success = await printer.autoReconnectToLastPrinter();
+        if (success) {
+          _connectedPrinter = printer;
+        }
+      }
+    } catch (e) {
+      debugPrint('Error initializing printer: $e');
+      _connectedPrinter = null;
+    }
+
+    if (mounted) {
+      setState(() {
+        _isInitializingPrinter = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,16 +88,29 @@ class _ReceiptPageState extends State<ReceiptPage> {
             tooltip: 'Bagikan Struk',
           ),
           PopupMenuButton<String>(
-            icon: Icon(
-              _connectedPrinter?.isConnected == true
-                  ? Icons.print
-                  : Icons.print_disabled,
-              color:
-                  _connectedPrinter?.isConnected == true
-                      ? Colors.white
-                      : Colors.white70,
-            ),
-            tooltip: 'Opsi Printer',
+            icon:
+                _isInitializingPrinter
+                    ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                    : Icon(
+                      _connectedPrinter?.isConnected == true
+                          ? Icons.print
+                          : Icons.print_disabled,
+                      color:
+                          _connectedPrinter?.isConnected == true
+                              ? Colors.white
+                              : Colors.white70,
+                    ),
+            tooltip:
+                _isInitializingPrinter
+                    ? 'Menginisialisasi printer...'
+                    : 'Opsi Printer',
             onSelected: (value) async {
               switch (value) {
                 case 'print':
@@ -170,6 +217,9 @@ class _ReceiptPageState extends State<ReceiptPage> {
 
                   // Footer
                   _buildFooter(),
+
+                  // Status printer info
+                  if (!_isInitializingPrinter) _buildPrinterStatus(),
                 ],
               ),
             ),
@@ -178,37 +228,73 @@ class _ReceiptPageState extends State<ReceiptPage> {
       ),
       bottomNavigationBar: Container(
         padding: const EdgeInsets.all(16),
-        child: Row(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: OutlinedButton.icon(
-                onPressed: () => _newTransaction(context),
-                icon: const Icon(Icons.add_shopping_cart),
-                label: const Text('Transaksi Baru'),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.all(16),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.of(context).pushAndRemoveUntil(
-                    MaterialPageRoute(
-                      builder: (context) => const DashboardPage(),
+            // Tombol Cetak Struk (jika printer tersedia)
+            if (_connectedPrinter?.isConnected == true &&
+                !_isInitializingPrinter) ...[
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () => _printReceipt(context),
+                  icon: const Icon(Icons.print, size: 20),
+                  label: const Text(
+                    'Cetak Struk',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green[600],
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    (route) => false, // Remove all previous routes
-                  );
-                },
-                icon: const Icon(Icons.home),
-                label: const Text('Ke Dashboard'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.all(16),
+                  ),
                 ),
               ),
+              const SizedBox(height: 12),
+            ],
+            // Tombol navigasi lainnya
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => _newTransaction(context),
+                    icon: const Icon(Icons.add_shopping_cart),
+                    label: const Text('Transaksi Baru'),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(
+                          builder: (context) => const DashboardPage(),
+                        ),
+                        (route) => false, // Remove all previous routes
+                      );
+                    },
+                    icon: const Icon(Icons.home),
+                    label: const Text('Ke Dashboard'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue[600],
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.all(16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
@@ -546,6 +632,54 @@ class _ReceiptPageState extends State<ReceiptPage> {
     );
   }
 
+  Widget _buildPrinterStatus() {
+    if (_connectedPrinter?.isConnected == true) {
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.green[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.green[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.print, color: Colors.green[600], size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Printer siap. Tekan tombol "Cetak Struk" untuk mencetak.',
+                style: TextStyle(fontSize: 12, color: Colors.green[700]),
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        margin: const EdgeInsets.only(top: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.orange[50],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.orange[200]!),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.print_disabled, color: Colors.orange[600], size: 16),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Printer belum terhubung. Gunakan menu printer untuk setup.',
+                style: TextStyle(fontSize: 12, color: Colors.orange[700]),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+  }
+
   String _formatPrice(double price) {
     return price
         .toStringAsFixed(0)
@@ -595,31 +729,88 @@ class _ReceiptPageState extends State<ReceiptPage> {
   }
 
   void _printReceipt(BuildContext context) async {
-    // Show loading dialog
+    // Jika belum ada printer atau tidak terkoneksi, coba reconnect dulu
+    if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
+      // Show loading dialog
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder:
+            (context) => const AlertDialog(
+              content: Row(
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(width: 16),
+                  Text('Menghubungkan printer...'),
+                ],
+              ),
+            ),
+      );
+
+      try {
+        // Coba reconnect ke printer tersimpan
+        final printer = ThermalPrinterService();
+        final hasSaved = await printer.hasSavedPrinter();
+
+        if (hasSaved) {
+          final success = await printer.autoReconnectToLastPrinter();
+          if (success) {
+            _connectedPrinter = printer;
+          }
+        }
+
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+        }
+
+        // Jika masih tidak bisa connect, tampilkan dialog setup
+        if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
+          final printer = await showDialog<ThermalPrinterService>(
+            context: context,
+            builder: (context) => const PrinterSettingsDialog(),
+          );
+
+          if (printer != null) {
+            setState(() {
+              _connectedPrinter = printer;
+            });
+          } else {
+            // User cancelled printer setup
+            return;
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context).pop(); // Close loading dialog
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error menghubungkan printer: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        return;
+      }
+    }
+
+    // Show printing dialog
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator()),
+      builder:
+          (context) => const AlertDialog(
+            content: Row(
+              children: [
+                CircularProgressIndicator(),
+                SizedBox(width: 16),
+                Text('Mencetak struk...'),
+              ],
+            ),
+          ),
     );
 
     try {
-      if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
-        // Show printer settings dialog
-        Navigator.of(context).pop(); // Close loading dialog
-
-        final printer = await showDialog<ThermalPrinterService>(
-          context: context,
-          builder: (context) => const PrinterSettingsDialog(),
-        );
-
-        if (printer != null) {
-          _connectedPrinter = printer;
-        } else {
-          // User cancelled printer setup
-          return;
-        }
-      }
-
       // Print receipt using thermal printer
       final success = await _connectedPrinter!.printReceipt(
         receiptId: widget.receiptId,
@@ -635,16 +826,30 @@ class _ReceiptPageState extends State<ReceiptPage> {
       );
 
       if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(context).pop(); // Close printing dialog
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(
-              success
-                  ? 'Struk berhasil dicetak!'
-                  : 'Gagal mencetak struk. Silakan coba lagi.',
+            content: Row(
+              children: [
+                Icon(
+                  success ? Icons.check_circle : Icons.error,
+                  color: Colors.white,
+                  size: 20,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  success
+                      ? 'Struk berhasil dicetak!'
+                      : 'Gagal mencetak struk. Silakan coba lagi.',
+                ),
+              ],
             ),
             backgroundColor: success ? Colors.green : Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             action:
                 success
                     ? null
@@ -657,12 +862,22 @@ class _ReceiptPageState extends State<ReceiptPage> {
       }
     } catch (e) {
       if (mounted) {
-        Navigator.of(context).pop(); // Close loading dialog
+        Navigator.of(context).pop(); // Close printing dialog
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: $e'),
+            content: Row(
+              children: [
+                const Icon(Icons.error, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(child: Text('Error: $e')),
+              ],
+            ),
             backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
             action: SnackBarAction(
               label: 'Retry',
               onPressed: () => _printReceipt(context),

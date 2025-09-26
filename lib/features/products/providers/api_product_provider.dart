@@ -179,8 +179,8 @@ class ApiProductProvider extends ChangeNotifier {
       stock: apiProduct.minStock, // Using minStock as stock for now
       category: apiProduct.category.name,
       imagePath: apiProduct.image,
-      createdAt: DateTime.tryParse(apiProduct.createdAt) ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
+      createdAt: apiProduct.createdAt,
+      updatedAt: apiProduct.updatedAt,
     );
   }
 

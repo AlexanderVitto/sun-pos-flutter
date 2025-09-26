@@ -68,24 +68,22 @@ class _PendingTransactionListPageState
 
         // Convert API detail items to cart items
         for (final item in detail.details) {
-          if (item.product != null) {
-            // find product in productProvider, return null if not found
-            Product? product =
-                productProvider.products
-                        .where((p) => p.id == item.product!.id)
-                        .isNotEmpty
-                    ? productProvider.products.firstWhere(
-                      (p) => p.id == item.product!.id,
-                    )
-                    : null;
+          // find product in productProvider, return null if not found
+          Product? product =
+              productProvider.products
+                      .where((p) => p.productVariantId == item.productVariantId)
+                      .isNotEmpty
+                  ? productProvider.products.firstWhere(
+                    (p) => p.productVariantId == item.productVariantId,
+                  )
+                  : null;
 
-            if (product != null) {
-              cartProvider.addItem(product, quantity: item.quantity);
-            } else {
-              debugPrint(
-                '⚠️ Product with ID ${item.product!.id} not found in productProvider',
-              );
-            }
+          if (product != null) {
+            cartProvider.addItem(product, quantity: item.quantity);
+          } else {
+            debugPrint(
+              '⚠️ Product with ID ${item.productVariantId} not found in productProvider',
+            );
           }
         }
 

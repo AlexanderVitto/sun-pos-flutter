@@ -6,6 +6,9 @@ import 'dart:async';
 import '../../../transactions/data/models/transaction_list_response.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../pages/transaction_detail_page.dart';
+import '../../../sales/presentation/pages/receipt_page.dart';
+import '../../../../data/models/cart_item.dart';
+import '../../../../data/models/product.dart';
 
 class TransactionTabPage extends StatefulWidget {
   const TransactionTabPage({super.key});
@@ -761,6 +764,68 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
         builder: (context) => TransactionDetailPage(transaction: transaction),
       ),
     );
+  }
+
+  void _navigateToReceipt(TransactionListItem transaction) {
+    // Konversi data transaksi ke format CartItem untuk ReceiptPage
+    List<CartItem> receiptItems = [];
+
+    // Karena kita tidak memiliki detail item dari transaction list,
+    // kita akan membuat placeholder CartItem berdasarkan total dan jumlah item
+    if (transaction.detailsCount > 0) {
+      double averagePrice = transaction.totalAmount / transaction.detailsCount;
+      for (int i = 0; i < transaction.detailsCount; i++) {
+        receiptItems.add(
+          CartItem(
+            id: i + 1,
+            product: Product(
+              id: i + 1,
+              name: 'Item ${i + 1}',
+              code: 'ITEM${i + 1}',
+              description: 'Item transaksi',
+              price: averagePrice,
+              stock: 1,
+              category: 'General',
+            ),
+            quantity: 1,
+            addedAt: transaction.transactionDate,
+          ),
+        );
+      }
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder:
+            (context) => ReceiptPage(
+              receiptId: transaction.transactionNumber,
+              transactionDate: transaction.transactionDate,
+              items: receiptItems,
+              store: transaction.store,
+              user: transaction.user,
+              subtotal: transaction.totalAmount,
+              discount: 0.0,
+              total: transaction.totalAmount,
+              paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
+              notes: transaction.notes,
+            ),
+      ),
+    );
+  }
+
+  String _getPaymentMethodText(String paymentMethod) {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cash':
+        return 'Tunai';
+      case 'card':
+        return 'Kartu';
+      case 'transfer':
+        return 'Transfer';
+      case 'e-wallet':
+        return 'E-Wallet';
+      default:
+        return paymentMethod;
+    }
   }
 
   Widget _buildHighlightedText(

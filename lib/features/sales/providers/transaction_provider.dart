@@ -86,11 +86,11 @@ class TransactionProvider extends ChangeNotifier {
 
   /// Create transaction request from cart items
   CreateTransactionRequest _createTransactionRequest({
-    required List<CartItem> cartItems,
-    required double totalAmount,
+    List<CartItem>? cartItems,
+    double? totalAmount,
     String? notes,
-    required String paymentMethod,
-    required int storeId,
+    String? paymentMethod,
+    int? storeId,
     String? customerName,
     String? customerPhone,
     String? status,
@@ -105,10 +105,9 @@ class TransactionProvider extends ChangeNotifier {
 
     // Convert cart items to transaction details
     final details =
-        cartItems.map((cartItem) {
+        cartItems?.map((cartItem) {
           return TransactionDetail(
-            productId: cartItem.product.id,
-            productVariantId: cartItem.product.id,
+            productVariantId: cartItem.product.productVariantId ?? 0,
             quantity: cartItem.quantity,
             // unitPrice already contains discounted price per item
             // The cartItems received should have already been processed

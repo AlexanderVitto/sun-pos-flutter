@@ -100,7 +100,7 @@ class ProductProvider extends ChangeNotifier {
       _errorMessage = 'Gagal memuat produk: ${e.toString()}';
       _isLoading = false;
       // Fallback to dummy data if API fails
-      _loadDummyProducts();
+      // _loadDummyProducts();
       notifyListeners();
     }
   }
@@ -109,19 +109,16 @@ class ProductProvider extends ChangeNotifier {
   Product _convertApiProductToLocalProduct(ApiProduct.Product apiProduct) {
     return Product(
       id: apiProduct.id,
-      name: apiProduct.name,
+      productVariantId: apiProduct.variants.first.id,
+      name: '${apiProduct.name} ${apiProduct.variants.first.name}',
       code: apiProduct.sku,
       description: apiProduct.description,
-      price: _getEstimatedPrice(
-        apiProduct,
-      ), // Since API doesn't have price, we estimate
-      stock: _getEstimatedStock(
-        apiProduct,
-      ), // Since API doesn't have stock, we estimate
+      price: apiProduct.variants.first.price,
+      stock: apiProduct.variants.first.stock,
       category: apiProduct.category.name,
       imagePath: apiProduct.image,
-      createdAt: DateTime.tryParse(apiProduct.createdAt) ?? DateTime.now(),
-      updatedAt: DateTime.tryParse(apiProduct.updatedAt) ?? DateTime.now(),
+      createdAt: apiProduct.createdAt,
+      updatedAt: apiProduct.updatedAt,
     );
   }
 
@@ -147,17 +144,17 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // Load dummy products as fallback
-  void _loadDummyProducts() {
-    _isLoading = true;
-    notifyListeners();
+  // void _loadDummyProducts() {
+  //   _isLoading = true;
+  //   notifyListeners();
 
-    // Simulate loading delay
-    Future.delayed(const Duration(milliseconds: 500), () {
-      _products.addAll(_generateDummyProducts());
-      _isLoading = false;
-      notifyListeners();
-    });
-  }
+  //   // Simulate loading delay
+  //   Future.delayed(const Duration(milliseconds: 500), () {
+  //     _products.addAll(_generateDummyProducts());
+  //     _isLoading = false;
+  //     notifyListeners();
+  //   });
+  // }
 
   List<Product> _generateDummyProducts() {
     final now = DateTime.now();

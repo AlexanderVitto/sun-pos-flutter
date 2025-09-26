@@ -49,7 +49,7 @@ class TransactionProvider extends ChangeNotifier {
   bool get isPaidAmountSufficient => _paidAmount >= totalAmount;
 
   int get totalItems {
-    return _details.fold(0, (sum, detail) => sum + detail.quantity);
+    return _details.fold(0, (sum, detail) => sum + (detail.quantity ?? 0));
   }
 
   bool get hasItems => _details.isNotEmpty;
@@ -105,7 +105,7 @@ class TransactionProvider extends ChangeNotifier {
       final updatedDetail = TransactionDetail(
         productId: existingDetail.productId,
         productVariantId: existingDetail.productVariantId,
-        quantity: existingDetail.quantity + detail.quantity,
+        quantity: (existingDetail.quantity ?? 0) + (detail.quantity ?? 0),
         unitPrice: existingDetail.unitPrice,
       );
       _details[existingIndex] = updatedDetail;
@@ -158,15 +158,15 @@ class TransactionProvider extends ChangeNotifier {
   void increaseQuantity(int index) {
     if (index >= 0 && index < _details.length) {
       final detail = _details[index];
-      updateQuantity(index, detail.quantity + 1);
+      updateQuantity(index, (detail.quantity ?? 0) + 1);
     }
   }
 
   void decreaseQuantity(int index) {
     if (index >= 0 && index < _details.length) {
       final detail = _details[index];
-      if (detail.quantity > 1) {
-        updateQuantity(index, detail.quantity - 1);
+      if ((detail.quantity ?? 0) > 1) {
+        updateQuantity(index, (detail.quantity ?? 0) - 1);
       } else {
         removeTransactionDetail(index);
       }
@@ -291,10 +291,10 @@ class TransactionProvider extends ChangeNotifier {
     }
     for (int i = 0; i < _details.length; i++) {
       final detail = _details[i];
-      if (detail.quantity <= 0) {
+      if ((detail.quantity ?? 0) <= 0) {
         return 'Item ${i + 1}: Quantity must be greater than 0';
       }
-      if (detail.unitPrice < 0) {
+      if ((detail.unitPrice ?? 0) < 0) {
         return 'Item ${i + 1}: Unit price cannot be negative';
       }
     }

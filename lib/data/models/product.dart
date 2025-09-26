@@ -7,6 +7,7 @@ class Product {
   final int stock;
   final String category;
   final String? imagePath;
+  final int? productVariantId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +20,7 @@ class Product {
     this.stock = 0,
     this.category = 'General',
     this.imagePath,
+    this.productVariantId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) : createdAt = createdAt ?? DateTime.now(),
@@ -33,6 +35,7 @@ class Product {
     int? stock,
     String? category,
     String? imagePath,
+    int? productVariantId,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -45,6 +48,7 @@ class Product {
       stock: stock ?? this.stock,
       category: category ?? this.category,
       imagePath: imagePath ?? this.imagePath,
+      productVariantId: productVariantId ?? this.productVariantId,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -58,6 +62,7 @@ class Product {
       'description': description,
       'unit_price': price,
       'quantity': stock,
+      'product_variant_id': productVariantId,
     };
   }
 
@@ -71,6 +76,7 @@ class Product {
       stock: json['quantity'] ?? 0,
       category: json['category'] ?? 'General',
       imagePath: json['imagePath'],
+      productVariantId: json['product_variant_id'],
       createdAt:
           json['createdAt'] != null
               ? DateTime.parse(json['createdAt'])
@@ -84,7 +90,7 @@ class Product {
 
   @override
   String toString() {
-    return 'Product(id: $id, name: $name, code: $code, price: $price, stock: $stock)';
+    return 'Product(id: $id, name: $name, code: $code, price: $price, stock: $stock, productVariantId: $productVariantId)';
   }
 
   @override

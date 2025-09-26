@@ -1,5 +1,6 @@
 import 'category.dart';
 import 'unit.dart';
+import 'product_variant.dart';
 
 class Product {
   final int id;
@@ -11,9 +12,10 @@ class Product {
   final bool isActive;
   final Category category;
   final Unit unit;
+  final List<ProductVariant> variants;
   final int variantsCount;
-  final String createdAt;
-  final String updatedAt;
+  final DateTime createdAt;
+  final DateTime updatedAt;
 
   Product({
     required this.id,
@@ -25,6 +27,7 @@ class Product {
     required this.isActive,
     required this.category,
     required this.unit,
+    required this.variants,
     required this.variantsCount,
     required this.createdAt,
     required this.updatedAt,
@@ -41,9 +44,18 @@ class Product {
       isActive: json['is_active'] ?? false,
       category: Category.fromJson(json['category'] ?? {}),
       unit: Unit.fromJson(json['unit'] ?? {}),
+      variants:
+          (json['variants'] as List<dynamic>?)
+              ?.map((variant) => ProductVariant.fromJson(variant))
+              .toList() ??
+          [],
       variantsCount: json['variants_count'] ?? 0,
-      createdAt: json['created_at'] ?? '',
-      updatedAt: json['updated_at'] ?? '',
+      createdAt: DateTime.parse(
+        json['created_at'] ?? DateTime.now().toIso8601String(),
+      ),
+      updatedAt: DateTime.parse(
+        json['updated_at'] ?? DateTime.now().toIso8601String(),
+      ),
     );
   }
 
@@ -58,14 +70,30 @@ class Product {
       'is_active': isActive,
       'category': category.toJson(),
       'unit': unit.toJson(),
+      'variants': variants.map((variant) => variant.toJson()).toList(),
       'variants_count': variantsCount,
-      'created_at': createdAt,
-      'updated_at': updatedAt,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
     };
   }
 
   @override
   String toString() {
-    return 'Product(id: $id, name: $name, sku: $sku, category: ${category.name}, unit: ${unit.name})';
+    return 'Product(id: $id, name: $name, sku: $sku, category: ${category.name}, unit: ${unit.name}, variantsCount: $variantsCount)';
+  }
+
+  // Helper method to get the first variant (for backward compatibility)
+  ProductVariant? get firstVariant {
+    return variants.isNotEmpty ? variants.first : null;
+  }
+
+  // Helper method to get price from first variant (for backward compatibility)
+  double get price {
+    return firstVariant?.price ?? 0.0;
+  }
+
+  // Helper method to get stock from first variant (for backward compatibility)
+  int get stock {
+    return firstVariant?.stock ?? 0;
   }
 }

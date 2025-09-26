@@ -58,7 +58,7 @@ class POSTransactionViewModel extends ChangeNotifier {
     // Note: CartProvider will notify its own listeners
   }
 
-  void removeFromCart(String itemId, {BuildContext? context}) {
+  void removeFromCart(int itemId, {BuildContext? context}) {
     _cartProvider.removeItem(itemId, context: context);
   }
 
@@ -69,7 +69,7 @@ class POSTransactionViewModel extends ChangeNotifier {
     );
   }
 
-  void decreaseQuantity(String itemId, {BuildContext? context}) {
+  void decreaseQuantity(int itemId, {BuildContext? context}) {
     _cartProvider.decreaseQuantity(itemId, context: context);
   }
 
