@@ -1,6 +1,7 @@
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../transactions/data/models/store.dart';
 import '../../../transactions/data/models/user.dart';
@@ -237,6 +238,8 @@ class ThermalPrinterService {
     required double total,
     String paymentMethod = 'Tunai',
     String? notes,
+    String? status,
+    DateTime? dueDate,
   }) async {
     if (!_isConnected) {
       debugPrint('Printer not connected');
@@ -257,6 +260,8 @@ class ThermalPrinterService {
           total: total,
           paymentMethod: paymentMethod,
           notes: notes,
+          status: status,
+          dueDate: dueDate,
         );
       } else if (_connectionType == PrinterConnectionType.bluetooth &&
           _bluetoothPrinter != null) {
@@ -271,6 +276,8 @@ class ThermalPrinterService {
           total: total,
           paymentMethod: paymentMethod,
           notes: notes,
+          status: status,
+          dueDate: dueDate,
         );
       }
 
@@ -293,6 +300,8 @@ class ThermalPrinterService {
     required double total,
     String paymentMethod = 'Tunai',
     String? notes,
+    String? status,
+    DateTime? dueDate,
   }) async {
     if (_printer == null) return false;
 
@@ -381,6 +390,39 @@ class ThermalPrinterService {
           styles: const PosStyles(align: PosAlign.left),
         ),
       ]);
+
+      // Tambahkan informasi outstanding jika status adalah outstanding
+      if (status != null && status.toLowerCase() == 'outstanding') {
+        _printer!.row([
+          PosColumn(
+            text: 'Status Pembayaran',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+          PosColumn(
+            text: ': Hutang',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+        ]);
+
+        // Tampilkan tanggal jatuh tempo jika ada
+        if (dueDate != null) {
+          _printer!.row([
+            PosColumn(
+              text: 'Jatuh Tempo',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.left),
+            ),
+            PosColumn(
+              text: ': ${_formatOutstandingDate(dueDate)}',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.left),
+            ),
+          ]);
+        }
+      }
+
       _printer!.feed(1);
 
       // Detail pembelian
@@ -563,6 +605,8 @@ class ThermalPrinterService {
     required double total,
     String paymentMethod = 'Tunai',
     String? notes,
+    String? status,
+    DateTime? dueDate,
   }) async {
     if (_bluetoothPrinter == null) return false;
 
@@ -656,6 +700,39 @@ class ThermalPrinterService {
           styles: const PosStyles(align: PosAlign.left),
         ),
       ]);
+
+      // Tambahkan informasi outstanding jika status adalah outstanding
+      if (status != null && status.toLowerCase() == 'outstanding') {
+        bytes += generator.row([
+          PosColumn(
+            text: 'Status Pembayaran',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+          PosColumn(
+            text: ': Hutang',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+        ]);
+
+        // Tampilkan tanggal jatuh tempo jika ada
+        if (dueDate != null) {
+          bytes += generator.row([
+            PosColumn(
+              text: 'Jatuh Tempo',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.left),
+            ),
+            PosColumn(
+              text: ': ${_formatOutstandingDate(dueDate)}',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.left),
+            ),
+          ]);
+        }
+      }
+
       bytes += generator.feed(1);
 
       // Detail pembelian
@@ -889,6 +966,25 @@ class ThermalPrinterService {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]}.',
         );
+  }
+
+  String _formatOutstandingDate(dynamic date) {
+    try {
+      DateTime dateTime;
+
+      if (date is String) {
+        dateTime = DateTime.parse(date);
+      } else if (date is DateTime) {
+        dateTime = date;
+      } else {
+        return 'Tanggal tidak valid';
+      }
+
+      final formatter = DateFormat('dd MMMM yyyy', 'id_ID');
+      return formatter.format(dateTime);
+    } catch (e) {
+      return 'Tanggal tidak valid';
+    }
   }
 
   String _formatDateTime(DateTime dateTime) {

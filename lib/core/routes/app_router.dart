@@ -73,6 +73,8 @@ class AppRouter {
                       _getDefaultStore(), // Add store parameter
                   cartItems: args['cartItems'],
                   user: args['user'],
+                  status: args['status'],
+                  dueDate: args['dueDate'],
                 ),
           );
         }
@@ -94,6 +96,8 @@ class AppRouter {
                   discount: args['discount'] ?? 0.0,
                   total: args['total'] ?? 0.0,
                   paymentMethod: args['paymentMethod'] ?? 'Tunai',
+                  status: args['status'], // Add status parameter
+                  dueDate: args['dueDate'], // Add dueDate parameter
                 ),
           );
         }

@@ -15,6 +15,8 @@ class OrderSuccessPage extends StatelessWidget {
   final List<CartItem> cartItems;
   final String? notes;
   final int itemCount;
+  final String? status;
+  final DateTime? dueDate;
 
   const OrderSuccessPage({
     super.key,
@@ -26,6 +28,8 @@ class OrderSuccessPage extends StatelessWidget {
     required this.cartItems,
     this.notes,
     required this.itemCount,
+    this.status,
+    this.dueDate,
   });
 
   @override
@@ -302,6 +306,8 @@ class OrderSuccessPage extends StatelessWidget {
                                       total: total,
                                       paymentMethod: 'Pending', // Order status
                                       notes: notes,
+                                      status: status,
+                                      dueDate: dueDate,
                                     ),
                               ),
                             );

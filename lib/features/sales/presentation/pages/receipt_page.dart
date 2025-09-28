@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
 import '../../../transactions/data/models/store.dart';
@@ -18,6 +19,8 @@ class ReceiptPage extends StatefulWidget {
   final double total;
   final String paymentMethod;
   final String? notes; // Add notes parameter
+  final String? status; // Add status parameter for outstanding transactions
+  final DateTime? dueDate; // Add dueDate parameter for outstanding transactions
 
   const ReceiptPage({
     super.key,
@@ -31,6 +34,8 @@ class ReceiptPage extends StatefulWidget {
     required this.total,
     this.paymentMethod = 'Tunai',
     this.notes,
+    this.status,
+    this.dueDate,
   });
 
   @override
@@ -405,6 +410,44 @@ class _ReceiptPageState extends State<ReceiptPage> {
             ),
           ],
         ),
+
+        // Tambahkan informasi outstanding jika status adalah outstanding
+        if (widget.status != null &&
+            widget.status!.toLowerCase() == 'outstanding') ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Status Pembayaran:',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
+              const Text(
+                'Hutang',
+                style: TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.orange,
+                ),
+              ),
+            ],
+          ),
+          if (widget.dueDate != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('Jatuh Tempo:', style: TextStyle(color: Colors.grey[600])),
+                Text(
+                  _formatOutstandingDate(widget.dueDate!),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
       ],
     );
   }
@@ -805,6 +848,8 @@ class _ReceiptPageState extends State<ReceiptPage> {
         total: widget.total,
         paymentMethod: widget.paymentMethod,
         notes: widget.notes,
+        status: widget.status,
+        dueDate: widget.dueDate,
       );
 
       if (mounted) {
@@ -964,6 +1009,15 @@ class _ReceiptPageState extends State<ReceiptPage> {
     );
   }
 
+  String _formatOutstandingDate(DateTime date) {
+    try {
+      final formatter = DateFormat('dd MMMM yyyy', 'id_ID');
+      return formatter.format(date);
+    } catch (e) {
+      return 'Tanggal tidak valid';
+    }
+  }
+
   String _generateReceiptText() {
     final buffer = StringBuffer();
 
@@ -979,6 +1033,18 @@ class _ReceiptPageState extends State<ReceiptPage> {
     buffer.writeln('Tanggal: ${_formatDateTime(widget.transactionDate)}');
     buffer.writeln('Kasir: ${widget.user?.name ?? 'Admin POS'}');
     buffer.writeln('Pembayaran: ${widget.paymentMethod}');
+
+    // Tambahkan informasi outstanding jika status adalah outstanding
+    if (widget.status != null &&
+        widget.status!.toLowerCase() == 'outstanding') {
+      buffer.writeln('Status Pembayaran: Hutang');
+      if (widget.dueDate != null) {
+        buffer.writeln(
+          'Jatuh Tempo: ${_formatOutstandingDate(widget.dueDate!)}',
+        );
+      }
+    }
+
     buffer.writeln();
     buffer.writeln('---------------------------------');
     buffer.writeln('DETAIL PEMBELIAN');

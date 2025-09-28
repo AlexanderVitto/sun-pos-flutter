@@ -18,6 +18,8 @@ class PaymentSuccessPage extends StatelessWidget {
   final List<CartItem>? cartItems; // Store cart items before clearing
   final String? notes; // Add notes parameter
   final AuthUser.User? user; // Add user parameter
+  final String? status; // Add status parameter
+  final DateTime? dueDate; // Add dueDate parameter
 
   const PaymentSuccessPage({
     super.key,
@@ -29,6 +31,8 @@ class PaymentSuccessPage extends StatelessWidget {
     this.cartItems,
     this.notes,
     this.user,
+    this.status,
+    this.dueDate,
   });
 
   // Helper function to convert AuthUser.User to TransactionsUser.User
@@ -338,6 +342,8 @@ class PaymentSuccessPage extends StatelessWidget {
                                               .paymentMethods[paymentMethod] ??
                                           '',
                                       notes: notes,
+                                      status: status,
+                                      dueDate: dueDate,
                                     ),
                               ),
                             );

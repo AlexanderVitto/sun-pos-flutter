@@ -437,10 +437,21 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             ).format(transaction.totalAmount),
           ),
           _buildDetailRow('Jumlah Item', '${transaction.detailsCount} barang'),
-          _buildPaymentMethodRow(
-            'Metode Pembayaran',
-            transaction.paymentMethod,
-          ),
+          // Conditional payment method display for outstanding transactions
+          if (transaction.status.toLowerCase() == 'outstanding')
+            _buildDetailRow('Status Pembayaran', 'Hutang')
+          else
+            _buildPaymentMethodRow(
+              'Metode Pembayaran',
+              transaction.paymentMethod,
+            ),
+          // Add due date for outstanding transactions
+          if (transaction.status.toLowerCase() == 'outstanding' &&
+              transaction.outstandingReminderDate != null)
+            _buildDetailRow(
+              'Tanggal Jatuh Tempo',
+              _formatOutstandingDate(transaction.outstandingReminderDate!),
+            ),
           if (transaction.notes != null && transaction.notes!.trim().isNotEmpty)
             _buildDetailRow('Catatan', transaction.notes!),
         ],
@@ -1074,8 +1085,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         paymentMethod: paymentMethod ?? transaction.paymentMethod,
         storeId: _getStoreIdFromUser(context),
         customerName:
-            transaction.customer?.name ?? 'Customer', // Default customer name
-        customerPhone: null,
+            _detailedTransaction?.customer?.name ??
+            'Customer', // Default customer name
+        customerPhone: _detailedTransaction?.customer?.phoneNumber,
         status: paymentStatus == 'utang' ? 'outstanding' : 'completed',
         cashAmount: cashAmount ?? 0,
         transferAmount: transferAmount ?? 0.0,
@@ -1137,6 +1149,13 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                     notes: notes ?? transaction.notes,
                     user:
                         Provider.of<AuthProvider>(context, listen: false).user,
+                    status:
+                        paymentStatus == 'utang' ? 'outstanding' : 'completed',
+                    dueDate:
+                        paymentStatus == 'utang' &&
+                                outstandingReminderDate != null
+                            ? DateTime.tryParse(outstandingReminderDate)
+                            : null,
                   ),
             ),
           );
@@ -1288,6 +1307,8 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
               total: transaction.totalAmount,
               paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
               notes: transaction.notes,
+              status: transaction.status,
+              dueDate: transaction.outstandingReminderDate,
             ),
       ),
     );
@@ -1305,6 +1326,22 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         return 'E-Wallet';
       default:
         return paymentMethod;
+    }
+  }
+
+  String _formatOutstandingDate(dynamic outstandingDate) {
+    try {
+      DateTime date;
+      if (outstandingDate is String) {
+        date = DateTime.parse(outstandingDate);
+      } else if (outstandingDate is DateTime) {
+        date = outstandingDate;
+      } else {
+        return 'Tanggal tidak valid';
+      }
+      return DateFormat('dd MMMM yyyy', 'id_ID').format(date);
+    } catch (e) {
+      return 'Tanggal tidak valid';
     }
   }
 }

@@ -418,6 +418,8 @@ class PaymentService {
                     notes: notesController.text.trim(),
                     user:
                         Provider.of<AuthProvider>(context, listen: false).user,
+                    status: 'completed', // Cash transactions are completed
+                    dueDate: null, // No due date for completed transactions
                   ),
             ),
           );
@@ -617,6 +619,8 @@ class PaymentService {
                     cartItems: cartItemsCopy,
                     notes: notes,
                     itemCount: itemCount,
+                    status: 'pending', // Orders are typically pending
+                    dueDate: null, // Orders don't have due dates by default
                   ),
             ),
           );

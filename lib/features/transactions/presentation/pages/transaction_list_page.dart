@@ -873,6 +873,8 @@ class TransactionDetailsDialog extends StatelessWidget {
               total: transaction.totalAmount,
               paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
               notes: transaction.notes,
+              status: transaction.status,
+              dueDate: transaction.outstandingReminderDate,
             ),
       ),
     );

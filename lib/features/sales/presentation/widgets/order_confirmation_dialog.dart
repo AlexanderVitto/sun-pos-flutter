@@ -601,6 +601,8 @@ class _OrderConfirmationDialogState extends State<OrderConfirmationDialog> {
                       store: widget.store,
                       transactionNumber:
                           'ORD${DateTime.now().millisecondsSinceEpoch}',
+                      status: 'pending', // Orders are pending by default
+                      dueDate: null, // No due date for new orders
                     ),
               ),
             );

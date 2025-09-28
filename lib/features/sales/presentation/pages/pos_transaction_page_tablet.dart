@@ -1654,6 +1654,9 @@ class _POSTransactionPageState extends State<POSTransactionPage> {
                             : _notesController.text.trim(),
                     user:
                         Provider.of<AuthProvider>(context, listen: false).user,
+                    status: response.data?.status ?? 'completed',
+                    dueDate:
+                        null, // Will be handled by the response data structure
                   ),
             ),
           );
