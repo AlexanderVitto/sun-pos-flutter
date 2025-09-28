@@ -403,74 +403,41 @@ class ThermalPrinterService {
       ]);
       _printer!.text('--------------------------------');
 
-      // Item-item
+      // Item-item dengan format baru: nama item di baris pertama, qty@harga | subtotal di baris kedua
       for (final item in items) {
-        // Format: Item Name | Subtotal
         final itemName = item.product.name;
-        final maxItemWidth =
-            25; // Maksimal karakter untuk nama item dalam satu baris
 
-        if (itemName.length <= maxItemWidth) {
-          // Nama item muat dalam satu baris
-          _printer!.row([
-            PosColumn(
-              text: itemName,
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-            PosColumn(
-              text: 'Rp ${_formatPrice(item.subtotal)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right),
-            ),
-          ]);
-        } else {
-          // Nama item terlalu panjang, bagi menjadi beberapa baris
-          _printer!.row([
-            PosColumn(
-              text: itemName.substring(0, maxItemWidth),
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-            PosColumn(
-              text: 'Rp ${_formatPrice(item.subtotal)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right),
-            ),
-          ]);
+        // Baris pertama: Nama item (font normal, tidak bold)
+        _printer!.text(
+          itemName,
+          styles: const PosStyles(
+            align: PosAlign.left,
+            height: PosTextSize.size1,
+            width: PosTextSize.size1,
+          ),
+        );
 
-          // Lanjutkan nama item yang tersisa di baris berikutnya
-          String remainingName = itemName.substring(maxItemWidth);
-          while (remainingName.isNotEmpty) {
-            final nextPart =
-                remainingName.length <= maxItemWidth
-                    ? remainingName
-                    : remainingName.substring(0, maxItemWidth);
-
-            _printer!.row([
-              PosColumn(
-                text: nextPart,
-                width: 6,
-                styles: const PosStyles(align: PosAlign.left),
-              ),
-              PosColumn(text: '', width: 6),
-            ]);
-
-            remainingName =
-                remainingName.length <= maxItemWidth
-                    ? ''
-                    : remainingName.substring(maxItemWidth);
-          }
-        }
-
-        // Tampilkan harga satuan di baris terpisah (lebih kecil)
+        // Baris kedua: Quantity@harga (kiri) dan subtotal (kanan) dengan font lebih kecil
         _printer!.row([
           PosColumn(
             text: '${item.quantity}@ Rp ${_formatPrice(item.product.price)}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
+            width: 7,
+            styles: const PosStyles(
+              align: PosAlign.left,
+              height: PosTextSize.size1,
+              width: PosTextSize.size1,
+            ),
           ),
-          PosColumn(text: '', width: 6),
+          PosColumn(
+            text: 'Rp ${_formatPrice(item.subtotal)}',
+            width: 5,
+            styles: const PosStyles(
+              align: PosAlign.right,
+              height: PosTextSize.size1,
+              width: PosTextSize.size1,
+              bold: true,
+            ),
+          ),
         ]);
 
         // Spasi kecil antar item untuk kejelasan
@@ -714,74 +681,41 @@ class ThermalPrinterService {
       ]);
       bytes += generator.text('--------------------------------');
 
-      // Item-item
+      // Item-item dengan format baru: nama item di baris pertama, qty@harga | subtotal di baris kedua
       for (final item in items) {
-        // Format: Qty | Item Name | Subtotal
         final itemName = item.product.name;
-        final maxItemWidth =
-            25; // Maksimal karakter untuk nama item dalam satu baris
 
-        if (itemName.length <= maxItemWidth) {
-          // Nama item muat dalam satu baris
-          bytes += generator.row([
-            PosColumn(
-              text: itemName,
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-            PosColumn(
-              text: 'Rp ${_formatPrice(item.subtotal)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right),
-            ),
-          ]);
-        } else {
-          // Nama item terlalu panjang, bagi menjadi beberapa baris
-          bytes += generator.row([
-            PosColumn(
-              text: itemName.substring(0, maxItemWidth),
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-            PosColumn(
-              text: 'Rp ${_formatPrice(item.subtotal)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right),
-            ),
-          ]);
+        // Baris pertama: Nama item (font normal, tidak bold)
+        bytes += generator.text(
+          itemName,
+          styles: const PosStyles(
+            align: PosAlign.left,
+            height: PosTextSize.size1,
+            width: PosTextSize.size1,
+          ),
+        );
 
-          // Lanjutkan nama item yang tersisa di baris berikutnya
-          String remainingName = itemName.substring(maxItemWidth);
-          while (remainingName.isNotEmpty) {
-            final nextPart =
-                remainingName.length <= maxItemWidth
-                    ? remainingName
-                    : remainingName.substring(0, maxItemWidth);
-
-            bytes += generator.row([
-              PosColumn(
-                text: nextPart,
-                width: 6,
-                styles: const PosStyles(align: PosAlign.left),
-              ),
-              PosColumn(text: '', width: 6),
-            ]);
-
-            remainingName =
-                remainingName.length <= maxItemWidth
-                    ? ''
-                    : remainingName.substring(maxItemWidth);
-          }
-        }
-
-        // Tampilkan harga satuan di baris terpisah (lebih kecil)
+        // Baris kedua: Quantity@harga (kiri) dan subtotal (kanan) dengan font lebih kecil
         bytes += generator.row([
           PosColumn(
             text: '${item.quantity}@ Rp ${_formatPrice(item.product.price)}',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
+            width: 7,
+            styles: const PosStyles(
+              align: PosAlign.left,
+              height: PosTextSize.size1,
+              width: PosTextSize.size1,
+            ),
           ),
-          PosColumn(text: '', width: 6),
+          PosColumn(
+            text: 'Rp ${_formatPrice(item.subtotal)}',
+            width: 5,
+            styles: const PosStyles(
+              align: PosAlign.right,
+              height: PosTextSize.size1,
+              width: PosTextSize.size1,
+              bold: true,
+            ),
+          ),
         ]);
 
         // Spasi kecil antar item untuk kejelasan
@@ -789,37 +723,36 @@ class ThermalPrinterService {
           bytes += generator.text('');
         }
       }
+      // bytes += generator.text('--------------------------------');
 
-      bytes += generator.text('--------------------------------');
+      // // Total
+      // bytes += generator.row([
+      //   PosColumn(
+      //     text: 'Subtotal',
+      //     width: 8,
+      //     styles: const PosStyles(align: PosAlign.left),
+      //   ),
+      //   PosColumn(
+      //     text: 'Rp ${_formatPrice(subtotal)}',
+      //     width: 4,
+      //     styles: const PosStyles(align: PosAlign.right),
+      //   ),
+      // ]);
 
-      // Total
-      bytes += generator.row([
-        PosColumn(
-          text: 'Subtotal',
-          width: 8,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-        PosColumn(
-          text: 'Rp ${_formatPrice(subtotal)}',
-          width: 4,
-          styles: const PosStyles(align: PosAlign.right),
-        ),
-      ]);
-
-      if (discount > 0) {
-        bytes += generator.row([
-          PosColumn(
-            text: 'Diskon',
-            width: 8,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-          PosColumn(
-            text: 'Rp ${_formatPrice(discount)}',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
-      }
+      // if (discount > 0) {
+      //   bytes += generator.row([
+      //     PosColumn(
+      //       text: 'Diskon',
+      //       width: 8,
+      //       styles: const PosStyles(align: PosAlign.left),
+      //     ),
+      //     PosColumn(
+      //       text: 'Rp ${_formatPrice(discount)}',
+      //       width: 4,
+      //       styles: const PosStyles(align: PosAlign.right),
+      //     ),
+      //   ]);
+      // }
 
       bytes += generator.text('================================');
       bytes += generator.row([

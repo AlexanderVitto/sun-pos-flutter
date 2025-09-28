@@ -440,25 +440,9 @@ class _ReceiptPageState extends State<ReceiptPage> {
                 ),
               ),
               Expanded(
-                flex: 1,
-                child: Text(
-                  'Qty',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-              Expanded(
                 flex: 2,
                 child: Text(
-                  'Harga',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                  textAlign: TextAlign.right,
-                ),
-              ),
-              Expanded(
-                flex: 2,
-                child: Text(
-                  'Total',
+                  'Subtotal',
                   style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                   textAlign: TextAlign.right,
                 ),
@@ -477,39 +461,37 @@ class _ReceiptPageState extends State<ReceiptPage> {
   Widget _buildItemRow(CartItem item) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              item.product.name,
-              style: const TextStyle(fontSize: 14),
-            ),
+          // Baris pertama: Nama item (bisa multi-line)
+          Text(
+            item.product.name,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
-          Expanded(
-            flex: 1,
-            child: Text(
-              '${item.quantity}',
-              style: const TextStyle(fontSize: 14),
-              textAlign: TextAlign.center,
-            ),
+          const SizedBox(height: 4),
+          // Baris kedua: Quantity @ harga dan subtotal
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                '${item.quantity}@ Rp ${_formatPrice(item.product.price)}',
+                style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+              ),
+              Text(
+                'Rp ${_formatPrice(item.subtotal)}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
           ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              'Rp ${_formatPrice(item.product.price)}',
-              style: const TextStyle(fontSize: 14),
-              textAlign: TextAlign.right,
-            ),
-          ),
-          Expanded(
-            flex: 2,
-            child: Text(
-              'Rp ${_formatPrice(item.subtotal)}',
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-              textAlign: TextAlign.right,
-            ),
-          ),
+          // Divider kecil antar item
+          if (item != widget.items.last) ...[
+            const SizedBox(height: 8),
+            Divider(height: 1, thickness: 0.5, color: Colors.grey[300]),
+          ],
         ],
       ),
     );
@@ -518,10 +500,10 @@ class _ReceiptPageState extends State<ReceiptPage> {
   Widget _buildTotals() {
     return Column(
       children: [
-        _buildTotalRow('Subtotal', widget.subtotal, false),
-        if (widget.discount > 0)
-          _buildTotalRow('Diskon', -widget.discount, false),
-        const Divider(),
+        // _buildTotalRow('Subtotal', widget.subtotal, false),
+        // if (widget.discount > 0)
+        //   _buildTotalRow('Diskon', -widget.discount, false),
+        // const Divider(),
         _buildTotalRow('TOTAL BAYAR', widget.total, true),
       ],
     );
@@ -1005,8 +987,9 @@ class _ReceiptPageState extends State<ReceiptPage> {
     for (final item in widget.items) {
       buffer.writeln(item.product.name);
       buffer.writeln(
-        '  ${item.quantity} x Rp ${_formatPrice(item.product.price)} = Rp ${_formatPrice(item.subtotal)}',
+        '${item.quantity}@ Rp ${_formatPrice(item.product.price)}                    Rp ${_formatPrice(item.subtotal)}',
       );
+      buffer.writeln(); // Empty line between items
     }
 
     buffer.writeln('---------------------------------');
