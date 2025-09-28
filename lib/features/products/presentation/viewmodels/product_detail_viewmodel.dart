@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/services/product_api_service.dart';
 import '../../data/models/product_detail_response.dart';
 import '../../../sales/providers/cart_provider.dart';
+import '../../../sales/presentation/services/payment_service.dart';
 import '../../../../data/models/product.dart';
 
 class ProductDetailViewModel extends ChangeNotifier {
@@ -48,6 +49,24 @@ class ProductDetailViewModel extends ChangeNotifier {
   double get subtotal => (selectedVariant?.price ?? 0) * _quantity;
   bool get isAvailable => maxStock > 0;
 
+  /// Get remaining stock considering current cart quantity
+  int get remainingStock {
+    final productInCart = _cartProvider?.getItemByProductId(_productId);
+    final quantityInCart = productInCart?.quantity ?? 0;
+    return maxStock - quantityInCart;
+  }
+
+  /// Get current quantity in cart
+  int get quantityInCart {
+    final productInCart = _cartProvider?.getItemByProductId(_productId);
+    return productInCart?.quantity ?? 0;
+  }
+
+  /// Check if product is currently in cart
+  bool get isInCart {
+    return _cartProvider?.isProductInCart(_productId) ?? false;
+  }
+
   /// Update method yang dipanggil oleh ChangeNotifierProxyProvider
   /// Sesuai dengan dokumentasi: reuse instance dan update properties
   void updateCartProvider(CartProvider cartProvider) {
@@ -56,7 +75,12 @@ class ProductDetailViewModel extends ChangeNotifier {
         '🔄 ProductDetailViewModel: Updating CartProvider instance ${cartProvider.hashCode}',
       );
       _cartProvider = cartProvider;
-      // Tidak perlu notifyListeners() karena CartProvider changes tidak mempengaruhi UI langsung
+
+      // Reinitialize quantity based on updated cart provider
+      if (_productDetail != null) {
+        _initializeQuantityFromCart();
+        notifyListeners();
+      }
     }
   }
 
@@ -88,6 +112,9 @@ class ProductDetailViewModel extends ChangeNotifier {
         _productDetail = response.data;
         _isLoading = false;
         _errorMessage = null;
+
+        // Initialize quantity controller with existing cart quantity + 1 as default addition
+        _initializeQuantityFromCart();
       } else {
         _productDetail = null;
         _isLoading = false;
@@ -108,19 +135,37 @@ class ProductDetailViewModel extends ChangeNotifier {
     _isLoading = loading;
   }
 
+  /// Initialize quantity controller based on existing cart quantity
+  void _initializeQuantityFromCart() {
+    if (_cartProvider == null) {
+      _quantity = 1;
+      _quantityController.text = '1';
+      return;
+    }
+
+    // Get current quantity of this product in cart
+    final quantityInCart = this.quantityInCart;
+
+    // Set initial quantity based on cart status
+    if (quantityInCart > 0) {
+      // If product already in cart, show current cart quantity
+      _quantity = quantityInCart;
+    } else {
+      // If product not in cart, default to 1 (minimum purchase)
+      _quantity = 1;
+    }
+
+    _quantityController.text = _quantity.toString();
+  }
+
   void selectVariant(int index) {
     if (_productDetail?.variants.isNotEmpty == true &&
         index >= 0 &&
         index < _productDetail!.variants.length) {
       _selectedVariantIndex = index;
-      _resetQuantity(); // Reset quantity when variant changes
+      _initializeQuantityFromCart(); // Use cart-aware initialization instead of just reset
       notifyListeners();
     }
-  }
-
-  void _resetQuantity() {
-    _quantity = 1;
-    _quantityController.text = _quantity.toString();
   }
 
   void onQuantityChanged(String value) {
@@ -129,12 +174,20 @@ class ProductDetailViewModel extends ChangeNotifier {
     final newQuantity = int.tryParse(value);
     if (newQuantity == null) return;
 
-    // Validate quantity range
+    // Get remaining stock
+    final remaining = remainingStock;
+
+    // Validate quantity range against remaining stock
     int validQuantity = newQuantity;
-    if (validQuantity < 1) {
+    if (validQuantity < 0) {
+      validQuantity = 0;
+    } else if (validQuantity > remaining) {
+      validQuantity = remaining;
+    }
+
+    // Only allow 0 if product is in cart (for removal purpose)
+    if (validQuantity == 0 && !isInCart) {
       validQuantity = 1;
-    } else if (validQuantity > maxStock) {
-      validQuantity = maxStock;
     }
 
     _quantity = validQuantity;
@@ -146,11 +199,12 @@ class ProductDetailViewModel extends ChangeNotifier {
         TextPosition(offset: _quantityController.text.length),
       );
     }
+
     notifyListeners();
   }
 
   void increaseQuantity() {
-    if (_quantity < maxStock) {
+    if (_quantity < remainingStock) {
       _quantity++;
       _quantityController.text = _quantity.toString();
       notifyListeners();
@@ -162,15 +216,61 @@ class ProductDetailViewModel extends ChangeNotifier {
       _quantity--;
       _quantityController.text = _quantity.toString();
       notifyListeners();
+    } else if (_quantity == 1 && isInCart) {
+      // Allow quantity to go to 0 only if product is in cart (for removal)
+      _quantity = 0;
+      _quantityController.text = _quantity.toString();
+      notifyListeners();
     }
   }
 
-  Future<bool> addToCart() async {
+  /// Remove product from cart completely
+  Future<bool> removeFromCart({BuildContext? context}) async {
+    try {
+      if (_cartProvider == null) return false;
+
+      final productInCart = _cartProvider!.getItemByProductId(_productId);
+      if (productInCart != null) {
+        _cartProvider!.removeItem(productInCart.id);
+
+        // Set quantity to 1 after removal for potential re-add
+        _quantity = 1;
+        _quantityController.text = _quantity.toString();
+        notifyListeners();
+
+        print(
+          '🗑️ ProductDetailViewModel: Removed product $_productId from cart',
+        );
+
+        // Update draft transaction on server after removing from cart
+        if (context != null) {
+          await _updateDraftTransactionOnServer(context);
+        }
+
+        // Reload product detail to refresh stock info and cart status
+        await _reloadProductDetail();
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('❌ Error removing product from cart: ${e.toString()}');
+      return false;
+    }
+  }
+
+  /// Update cart with current quantity (add or update existing)
+  Future<bool> updateCartQuantity({BuildContext? context}) async {
     try {
       if (_productDetail == null ||
           selectedVariant == null ||
           _cartProvider == null) {
         return false;
+      }
+
+      // If quantity is 0, remove from cart
+      if (_quantity == 0) {
+        return await removeFromCart(context: context);
       }
 
       print(
@@ -191,13 +291,84 @@ class ProductDetailViewModel extends ChangeNotifier {
         updatedAt: DateTime.parse(_productDetail!.updatedAt),
       );
 
-      // Add to cart with specified quantity
-      _cartProvider!.addItem(product, quantity: _quantity);
+      // Check if product already exists in cart
+      final existingItem = _cartProvider!.getItemByProductId(_productId);
+
+      if (existingItem != null) {
+        // Update existing item quantity
+        _cartProvider!.updateItemQuantity(existingItem.id, _quantity);
+        print('📝 ProductDetailViewModel: Updated cart quantity to $_quantity');
+      } else {
+        // Add new item to cart
+        _cartProvider!.addItem(product, quantity: _quantity);
+        print(
+          '➕ ProductDetailViewModel: Added new item to cart with quantity $_quantity',
+        );
+      }
+
+      // Update draft transaction on server after cart changes
+      if (context != null) {
+        await _updateDraftTransactionOnServer(context);
+      }
+
+      // Reload product detail to refresh stock info and cart status
+      await _reloadProductDetail();
 
       return true;
     } catch (e) {
+      print('❌ Error updating cart: ${e.toString()}');
       return false;
     }
+  }
+
+  /// Update draft transaction on server after cart changes
+  Future<void> _updateDraftTransactionOnServer(BuildContext context) async {
+    try {
+      // Only proceed if we have a cart provider
+      if (_cartProvider == null) return;
+
+      // Use PaymentService to update draft transaction on server
+      await PaymentService.processDraftTransaction(
+        context: context,
+        cartProvider: _cartProvider!,
+      );
+
+      print('📡 ProductDetailViewModel: Draft transaction updated on server');
+    } catch (e) {
+      // Silent failure for draft transaction updates to not interrupt UX
+      print('Failed to update draft transaction on server: ${e.toString()}');
+    }
+  }
+
+  /// Reload product detail data to refresh stock info and cart status
+  /// This method doesn't show loading indicator to avoid UI flickering
+  Future<void> _reloadProductDetail() async {
+    try {
+      print('🔄 ProductDetailViewModel: Reloading product detail data');
+
+      final response = await _apiService.getProduct(_productId);
+
+      if (response.status == 'success') {
+        _productDetail = response.data;
+
+        // Reinitialize quantity from cart after reload
+        _initializeQuantityFromCart();
+
+        print('✅ ProductDetailViewModel: Product detail reloaded successfully');
+      } else {
+        print('⚠️ ProductDetailViewModel: Failed to reload product detail');
+      }
+
+      notifyListeners();
+    } catch (e) {
+      // Silent failure for reload to not interrupt UX
+      print('❌ Error reloading product detail: ${e.toString()}');
+    }
+  }
+
+  Future<bool> addToCart({BuildContext? context}) async {
+    // Use the new updateCartQuantity method for consistency
+    return await updateCartQuantity(context: context);
   }
 
   @override

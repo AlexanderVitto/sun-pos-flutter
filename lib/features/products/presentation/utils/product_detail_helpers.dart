@@ -8,7 +8,21 @@ class ProductDetailHelpers {
     ProductDetailViewModel viewModel,
   ) async {
     try {
-      final success = await viewModel.addToCart();
+      // Check if this is a remove action (quantity = 0 and product in cart)
+      final isRemoveAction = viewModel.quantity == 0 && viewModel.isInCart;
+
+      bool success;
+      String successMessage;
+
+      if (isRemoveAction) {
+        success = await viewModel.removeFromCart(context: context);
+        successMessage =
+            '${viewModel.productDetail?.name ?? "Produk"} berhasil dihapus dari keranjang';
+      } else {
+        success = await viewModel.updateCartQuantity(context: context);
+        successMessage =
+            '${viewModel.productDetail?.name ?? "Produk"} berhasil ditambahkan ke keranjang';
+      }
 
       if (!context.mounted) return;
 
@@ -18,36 +32,51 @@ class ProductDetailHelpers {
           SnackBar(
             content: Row(
               children: [
-                const Icon(LucideIcons.check, color: Colors.white, size: 20),
+                Icon(
+                  isRemoveAction ? LucideIcons.trash2 : LucideIcons.check,
+                  color: Colors.white,
+                  size: 20,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    '${viewModel.productDetail?.name ?? "Produk"} berhasil ditambahkan ke keranjang',
+                    successMessage,
                     style: const TextStyle(color: Colors.white),
                   ),
                 ),
               ],
             ),
-            backgroundColor: const Color(0xFF10b981),
+            backgroundColor:
+                isRemoveAction
+                    ? const Color(0xFFef4444) // Red for remove
+                    : const Color(0xFF10b981), // Green for add
             duration: const Duration(seconds: 2),
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
-            action: SnackBarAction(
-              label: 'LIHAT KERANJANG',
-              textColor: Colors.white,
-              onPressed: () {
-                Navigator.pop(context); // Go back to POS page
-              },
-            ),
+            action:
+                isRemoveAction
+                    ? null
+                    : SnackBarAction(
+                      label: 'LIHAT KERANJANG',
+                      textColor: Colors.white,
+                      onPressed: () {
+                        Navigator.pop(context); // Go back to POS page
+                      },
+                    ),
           ),
+        );
+
+        // Log successful cart operation
+        print(
+          '✅ ProductDetailHelpers: Cart operation completed successfully - ${isRemoveAction ? 'Removed' : 'Added/Updated'} ${viewModel.productDetail?.name}',
         );
       } else {
         // Show error message
         _showErrorSnackbar(
           context,
-          'Gagal menambahkan produk ke keranjang. Silakan coba lagi.',
+          'Gagal ${isRemoveAction ? 'menghapus produk dari' : 'menambahkan produk ke'} keranjang. Silakan coba lagi.',
         );
       }
     } catch (e) {

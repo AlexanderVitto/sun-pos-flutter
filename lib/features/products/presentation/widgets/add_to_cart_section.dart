@@ -17,6 +17,8 @@ class AddToCartSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final subtotal = viewModel.subtotal;
     final isAvailable = viewModel.isAvailable;
+    final isQuantityZero = viewModel.quantity == 0;
+    final isInCart = viewModel.isInCart;
 
     return Container(
       margin: const EdgeInsets.all(20),
@@ -87,13 +89,26 @@ class AddToCartSection extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: const Color(0x1a6366f1),
+                      color:
+                          isQuantityZero && isInCart
+                              ? const Color(
+                                0x1aef4444,
+                              ) // Red background for remove
+                              : const Color(
+                                0x1a6366f1,
+                              ), // Blue background for add
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
-                      LucideIcons.shoppingCart,
+                    child: Icon(
+                      isQuantityZero && isInCart
+                          ? LucideIcons
+                              .trash2 // Trash icon for remove
+                          : LucideIcons.shoppingCart, // Cart icon for add
                       size: 24,
-                      color: Color(0xFF6366f1),
+                      color:
+                          isQuantityZero && isInCart
+                              ? const Color(0xFFef4444) // Red for remove
+                              : const Color(0xFF6366f1), // Blue for add
                     ),
                   ),
               ],
@@ -108,7 +123,12 @@ class AddToCartSection extends StatelessWidget {
             child: ElevatedButton(
               onPressed: isAvailable ? onAddToCart : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366f1),
+                backgroundColor:
+                    !isAvailable
+                        ? const Color(0xFFe5e7eb)
+                        : isQuantityZero && isInCart
+                        ? const Color(0xFFef4444) // Red for remove
+                        : const Color(0xFF6366f1), // Blue for add/update
                 foregroundColor: Colors.white,
                 disabledBackgroundColor: const Color(0xFFe5e7eb),
                 disabledForegroundColor: const Color(0xFF9ca3af),
@@ -122,12 +142,21 @@ class AddToCartSection extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    isAvailable ? LucideIcons.plus : LucideIcons.packageX,
+                    !isAvailable
+                        ? LucideIcons.packageX
+                        : isQuantityZero && isInCart
+                        ? LucideIcons
+                            .trash2 // Trash icon for remove
+                        : LucideIcons.plus, // Plus icon for add/update
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    isAvailable ? 'Tambah ke Keranjang' : 'Stok Tidak Tersedia',
+                    !isAvailable
+                        ? 'Stok Tidak Tersedia'
+                        : isQuantityZero && isInCart
+                        ? 'Hapus dari Keranjang' // Remove text
+                        : 'Tambah ke Keranjang', // Add text
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
@@ -152,15 +181,29 @@ class AddToCartSection extends StatelessWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(
-                    LucideIcons.check,
+                  Icon(
+                    isQuantityZero && isInCart
+                        ? LucideIcons
+                            .trash2 // Trash icon for remove info
+                        : LucideIcons.check, // Check icon for add info
                     size: 16,
-                    color: Color(0xFF10b981),
+                    color:
+                        isQuantityZero && isInCart
+                            ? const Color(0xFFef4444) // Red for remove
+                            : const Color(0xFF10b981), // Green for add
                   ),
                   const SizedBox(width: 6),
-                  const Text(
-                    'Produk akan ditambahkan ke keranjang belanja',
-                    style: TextStyle(fontSize: 12, color: Color(0xFF6b7280)),
+                  Text(
+                    isQuantityZero && isInCart
+                        ? 'Produk akan dihapus dari keranjang belanja'
+                        : 'Produk akan ditambahkan ke keranjang belanja',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color:
+                          isQuantityZero && isInCart
+                              ? const Color(0xFFef4444) // Red text for remove
+                              : const Color(0xFF6b7280), // Gray text for add
+                    ),
                   ),
                 ],
               ),

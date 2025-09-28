@@ -65,11 +65,13 @@ class QuantityControls extends StatelessWidget {
           Consumer<CartProvider>(
             builder: (context, cartProvider, child) {
               // Get current quantity of this product in cart
-              final productInCart = cartProvider.getItemByProductId(viewModel.productId);
+              final productInCart = cartProvider.getItemByProductId(
+                viewModel.productId,
+              );
               final quantityInCart = productInCart?.quantity ?? 0;
               final remainingStock = maxStock - quantityInCart;
               final totalQuantityAfterAdd = quantityInCart + viewModel.quantity;
-              
+
               return Column(
                 children: [
                   Container(
@@ -107,7 +109,9 @@ class QuantityControls extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Icon(
-                                maxStock > 0 ? LucideIcons.package : LucideIcons.packageX,
+                                maxStock > 0
+                                    ? LucideIcons.package
+                                    : LucideIcons.packageX,
                                 size: 16,
                                 color:
                                     maxStock > 0
@@ -132,7 +136,7 @@ class QuantityControls extends StatelessWidget {
                             ),
                           ],
                         ),
-                        
+
                         // Show cart quantity info if product is already in cart
                         if (quantityInCart > 0) ...[
                           const SizedBox(height: 8),
@@ -141,7 +145,9 @@ class QuantityControls extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: const Color(0x0f6366f1),
                               borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0x1a6366f1)),
+                              border: Border.all(
+                                color: const Color(0x1a6366f1),
+                              ),
                             ),
                             child: Row(
                               children: [
@@ -166,56 +172,61 @@ class QuantityControls extends StatelessWidget {
                           ),
                         ],
 
-                        // Show remaining stock after considering cart
-                        if (quantityInCart > 0 && remainingStock != maxStock) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: remainingStock > 0 
-                                  ? const Color(0x0af59e0b)
-                                  : const Color(0x0aef4444),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: remainingStock > 0 
-                                    ? const Color(0x1af59e0b)
-                                    : const Color(0x1aef4444),
-                              ),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  remainingStock > 0 
-                                      ? LucideIcons.packageCheck 
-                                      : LucideIcons.packageX,
-                                  size: 14,
-                                  color: remainingStock > 0 
-                                      ? const Color(0xFFf59e0b)
-                                      : const Color(0xFFef4444),
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    remainingStock > 0 
-                                        ? 'Sisa stok: $remainingStock unit'
-                                        : 'Stok habis (sudah di keranjang)',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: remainingStock > 0 
-                                          ? const Color(0xFFf59e0b)
-                                          : const Color(0xFFef4444),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
+                        // // Show remaining stock after considering cart
+                        // if (quantityInCart > 0 &&
+                        //     remainingStock != maxStock) ...[
+                        //   const SizedBox(height: 4),
+                        //   Container(
+                        //     padding: const EdgeInsets.all(8),
+                        //     decoration: BoxDecoration(
+                        //       color:
+                        //           remainingStock > 0
+                        //               ? const Color(0x0af59e0b)
+                        //               : const Color(0x0aef4444),
+                        //       borderRadius: BorderRadius.circular(8),
+                        //       border: Border.all(
+                        //         color:
+                        //             remainingStock > 0
+                        //                 ? const Color(0x1af59e0b)
+                        //                 : const Color(0x1aef4444),
+                        //       ),
+                        //     ),
+                        //     child: Row(
+                        //       children: [
+                        //         Icon(
+                        //           remainingStock > 0
+                        //               ? LucideIcons.packageCheck
+                        //               : LucideIcons.packageX,
+                        //           size: 14,
+                        //           color:
+                        //               remainingStock > 0
+                        //                   ? const Color(0xFFf59e0b)
+                        //                   : const Color(0xFFef4444),
+                        //         ),
+                        //         const SizedBox(width: 8),
+                        //         Expanded(
+                        //           child: Text(
+                        //             remainingStock > 0
+                        //                 ? 'Sisa stok: $remainingStock unit'
+                        //                 : 'Stok habis (sudah di keranjang)',
+                        //             style: TextStyle(
+                        //               fontSize: 12,
+                        //               color:
+                        //                   remainingStock > 0
+                        //                       ? const Color(0xFFf59e0b)
+                        //                       : const Color(0xFFef4444),
+                        //               fontWeight: FontWeight.w500,
+                        //             ),
+                        //           ),
+                        //         ),
+                        //       ],
+                        //     ),
+                        //   ),
+                        // ],
                       ],
                     ),
                   ),
-                  
+
                   // Show warning if total quantity will exceed stock
                   if (totalQuantityAfterAdd > maxStock) ...[
                     const SizedBox(height: 12),
@@ -259,11 +270,13 @@ class QuantityControls extends StatelessWidget {
             Consumer<CartProvider>(
               builder: (context, cartProvider, child) {
                 // Get current quantity of this product in cart
-                final productInCart = cartProvider.getItemByProductId(viewModel.productId);
+                final productInCart = cartProvider.getItemByProductId(
+                  viewModel.productId,
+                );
                 final quantityInCart = productInCart?.quantity ?? 0;
                 final remainingStock = maxStock - quantityInCart;
                 final canAddMore = remainingStock > 0;
-                
+
                 return Column(
                   children: [
                     Row(
@@ -279,11 +292,16 @@ class QuantityControls extends StatelessWidget {
                         if (quantityInCart > 0) ...[
                           const SizedBox(width: 8),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: const Color(0x0f6366f1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: const Color(0x1a6366f1)),
+                              border: Border.all(
+                                color: const Color(0x1a6366f1),
+                              ),
                             ),
                             child: Text(
                               '+$quantityInCart di keranjang',
@@ -307,10 +325,7 @@ class QuantityControls extends StatelessWidget {
                             children: [
                               _buildQuantityButton(
                                 icon: LucideIcons.minus,
-                                onPressed:
-                                    viewModel.quantity > 1
-                                        ? viewModel.decreaseQuantity
-                                        : null,
+                                onPressed: viewModel.decreaseQuantity,
                               ),
                               Container(
                                 width: 80,
@@ -335,22 +350,16 @@ class QuantityControls extends StatelessWidget {
                                     contentPadding: EdgeInsets.zero,
                                   ),
                                   onChanged: (value) {
-                                    // Validate against remaining stock
-                                    final newQuantity = int.tryParse(value) ?? 1;
-                                    if (newQuantity > remainingStock) {
-                                      viewModel.quantityController.text = remainingStock.toString();
-                                      viewModel.quantityController.selection = TextSelection.fromPosition(
-                                        TextPosition(offset: viewModel.quantityController.text.length),
-                                      );
-                                    }
-                                    viewModel.onQuantityChanged(viewModel.quantityController.text);
+                                    // Use ViewModel's validation logic
+                                    viewModel.onQuantityChanged(value);
                                   },
                                 ),
                               ),
                               _buildQuantityButton(
                                 icon: LucideIcons.plus,
                                 onPressed:
-                                    (viewModel.quantity < remainingStock && canAddMore)
+                                    (viewModel.quantity < remainingStock &&
+                                            canAddMore)
                                         ? viewModel.increaseQuantity
                                         : null,
                               ),
@@ -379,10 +388,13 @@ class QuantityControls extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              quantityInCart > 0 
+                              quantityInCart > 0
                                   ? 'Maksimal $remainingStock unit lagi dapat ditambahkan'
                                   : 'Anda dapat mengetik langsung atau menggunakan tombol +/-',
-                              style: const TextStyle(fontSize: 12, color: Color(0xFF6366f1)),
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: Color(0xFF6366f1),
+                              ),
                             ),
                           ),
                         ],
@@ -390,7 +402,8 @@ class QuantityControls extends StatelessWidget {
                     ),
 
                     // Quantity limit info with Dashboard Style
-                    if (viewModel.quantity >= remainingStock && remainingStock > 0) ...[
+                    if (viewModel.quantity >= remainingStock &&
+                        remainingStock > 0) ...[
                       const SizedBox(height: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
@@ -409,7 +422,7 @@ class QuantityControls extends StatelessWidget {
                             const SizedBox(width: 8),
                             Expanded(
                               child: Text(
-                                quantityInCart > 0 
+                                quantityInCart > 0
                                     ? 'Maksimal quantity telah tercapai untuk stok yang tersisa'
                                     : 'Jumlah maksimal telah tercapai',
                                 style: const TextStyle(
