@@ -6,9 +6,6 @@ import 'dart:async';
 import '../../../transactions/data/models/transaction_list_response.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../pages/transaction_detail_page.dart';
-import '../../../sales/presentation/pages/receipt_page.dart';
-import '../../../../data/models/cart_item.dart';
-import '../../../../data/models/product.dart';
 
 class TransactionTabPage extends StatefulWidget {
   const TransactionTabPage({super.key});
@@ -665,10 +662,16 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
                 Text(
                   DateFormat(
                     'dd MMM yyyy, HH:mm',
-                  ).format(transaction.createdAt),
+                  ).format(transaction.transactionDate),
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 12),
+                // Outstanding reminder date section (only for outstanding transactions)
+                if (transaction.status.toLowerCase() == 'outstanding' &&
+                    transaction.outstandingReminderDate != null) ...[
+                  _buildOutstandingReminder(transaction),
+                  const SizedBox(height: 12),
+                ],
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -728,6 +731,133 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     );
   }
 
+  Widget _buildOutstandingReminder(TransactionListItem transaction) {
+    if (transaction.outstandingReminderDate == null) {
+      return const SizedBox.shrink();
+    }
+
+    final now = DateTime.now();
+    final dueDate = transaction.outstandingReminderDate!;
+    final difference = dueDate.difference(now);
+
+    final isOverdue = difference.isNegative;
+    final isDueToday = !isOverdue && difference.inDays == 0;
+    final isDueTomorrow = !isOverdue && difference.inDays == 1;
+
+    Color backgroundColor;
+    Color textColor;
+    Color iconColor;
+    IconData icon;
+    String message;
+    String timeText;
+
+    if (isOverdue) {
+      // Overdue - Red
+      backgroundColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
+      textColor = const Color(0xFFDC2626);
+      iconColor = const Color(0xFFDC2626);
+      icon = LucideIcons.alertTriangle;
+      final overdueDays = difference.inDays.abs();
+      message = 'Terlambat';
+      timeText =
+          overdueDays == 0
+              ? 'Jatuh tempo hari ini'
+              : '$overdueDays hari yang lalu';
+    } else if (isDueToday) {
+      // Due today - Orange/Amber
+      backgroundColor = const Color(0xFFF59E0B).withValues(alpha: 0.1);
+      textColor = const Color(0xFFD97706);
+      iconColor = const Color(0xFFD97706);
+      icon = LucideIcons.clock;
+      message = 'Jatuh tempo hari ini';
+      final hoursLeft = difference.inHours;
+      timeText =
+          hoursLeft > 0
+              ? '$hoursLeft jam lagi'
+              : '${difference.inMinutes} menit lagi';
+    } else if (isDueTomorrow) {
+      // Due tomorrow - Yellow
+      backgroundColor = const Color(0xFFFBBF24).withValues(alpha: 0.1);
+      textColor = const Color(0xFFD97706);
+      iconColor = const Color(0xFFD97706);
+      icon = LucideIcons.calendar;
+      message = 'Jatuh tempo besok';
+      timeText = DateFormat('HH:mm').format(dueDate);
+    } else {
+      // Future due date - Blue
+      backgroundColor = const Color(0xFF3B82F6).withValues(alpha: 0.1);
+      textColor = const Color(0xFF2563EB);
+      iconColor = const Color(0xFF2563EB);
+      icon = LucideIcons.calendarDays;
+      final daysLeft = difference.inDays;
+      message = 'Jatuh tempo dalam $daysLeft hari';
+      timeText = DateFormat('dd MMM yyyy').format(dueDate);
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: textColor.withValues(alpha: 0.3), width: 1),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 16, color: iconColor),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: textColor,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  timeText,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: textColor.withValues(alpha: 0.8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Countdown timer for due today and overdue
+          if (isDueToday || isOverdue) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: textColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                isOverdue ? 'TERLAMBAT' : 'HARI INI',
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: textColor,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
       case 'pending':
@@ -764,68 +894,6 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
         builder: (context) => TransactionDetailPage(transaction: transaction),
       ),
     );
-  }
-
-  void _navigateToReceipt(TransactionListItem transaction) {
-    // Konversi data transaksi ke format CartItem untuk ReceiptPage
-    List<CartItem> receiptItems = [];
-
-    // Karena kita tidak memiliki detail item dari transaction list,
-    // kita akan membuat placeholder CartItem berdasarkan total dan jumlah item
-    if (transaction.detailsCount > 0) {
-      double averagePrice = transaction.totalAmount / transaction.detailsCount;
-      for (int i = 0; i < transaction.detailsCount; i++) {
-        receiptItems.add(
-          CartItem(
-            id: i + 1,
-            product: Product(
-              id: i + 1,
-              name: 'Item ${i + 1}',
-              code: 'ITEM${i + 1}',
-              description: 'Item transaksi',
-              price: averagePrice,
-              stock: 1,
-              category: 'General',
-            ),
-            quantity: 1,
-            addedAt: transaction.transactionDate,
-          ),
-        );
-      }
-    }
-
-    Navigator.of(context).push(
-      MaterialPageRoute(
-        builder:
-            (context) => ReceiptPage(
-              receiptId: transaction.transactionNumber,
-              transactionDate: transaction.transactionDate,
-              items: receiptItems,
-              store: transaction.store,
-              user: transaction.user,
-              subtotal: transaction.totalAmount,
-              discount: 0.0,
-              total: transaction.totalAmount,
-              paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
-              notes: transaction.notes,
-            ),
-      ),
-    );
-  }
-
-  String _getPaymentMethodText(String paymentMethod) {
-    switch (paymentMethod.toLowerCase()) {
-      case 'cash':
-        return 'Tunai';
-      case 'card':
-        return 'Kartu';
-      case 'transfer':
-        return 'Transfer';
-      case 'e-wallet':
-        return 'E-Wallet';
-      default:
-        return paymentMethod;
-    }
   }
 
   Widget _buildHighlightedText(

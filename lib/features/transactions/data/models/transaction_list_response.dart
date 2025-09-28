@@ -67,6 +67,7 @@ class TransactionListItem {
   final String paymentMethod;
   final String status;
   final String? notes;
+  final DateTime? outstandingReminderDate;
   final DateTime transactionDate;
   final User user;
   final Store store;
@@ -85,6 +86,7 @@ class TransactionListItem {
     required this.paymentMethod,
     required this.status,
     this.notes,
+    this.outstandingReminderDate,
     required this.transactionDate,
     required this.user,
     required this.store,
@@ -105,6 +107,10 @@ class TransactionListItem {
       paymentMethod: json['payment_method'] ?? '',
       status: json['status'] ?? '',
       notes: json['notes'],
+      outstandingReminderDate:
+          json['outstanding_reminder_date'] != null
+              ? DateTime.parse(json['outstanding_reminder_date'])
+              : null,
       transactionDate: DateTime.parse(
         json['transaction_date'] ?? DateTime.now().toIso8601String(),
       ),
@@ -133,6 +139,7 @@ class TransactionListItem {
       'payment_method': paymentMethod,
       'status': status,
       'notes': notes,
+      'outstanding_reminder_date': outstandingReminderDate?.toIso8601String(),
       'transaction_date': transactionDate.toIso8601String(),
       'user': user.toJson(),
       'store': store.toJson(),
@@ -145,7 +152,7 @@ class TransactionListItem {
 
   @override
   String toString() {
-    return 'TransactionListItem(id: $id, transactionNumber: $transactionNumber, totalAmount: $totalAmount, status: $status)';
+    return 'TransactionListItem(id: $id, transactionNumber: $transactionNumber, totalAmount: $totalAmount, status: $status, outstandingReminderDate: $outstandingReminderDate)';
   }
 }
 

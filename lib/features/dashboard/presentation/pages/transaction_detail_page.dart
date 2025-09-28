@@ -58,6 +58,7 @@ class TransactionDetailPage extends StatefulWidget {
 class _TransactionDetailPageState extends State<TransactionDetailPage> {
   final TransactionApiService _apiService = TransactionApiService();
   List<TransactionItemDetail>? _transactionItems;
+  TransactionListItem? _detailedTransaction;
   List<CartItem>? _cartItems;
   bool _isLoadingItems = true;
   String? _errorMessage;
@@ -101,6 +102,8 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       // Check if response has transaction items/details
       if (response['data'] != null) {
         final transactionData = response['data'];
+
+        _detailedTransaction = TransactionListItem.fromJson(transactionData);
 
         // Parse items from different possible API structures
         List<dynamic>? itemsData;
@@ -172,9 +175,10 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             items.map((item) {
               // Create a mock product based on transaction item
               final product = Product(
-                id: item.product?['id'] ?? 0,
+                id: item.product?['id'] ?? item.id,
                 name: item.product?['name'] ?? item.productName,
                 price: item.unitPrice,
+                productVariantId: item.productVariantId ?? 0,
 
                 // Add other required fields with mock or default values
                 description: '',

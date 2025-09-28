@@ -98,10 +98,9 @@ class TransactionProvider extends ChangeNotifier {
     double transferAmount = 0,
     String? outstandingReminderDate,
   }) {
-    // Get current date in YYYY-MM-DD format
+    // Get current datetime in ISO format with time
     final now = DateTime.now();
-    final transactionDate =
-        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+    final transactionDate = now.toIso8601String();
 
     // Convert cart items to transaction details
     final details =

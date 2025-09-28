@@ -22,7 +22,7 @@ class Customer {
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
       email: json['email'],
-      phoneNumber: json['phone_number'],
+      phoneNumber: json['phone'],
       address: json['address'],
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
@@ -38,7 +38,7 @@ class Customer {
       'id': id,
       'name': name,
       'email': email,
-      'phone_number': phoneNumber,
+      'phone': phoneNumber,
       'address': address,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
