@@ -464,49 +464,50 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                     ),
                                   ),
                                 ),
-                                const SizedBox(height: 4),
-                                InkWell(
-                                  onTap:
-                                      () => _showEditPriceDialog(
-                                        context,
-                                        item,
-                                        index,
-                                      ),
-                                  borderRadius: BorderRadius.circular(6),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.blue.shade50,
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: Colors.blue.shade200,
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          Icons.edit,
-                                          size: 12,
-                                          color: Colors.blue.shade600,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Edit Harga',
-                                          style: TextStyle(
-                                            fontSize: 10,
-                                            color: Colors.blue.shade600,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
+
+                                // const SizedBox(height: 4),
+                                // InkWell(
+                                //   onTap:
+                                //       () => _showEditPriceDialog(
+                                //         context,
+                                //         item,
+                                //         index,
+                                //       ),
+                                //   borderRadius: BorderRadius.circular(6),
+                                //   child: Container(
+                                //     padding: const EdgeInsets.symmetric(
+                                //       horizontal: 8,
+                                //       vertical: 4,
+                                //     ),
+                                //     decoration: BoxDecoration(
+                                //       color: Colors.blue.shade50,
+                                //       borderRadius: BorderRadius.circular(6),
+                                //       border: Border.all(
+                                //         color: Colors.blue.shade200,
+                                //         width: 1,
+                                //       ),
+                                //     ),
+                                //     child: Row(
+                                //       mainAxisSize: MainAxisSize.min,
+                                //       children: [
+                                //         Icon(
+                                //           Icons.edit,
+                                //           size: 12,
+                                //           color: Colors.blue.shade600,
+                                //         ),
+                                //         const SizedBox(width: 4),
+                                //         Text(
+                                //           'Edit Harga',
+                                //           style: TextStyle(
+                                //             fontSize: 10,
+                                //             color: Colors.blue.shade600,
+                                //             fontWeight: FontWeight.w500,
+                                //           ),
+                                //         ),
+                                //       ],
+                                //     ),
+                                //   ),
+                                // ),
                               ],
                             ),
                           ],

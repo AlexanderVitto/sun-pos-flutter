@@ -32,7 +32,7 @@ class CartBottomSheet extends StatelessWidget {
               _buildHandle(),
               _buildHeader(context),
               _buildCartContent(scrollController),
-              _buildFooter(context),
+              // _buildFooter(context),
             ],
           ),
         );

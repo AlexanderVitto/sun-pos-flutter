@@ -158,7 +158,7 @@ class ProductGrid extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    'pcs',
+                                    'pack',
                                     style:
                                         Theme.of(context).textTheme.bodyMedium,
                                   ),
