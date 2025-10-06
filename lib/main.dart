@@ -8,8 +8,6 @@ import 'core/utils/app_info_helper.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/products/providers/product_provider.dart';
 import 'features/products/providers/api_product_provider.dart';
-import 'features/products/presentation/viewmodels/product_detail_viewmodel.dart';
-import 'features/products/data/services/product_api_service.dart';
 import 'features/sales/providers/cart_provider.dart';
 import 'features/sales/providers/transaction_provider.dart';
 import 'features/sales/providers/pending_transaction_provider.dart';
@@ -72,26 +70,8 @@ class MyApp extends StatelessWidget {
             return newCartProvider;
           },
         ),
-        ChangeNotifierProxyProvider<CartProvider, ProductDetailViewModel>(
-          create:
-              (_) => ProductDetailViewModel(
-                productId: 0, // Default value, akan diupdate saat digunakan
-                apiService: ProductApiService(),
-              ),
-          update: (_, cartProvider, viewModel) {
-            // Sesuai dokumentasi: reuse instance dan update properties
-            if (viewModel != null) {
-              viewModel.updateCartProvider(cartProvider);
-              return viewModel;
-            }
-
-            // Fallback jika viewModel null
-            return ProductDetailViewModel(
-              productId: 0,
-              apiService: ProductApiService(),
-            )..updateCartProvider(cartProvider);
-          },
-        ),
+        // ProductDetailViewModel removed from global providers
+        // It should be created locally in ProductDetailPage to avoid StackOverflowError
         ChangeNotifierProxyProvider3<
           CartProvider,
           TransactionProvider,

@@ -431,22 +431,23 @@ class _ReceiptPageState extends State<ReceiptPage> {
               ),
             ],
           ),
-          if (widget.dueDate != null) ...[
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Jatuh Tempo:', style: TextStyle(color: Colors.grey[600])),
-                Text(
-                  _formatOutstandingDate(widget.dueDate!),
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-          ],
+
+          // if (widget.dueDate != null) ...[
+          //   const SizedBox(height: 8),
+          //   Row(
+          //     mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          //     children: [
+          //       Text('Jatuh Tempo:', style: TextStyle(color: Colors.grey[600])),
+          //       Text(
+          //         _formatOutstandingDate(widget.dueDate!),
+          //         style: const TextStyle(
+          //           fontWeight: FontWeight.bold,
+          //           color: Colors.red,
+          //         ),
+          //       ),
+          //     ],
+          //   ),
+          // ],
         ],
       ],
     );
@@ -509,7 +510,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         children: [
           // Baris pertama: Nama item (bisa multi-line)
           Text(
-            item.product.name,
+            '${item.product.code} ${item.product.name}',
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 4),
@@ -598,47 +599,46 @@ class _ReceiptPageState extends State<ReceiptPage> {
           'Atas kunjungan Anda',
           style: TextStyle(fontSize: 14, color: Colors.grey[600]),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 24),
 
-        // Container(
-        //   padding: const EdgeInsets.all(12),
-        //   decoration: BoxDecoration(
-        //     color: Colors.blue[50],
-        //     borderRadius: BorderRadius.circular(8),
-        //     border: Border.all(color: Colors.blue[200]!),
-        //   ),
-        //   child: Column(
-        //     children: [
-        //       Row(
-        //         mainAxisAlignment: MainAxisAlignment.center,
-        //         children: [
-        //           Icon(Icons.info_outline, size: 16, color: Colors.blue[700]),
-        //           const SizedBox(width: 8),
-        //           Text(
-        //             'Informasi',
-        //             style: TextStyle(
-        //               fontWeight: FontWeight.bold,
-        //               color: Colors.blue[700],
-        //             ),
-        //           ),
-        //         ],
-        //       ),
-        //       const SizedBox(height: 8),
-        //       Text(
-        //         'Barang yang sudah dibeli tidak dapat ditukar kembali kecuali ada kerusakan dari pihak toko',
-        //         style: TextStyle(fontSize: 12, color: Colors.blue[600]),
-        //         textAlign: TextAlign.center,
-        //       ),
-        //     ],
-        //   ),
-        // ),
-
-        // const SizedBox(height: 16),
-
-        // Text(
-        //   'Powered by POS System Flutter',
-        //   style: TextStyle(fontSize: 10, color: Colors.grey[500]),
-        // ),
+        // Peringatan kembang api
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.orange[50],
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.orange[200]!),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.warning_amber_rounded,
+                    size: 20,
+                    color: Colors.orange[700],
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'PERINGATAN',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.orange[700],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Pengguna kembang api dimainkan mengikuti aturan penggunaan yang tertera di setiap produk. Setiap pembeli mengetahui dan mengerti aturan untuk menjual/memakai produk kembang api ini.',
+                style: TextStyle(fontSize: 12, color: Colors.orange[900]),
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
       ],
     );
   }
@@ -1078,9 +1078,12 @@ class _ReceiptPageState extends State<ReceiptPage> {
     buffer.writeln('        TERIMA KASIH');
     buffer.writeln('      Atas kunjungan Anda');
     buffer.writeln();
-    buffer.writeln('Barang yang sudah dibeli tidak dapat');
-    buffer.writeln('ditukar kembali kecuali ada kerusakan');
-    buffer.writeln('dari pihak toko');
+    buffer.writeln();
+    buffer.writeln('         PERINGATAN');
+    buffer.writeln('Pengguna kembang api dimainkan mengikuti');
+    buffer.writeln('aturan penggunaan yang tertera di setiap produk.');
+    buffer.writeln('Setiap pembeli mengetahui dan mengerti aturan');
+    buffer.writeln('untuk menjual/memakai produk kembang api ini.');
     buffer.writeln();
 
     return buffer.toString();

@@ -407,20 +407,20 @@ class ThermalPrinterService {
         ]);
 
         // Tampilkan tanggal jatuh tempo jika ada
-        if (dueDate != null) {
-          _printer!.row([
-            PosColumn(
-              text: 'Jatuh Tempo',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-            PosColumn(
-              text: ': ${_formatOutstandingDate(dueDate)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-          ]);
-        }
+        // if (dueDate != null) {
+        //   _printer!.row([
+        //     PosColumn(
+        //       text: 'Jatuh Tempo',
+        //       width: 6,
+        //       styles: const PosStyles(align: PosAlign.left),
+        //     ),
+        //     PosColumn(
+        //       text: ': ${_formatOutstandingDate(dueDate)}',
+        //       width: 6,
+        //       styles: const PosStyles(align: PosAlign.left),
+        //     ),
+        //   ]);
+        // }
       }
 
       _printer!.feed(1);
@@ -575,6 +575,29 @@ class ThermalPrinterService {
       );
       _printer!.text(
         'dari pihak toko',
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      _printer!.feed(2);
+
+      // Peringatan kembang api
+      _printer!.text(
+        'PERINGATAN',
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      );
+      _printer!.text(
+        'Pengguna kembang api dimainkan mengikuti',
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      _printer!.text(
+        'aturan penggunaan yang tertera di setiap produk.',
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      _printer!.text(
+        'Setiap pembeli mengetahui dan mengerti aturan',
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      _printer!.text(
+        'untuk menjual/memakai produk kembang api ini.',
         styles: const PosStyles(align: PosAlign.center),
       );
       _printer!.feed(2);
@@ -760,7 +783,7 @@ class ThermalPrinterService {
 
       // Item-item dengan format baru: nama item di baris pertama, qty@harga | subtotal di baris kedua
       for (final item in items) {
-        final itemName = item.product.name;
+        final itemName = '${item.product.code} ${item.product.name}';
 
         // Baris pertama: Nama item (font normal, tidak bold)
         bytes += generator.text(
@@ -878,18 +901,28 @@ class ThermalPrinterService {
         'Atas kunjungan Anda',
         styles: const PosStyles(align: PosAlign.center),
       );
-      bytes += generator.feed(1);
 
+      bytes += generator.feed(2);
+
+      // Peringatan kembang api
       bytes += generator.text(
-        'Barang yang sudah dibeli tidak dapat',
+        'PERINGATAN',
+        styles: const PosStyles(align: PosAlign.center, bold: true),
+      );
+      bytes += generator.text(
+        'Pengguna kembang api dimainkan mengikuti',
         styles: const PosStyles(align: PosAlign.center),
       );
       bytes += generator.text(
-        'ditukar kembali kecuali ada kerusakan',
+        'aturan penggunaan yang tertera di setiap produk.',
         styles: const PosStyles(align: PosAlign.center),
       );
       bytes += generator.text(
-        'dari pihak toko',
+        'Setiap pembeli mengetahui dan mengerti aturan',
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      bytes += generator.text(
+        'untuk menjual/memakai produk kembang api ini.',
         styles: const PosStyles(align: PosAlign.center),
       );
       bytes += generator.feed(2);

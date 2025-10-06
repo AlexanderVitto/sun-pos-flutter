@@ -208,7 +208,7 @@ class _POSTransactionView extends StatelessWidget {
                       (product, quantity) =>
                           _addToCart(product, quantity, context),
                   onProductTap:
-                      (product) => _navigateToProductDetail(product, context),
+                      (product) => _handleProductTap(product, context),
                 ),
       ),
       bottomNavigationBar:
@@ -289,14 +289,14 @@ class _POSTransactionView extends StatelessWidget {
     }
   }
 
-  void _navigateToProductDetail(Product product, BuildContext context) {
-    // Product ID is already int, no conversion needed
-    final productId = product.id;
+  void _handleProductTap(Product product, BuildContext context) async {
+    debugPrint('🔍 Product tapped: ${product.name}');
 
+    // Navigate to product detail page
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ProductDetailPage(productId: productId),
+        builder: (_) => ProductDetailPage(productId: product.id),
       ),
     );
   }

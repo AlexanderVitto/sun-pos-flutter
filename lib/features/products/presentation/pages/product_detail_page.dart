@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/product_detail_viewmodel.dart';
+import '../../data/services/product_api_service.dart';
+import '../../../sales/providers/cart_provider.dart';
 import '../widgets/product_detail_app_bar.dart';
 import '../widgets/product_info_card.dart';
 import '../widgets/variants_section.dart';
 import '../widgets/category_unit_info.dart';
-import '../widgets/quantity_controls.dart';
 import '../widgets/add_to_cart_section.dart';
 import '../widgets/product_detail_state_views.dart';
 import '../utils/product_detail_helpers.dart';
@@ -17,18 +18,38 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ProductDetailViewModel>(
-      builder: (context, viewModel, child) {
-        // Update product ID jika berbeda
-        if (viewModel.productId != productId) {
-          // Panggil update di frame berikutnya untuk menghindari setState during build
-          WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Create ProductDetailViewModel locally with ChangeNotifierProxyProvider
+    // This avoids the StackOverflowError caused by global provider
+    return ChangeNotifierProxyProvider<CartProvider, ProductDetailViewModel>(
+      create:
+          (_) => ProductDetailViewModel(
+            productId: productId,
+            apiService: ProductApiService(),
+          ),
+      update: (_, cartProvider, viewModel) {
+        // Reuse instance and update CartProvider reference
+        if (viewModel != null) {
+          viewModel.updateCartProvider(cartProvider);
+
+          // Update productId if different
+          if (viewModel.productId != productId) {
             viewModel.updateProductId(productId);
-          });
+          }
+
+          return viewModel;
         }
 
-        return _ProductDetailView(viewModel: viewModel, productId: productId);
+        // Fallback if viewModel is null
+        return ProductDetailViewModel(
+          productId: productId,
+          apiService: ProductApiService(),
+        )..updateCartProvider(cartProvider);
       },
+      child: Consumer<ProductDetailViewModel>(
+        builder: (context, viewModel, child) {
+          return _ProductDetailView(viewModel: viewModel, productId: productId);
+        },
+      ),
     );
   }
 }
@@ -71,7 +92,6 @@ class _ProductDetailView extends StatelessWidget {
           ProductInfoCard(productDetail: viewModel.productDetail!),
           VariantsSection(viewModel: viewModel),
           CategoryAndUnitInfo(productDetail: viewModel.productDetail!),
-          QuantityControls(viewModel: viewModel),
           AddToCartSection(
             viewModel: viewModel,
             onAddToCart: () => _handleAddToCart(context),

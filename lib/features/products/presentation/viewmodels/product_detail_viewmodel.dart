@@ -28,6 +28,10 @@ class ProductDetailViewModel extends ChangeNotifier {
   int _quantity = 1;
   late TextEditingController _quantityController;
 
+  // Multi-variant selection state
+  // Map of variant ID to quantity
+  final Map<int, int> _variantQuantities = {};
+
   // Getters
   ProductDetail? get productDetail => _productDetail;
   bool get isLoading => _isLoading;
@@ -48,6 +52,50 @@ class ProductDetailViewModel extends ChangeNotifier {
   int get maxStock => selectedVariant?.stock ?? 0;
   double get subtotal => (selectedVariant?.price ?? 0) * _quantity;
   bool get isAvailable => maxStock > 0;
+
+  // Multi-variant getters
+  Map<int, int> get variantQuantities => Map.unmodifiable(_variantQuantities);
+
+  /// Get quantity for specific variant
+  int getVariantQuantity(int variantId) => _variantQuantities[variantId] ?? 0;
+
+  /// Get total items across all variants
+  int get totalSelectedItems {
+    return _variantQuantities.values.fold(0, (sum, qty) => sum + qty);
+  }
+
+  /// Get total price across all selected variants
+  double get totalPrice {
+    if (_productDetail == null) return 0;
+
+    double total = 0;
+    _variantQuantities.forEach((variantId, quantity) {
+      final variant = _productDetail!.variants.firstWhere(
+        (v) => v.id == variantId,
+        orElse: () => _productDetail!.variants.first,
+      );
+      total += variant.price * quantity;
+    });
+    return total;
+  }
+
+  /// Get list of selected variants (quantity > 0)
+  List<Map<String, dynamic>> get selectedVariants {
+    if (_productDetail == null) return [];
+
+    return _variantQuantities.entries.where((entry) => entry.value > 0).map((
+      entry,
+    ) {
+      final variant = _productDetail!.variants.firstWhere(
+        (v) => v.id == entry.key,
+        orElse: () => _productDetail!.variants.first,
+      );
+      return {'variant': variant, 'quantity': entry.value};
+    }).toList();
+  }
+
+  /// Check if any variant is selected
+  bool get hasSelectedVariants => totalSelectedItems > 0;
 
   /// Get remaining stock considering current cart quantity
   int get remainingStock {
@@ -115,6 +163,9 @@ class ProductDetailViewModel extends ChangeNotifier {
 
         // Initialize quantity controller with existing cart quantity + 1 as default addition
         _initializeQuantityFromCart();
+
+        // Initialize variant quantities from cart
+        _initializeVariantQuantitiesFromCart();
       } else {
         _productDetail = null;
         _isLoading = false;
@@ -156,6 +207,84 @@ class ProductDetailViewModel extends ChangeNotifier {
     }
 
     _quantityController.text = _quantity.toString();
+  }
+
+  /// Initialize variant quantities from cart
+  void _initializeVariantQuantitiesFromCart() {
+    _variantQuantities.clear();
+
+    if (_productDetail == null || _cartProvider == null) return;
+
+    // Check cart for each variant
+    for (final variant in _productDetail!.variants) {
+      final productInCart = _cartProvider!.items.firstWhere(
+        (item) => item.product.productVariantId == variant.id,
+        orElse: () => _cartProvider!.items.first,
+      );
+
+      // If found in cart, set the quantity
+      if (productInCart.product.productVariantId == variant.id) {
+        _variantQuantities[variant.id] = productInCart.quantity;
+      }
+    }
+  }
+
+  /// Set quantity for a specific variant
+  void setVariantQuantity(int variantId, int quantity) {
+    if (quantity < 0) return;
+
+    // Get the variant to check stock
+    final variant = _productDetail?.variants.firstWhere(
+      (v) => v.id == variantId,
+      orElse: () => _productDetail!.variants.first,
+    );
+
+    if (variant == null) return;
+
+    // Get quantity already in cart for this variant
+    final cartItem = _cartProvider?.items.firstWhere(
+      (item) => item.product.productVariantId == variantId,
+      orElse: () => _cartProvider!.items.first,
+    );
+    final quantityInCart =
+        cartItem?.product.productVariantId == variantId
+            ? cartItem!.quantity
+            : 0;
+
+    // Calculate remaining stock
+    final remainingStock = variant.stock - quantityInCart;
+
+    // Validate quantity against remaining stock
+    int validQuantity = quantity;
+    if (validQuantity > remainingStock) {
+      validQuantity = remainingStock;
+    }
+
+    // Allow 0 to mark item for removal from cart
+    // Store the quantity (including 0) to track removal intent
+    _variantQuantities[variantId] = validQuantity;
+
+    notifyListeners();
+  }
+
+  /// Increase quantity for a specific variant
+  void increaseVariantQuantity(int variantId) {
+    final currentQty = getVariantQuantity(variantId);
+    setVariantQuantity(variantId, currentQty + 1);
+  }
+
+  /// Decrease quantity for a specific variant
+  void decreaseVariantQuantity(int variantId) {
+    final currentQty = getVariantQuantity(variantId);
+    if (currentQty > 0) {
+      setVariantQuantity(variantId, currentQty - 1);
+    }
+  }
+
+  /// Clear all variant quantities
+  void clearVariantQuantities() {
+    _variantQuantities.clear();
+    notifyListeners();
   }
 
   void selectVariant(int index) {
@@ -260,57 +389,109 @@ class ProductDetailViewModel extends ChangeNotifier {
   }
 
   /// Update cart with current quantity (add or update existing)
+  /// Now supports multi-variant selection
+  /// If quantity = 0, remove the item from cart
   Future<bool> updateCartQuantity({BuildContext? context}) async {
     try {
-      if (_productDetail == null ||
-          selectedVariant == null ||
-          _cartProvider == null) {
+      if (_productDetail == null || _cartProvider == null) {
         return false;
-      }
-
-      // If quantity is 0, remove from cart
-      if (_quantity == 0) {
-        return await removeFromCart(context: context);
       }
 
       print(
         '🛒 ProductDetailViewModel: Using CartProvider instance ${_cartProvider!.hashCode}',
       );
 
-      // Convert ProductDetail to Product model that CartProvider expects
-      final product = Product(
-        id: _productDetail!.id,
-        productVariantId: _productDetail!.variants.first.id,
-        name: _productDetail!.name,
-        code: _productDetail!.sku,
-        description: _productDetail!.description,
-        price: selectedVariant!.price.toDouble(),
-        stock: selectedVariant!.stock,
-        category: _productDetail!.category.name,
-        imagePath: _productDetail!.image,
-        createdAt: DateTime.parse(_productDetail!.createdAt),
-        updatedAt: DateTime.parse(_productDetail!.updatedAt),
-      );
+      // Track all variants that should be in cart (quantity > 0)
+      final variantsToUpdate = <int, int>{};
+      for (final entry in _variantQuantities.entries) {
+        if (entry.value > 0) {
+          variantsToUpdate[entry.key] = entry.value;
+        }
+      }
 
-      // Check if product already exists in cart
-      final existingItem = _cartProvider!.getItemByProductId(_productId);
+      // First, check for items to remove (quantity = 0)
+      final itemsToRemove = <int>[];
+      for (final entry in _variantQuantities.entries) {
+        final variantId = entry.key;
+        final quantity = entry.value;
 
-      if (existingItem != null) {
-        // Update existing item quantity
-        _cartProvider!.updateItemQuantity(existingItem.id, _quantity);
-        print('📝 ProductDetailViewModel: Updated cart quantity to $_quantity');
-      } else {
-        // Add new item to cart
-        _cartProvider!.addItem(product, quantity: _quantity);
-        print(
-          '➕ ProductDetailViewModel: Added new item to cart with quantity $_quantity',
+        if (quantity == 0) {
+          // Check if this variant exists in cart
+          final existingItem = _cartProvider!.items.firstWhere(
+            (item) => item.product.productVariantId == variantId,
+            orElse: () => _cartProvider!.items.first,
+          );
+
+          if (existingItem.product.productVariantId == variantId) {
+            // Mark for removal
+            itemsToRemove.add(existingItem.id);
+            print(
+              '🗑️ ProductDetailViewModel: Marking variant $variantId for removal (quantity = 0)',
+            );
+          }
+        }
+      }
+
+      // Remove items with quantity = 0
+      for (final itemId in itemsToRemove) {
+        _cartProvider!.removeItem(itemId);
+        print('🗑️ ProductDetailViewModel: Removed item $itemId from cart');
+      }
+
+      // Process each selected variant (quantity > 0)
+      for (final entry in variantsToUpdate.entries) {
+        final variantId = entry.key;
+        final quantity = entry.value;
+
+        // Find the variant
+        final variant = _productDetail!.variants.firstWhere(
+          (v) => v.id == variantId,
+          orElse: () => _productDetail!.variants.first,
         );
+
+        // Convert ProductDetail + Variant to Product model
+        final product = Product(
+          id: _productDetail!.id,
+          productVariantId: variant.id,
+          name: '${_productDetail!.name} - ${variant.name}',
+          code: variant.sku,
+          description: _productDetail!.description,
+          price: variant.price.toDouble(),
+          stock: variant.stock,
+          category: _productDetail!.category.name,
+          imagePath: variant.image ?? _productDetail!.image,
+          createdAt: DateTime.parse(_productDetail!.createdAt),
+          updatedAt: DateTime.parse(_productDetail!.updatedAt),
+        );
+
+        // Check if this variant already exists in cart
+        final existingItem = _cartProvider!.items.firstWhere(
+          (item) => item.product.productVariantId == variantId,
+          orElse: () => _cartProvider!.items.first,
+        );
+
+        if (existingItem.product.productVariantId == variantId) {
+          // Update existing item quantity
+          _cartProvider!.updateItemQuantity(existingItem.id, quantity);
+          print(
+            '📝 ProductDetailViewModel: Updated variant $variantId quantity to $quantity',
+          );
+        } else {
+          // Add new item to cart
+          _cartProvider!.addItem(product, quantity: quantity);
+          print(
+            '➕ ProductDetailViewModel: Added variant $variantId to cart with quantity $quantity',
+          );
+        }
       }
 
       // Update draft transaction on server after cart changes
       if (context != null) {
         await _updateDraftTransactionOnServer(context);
       }
+
+      // Clean up variant quantities - remove entries with 0 after successful update
+      _variantQuantities.removeWhere((key, value) => value == 0);
 
       // Reload product detail to refresh stock info and cart status
       await _reloadProductDetail();

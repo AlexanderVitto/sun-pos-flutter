@@ -7,12 +7,14 @@ class ProductCard extends StatefulWidget {
   final Product product;
   final Function(Product, int) onAddToCart; // Modified to include quantity
   final VoidCallback? onTap; // Add onTap parameter
+  final bool hasMultipleVariants; // Indicator for multiple variants
 
   const ProductCard({
     super.key,
     required this.product,
     required this.onAddToCart,
     this.onTap, // Add onTap parameter
+    this.hasMultipleVariants = false, // Default to false
   });
 
   @override
@@ -75,6 +77,50 @@ class _ProductCardState extends State<ProductCard> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Variant indicator badge (top-right)
+                if (widget.hasMultipleVariants)
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF8b5cf6),
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF8b5cf6,
+                            ).withValues(alpha: 0.3),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(
+                            Icons.style,
+                            size: 10,
+                            color: Colors.white,
+                          ),
+                          const SizedBox(width: 3),
+                          const Text(
+                            'Variants',
+                            style: TextStyle(
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
                 // Product Name with Dashboard Typography
                 Text(
                   widget.product.name,
@@ -88,8 +134,17 @@ class _ProductCardState extends State<ProductCard> {
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 3),
+                Text(
+                  widget.product.code,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF6b7280),
+                    letterSpacing: 0.1,
+                  ),
+                ),
                 const SizedBox(height: 8),
-
                 // Category Badge with Dashboard Style
                 Container(
                   padding: const EdgeInsets.symmetric(

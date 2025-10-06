@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:provider/provider.dart';
 import '../../data/models/product_detail_response.dart';
 import '../../../../core/utils/currency_formatter.dart';
 import '../viewmodels/product_detail_viewmodel.dart';
+import '../../../sales/providers/cart_provider.dart';
 
 class VariantsSection extends StatelessWidget {
   final ProductDetailViewModel viewModel;
@@ -35,11 +38,15 @@ class VariantsSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Section Header with Dashboard Style
-          const Row(
+          Row(
             children: [
-              Icon(LucideIcons.layers, size: 24, color: Color(0xFF6366f1)),
-              SizedBox(width: 12),
-              Text(
+              const Icon(
+                LucideIcons.layers,
+                size: 24,
+                color: Color(0xFF6366f1),
+              ),
+              const SizedBox(width: 12),
+              const Text(
                 'Varian Produk',
                 style: TextStyle(
                   fontSize: 20,
@@ -48,284 +55,333 @@ class VariantsSection extends StatelessWidget {
                   letterSpacing: -0.3,
                 ),
               ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0x1a6366f1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '${productDetail.variants.length}',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF6366f1),
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
 
-          // Variant Selector with Dashboard Chips
-          if (productDetail.variants.length > 1)
-            SizedBox(
-              height: 50,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                itemCount: productDetail.variants.length,
-                itemBuilder: (_, index) {
-                  final variant = productDetail.variants[index];
-                  final isSelected = index == viewModel.selectedVariantIndex;
-
-                  return Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: FilterChip(
-                      label: Text(variant.name),
-                      selected: isSelected,
-                      onSelected: (_) => viewModel.selectVariant(index),
-                      backgroundColor: Colors.white,
-                      selectedColor: const Color(0x1a6366f1),
-                      checkmarkColor: const Color(0xFF6366f1),
-                      labelStyle: TextStyle(
-                        color:
-                            isSelected
-                                ? const Color(0xFF6366f1)
-                                : const Color(0xFF6b7280),
-                        fontWeight:
-                            isSelected ? FontWeight.w600 : FontWeight.normal,
-                      ),
-                      side: BorderSide(
-                        color:
-                            isSelected
-                                ? const Color(0xFF6366f1)
-                                : const Color(0x1a6b7280),
-                      ),
-                    ),
-                  );
-                },
-              ),
-            ),
-
-          const SizedBox(height: 24),
-
-          // Selected Variant Details with Dashboard Card
-          _VariantDetails(variant: viewModel.selectedVariant!),
+          // Variant List
+          ...productDetail.variants.map((variant) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _VariantCard(variant: variant, viewModel: viewModel),
+            );
+          }).toList(),
         ],
       ),
     );
   }
 }
 
-class _VariantDetails extends StatelessWidget {
+class _VariantCard extends StatelessWidget {
   final ProductVariant variant;
+  final ProductDetailViewModel viewModel;
 
-  const _VariantDetails({required this.variant});
+  const _VariantCard({required this.variant, required this.viewModel});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0x1a6b7280)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Variant Name and SKU with Dashboard Style
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      variant.name,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF1f2937),
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'SKU: ${variant.sku}',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: Color(0xFF6b7280),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 6,
-                ),
-                decoration: BoxDecoration(
-                  color:
-                      variant.stock > 10
-                          ? const Color(0x1a10b981)
-                          : const Color(0x1aef4444),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color:
-                        variant.stock > 10
-                            ? const Color(0x3a10b981)
-                            : const Color(0x3aef4444),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      variant.stock > 10
-                          ? LucideIcons.check
-                          : LucideIcons.alertTriangle,
-                      size: 14,
-                      color:
-                          variant.stock > 10
-                              ? const Color(0xFF10b981)
-                              : const Color(0xFFef4444),
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      variant.stock > 10 ? 'Tersedia' : 'Stok Rendah',
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            variant.stock > 10
-                                ? const Color(0xFF10b981)
-                                : const Color(0xFFef4444),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
+    return Consumer<CartProvider>(
+      builder: (context, cartProvider, child) {
+        // Get quantity for this variant
+        final quantity = viewModel.getVariantQuantity(variant.id);
 
-          // Price and Stock in Dashboard Cards
-          Row(
-            children: [
-              Expanded(
-                child: _buildVariantInfoCard(
-                  'Harga Jual',
-                  CurrencyFormatter.formatIDR(variant.price),
-                  LucideIcons.dollarSign,
-                  const Color(0xFF10b981),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildVariantInfoCard(
-                  'Stok',
-                  '${variant.stock} unit',
-                  LucideIcons.package,
-                  variant.stock > 10
-                      ? const Color(0xFF10b981)
-                      : const Color(0xFFef4444),
-                ),
-              ),
-            ],
-          ),
+        // Get quantity already in cart for this variant
+        final cartItem = cartProvider.items.firstWhere(
+          (item) => item.product.productVariantId == variant.id,
+          orElse: () => cartProvider.items.first,
+        );
+        final quantityInCart =
+            cartItem.product.productVariantId == variant.id
+                ? cartItem.quantity
+                : 0;
 
-          // Attributes with Dashboard Style
-          if (variant.attributes.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0x1a6b7280)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+        // Calculate remaining stock
+        final remainingStock = variant.stock - quantityInCart;
+        final isOutOfStock = remainingStock <= 0;
+        final isLowStock = remainingStock > 0 && remainingStock <= 10;
+
+        return Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color:
+                  quantity > 0
+                      ? const Color(0xFF6366f1)
+                      : const Color(0x1a6b7280),
+              width: quantity > 0 ? 2 : 1,
+            ),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Variant Header
+              Row(
                 children: [
-                  const Row(
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          variant.name,
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1f2937),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          CurrencyFormatter.formatIDR(variant.price),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF10b981),
+                            letterSpacing: -0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Stock Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color:
+                          isOutOfStock
+                              ? const Color(0x1aef4444)
+                              : isLowStock
+                              ? const Color(0x1af59e0b)
+                              : const Color(0x1a10b981),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color:
+                            isOutOfStock
+                                ? const Color(0x3aef4444)
+                                : isLowStock
+                                ? const Color(0x3af59e0b)
+                                : const Color(0x3a10b981),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          isOutOfStock
+                              ? LucideIcons.xCircle
+                              : isLowStock
+                              ? LucideIcons.alertTriangle
+                              : LucideIcons.check,
+                          size: 14,
+                          color:
+                              isOutOfStock
+                                  ? const Color(0xFFef4444)
+                                  : isLowStock
+                                  ? const Color(0xFFf59e0b)
+                                  : const Color(0xFF10b981),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Stok: $remainingStock',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color:
+                                isOutOfStock
+                                    ? const Color(0xFFef4444)
+                                    : isLowStock
+                                    ? const Color(0xFFf59e0b)
+                                    : const Color(0xFF10b981),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+
+              // SKU and Attributes
+              const SizedBox(height: 12),
+              Text(
+                'SKU: ${variant.sku}',
+                style: const TextStyle(fontSize: 12, color: Color(0xFF6b7280)),
+              ),
+
+              if (variant.attributes.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children:
+                      variant.attributes.entries.map((entry) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0x1a6b7280)),
+                          ),
+                          child: Text(
+                            '${entry.key}: ${entry.value}',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Color(0xFF6b7280),
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                ),
+              ],
+
+              // Cart Info
+              if (quantityInCart > 0) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0x0a6366f1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0x1a6366f1)),
+                  ),
+                  child: Row(
                     children: [
-                      Icon(
-                        LucideIcons.list,
-                        size: 16,
+                      const Icon(
+                        LucideIcons.shoppingCart,
+                        size: 14,
                         color: Color(0xFF6366f1),
                       ),
-                      SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Text(
-                        'Atribut',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: Color(0xFF1f2937),
+                        'Di keranjang: $quantityInCart item',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF6366f1),
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
-                  ...variant.attributes.entries
-                      .map(
-                        (entry) => Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
+                ),
+              ],
+
+              // Quantity Controls
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  const Text(
+                    'Jumlah:',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF1f2937),
+                    ),
+                  ),
+                  const Spacer(),
+                  // Quantity Controls
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: const Color(0xFF6366f1)),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Row(
+                      children: [
+                        // Decrease Button
+                        _buildQuantityButton(
+                          icon: LucideIcons.minus,
+                          onPressed:
+                              quantity > 0 && !isOutOfStock
+                                  ? () => viewModel.decreaseVariantQuantity(
+                                    variant.id,
+                                  )
+                                  : null,
+                        ),
+                        // Quantity Display
+                        Container(
+                          width: 60,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          decoration: const BoxDecoration(color: Colors.white),
                           child: Text(
-                            '${entry.key}: ${entry.value}',
+                            '$quantity',
                             style: const TextStyle(
-                              fontSize: 13,
-                              color: Color(0xFF6b7280),
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1f2937),
                             ),
+                            textAlign: TextAlign.center,
                           ),
                         ),
-                      )
-                      .toList(),
-                ],
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVariantInfoCard(
-    String label,
-    String value,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: color.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(icon, size: 16, color: color),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: color.withOpacity(0.8),
+                        // Increase Button
+                        _buildQuantityButton(
+                          icon: LucideIcons.plus,
+                          onPressed:
+                              !isOutOfStock && quantity < remainingStock
+                                  ? () => viewModel.increaseVariantQuantity(
+                                    variant.id,
+                                  )
+                                  : null,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-              letterSpacing: -0.2,
-            ),
-          ),
-        ],
+        );
+      },
+    );
+  }
+
+  Widget _buildQuantityButton({
+    required IconData icon,
+    required VoidCallback? onPressed,
+  }) {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: BoxDecoration(
+        color:
+            onPressed != null
+                ? const Color(0xFF6366f1)
+                : const Color(0xFFe5e7eb),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: IconButton(
+        onPressed: onPressed,
+        icon: Icon(
+          icon,
+          size: 18,
+          color: onPressed != null ? Colors.white : const Color(0xFF9ca3af),
+        ),
+        padding: EdgeInsets.zero,
       ),
     );
   }
