@@ -13,6 +13,7 @@ import 'features/sales/providers/transaction_provider.dart';
 import 'features/sales/providers/pending_transaction_provider.dart';
 import 'features/sales/presentation/view_models/pos_transaction_view_model.dart';
 import 'features/transactions/providers/transaction_list_provider.dart';
+import 'features/refunds/providers/refund_list_provider.dart';
 import 'features/customers/providers/customer_provider.dart';
 import 'features/cash_flows/providers/cash_flow_provider.dart';
 import 'features/reports/providers/reports_provider.dart';
@@ -105,6 +106,7 @@ class MyApp extends StatelessWidget {
           },
         ),
         ChangeNotifierProvider(create: (_) => TransactionListProvider()),
+        ChangeNotifierProvider(create: (_) => RefundListProvider()),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => CashFlowProvider()),
         ChangeNotifierProvider(create: (_) => ReportsProvider()),
