@@ -247,24 +247,26 @@ class RefundTransaction {
   final String transactionNumber;
   final String date;
   final double totalAmount;
-  final double cashAmount;
-  final double transferAmount;
+  final double totalPaid;
   final double changeAmount;
-  final String paymentMethod;
+  final double outstandingAmount;
   final String status;
   final String? notes;
+  final String transactionDate;
+  final String? outstandingReminderDate;
 
   RefundTransaction({
     required this.id,
     required this.transactionNumber,
     required this.date,
     required this.totalAmount,
-    required this.cashAmount,
-    required this.transferAmount,
+    required this.totalPaid,
     required this.changeAmount,
-    required this.paymentMethod,
+    required this.outstandingAmount,
     required this.status,
     this.notes,
+    required this.transactionDate,
+    this.outstandingReminderDate,
   });
 
   factory RefundTransaction.fromJson(Map<String, dynamic> json) {
@@ -273,12 +275,13 @@ class RefundTransaction {
       transactionNumber: json['transaction_number'] as String,
       date: json['date'] as String,
       totalAmount: (json['total_amount'] as num).toDouble(),
-      cashAmount: (json['cash_amount'] as num).toDouble(),
-      transferAmount: (json['transfer_amount'] as num).toDouble(),
+      totalPaid: (json['total_paid'] as num).toDouble(),
       changeAmount: (json['change_amount'] as num).toDouble(),
-      paymentMethod: json['payment_method'] as String,
+      outstandingAmount: (json['outstanding_amount'] as num).toDouble(),
       status: json['status'] as String,
       notes: json['notes'] as String?,
+      transactionDate: json['transaction_date'] as String,
+      outstandingReminderDate: json['outstanding_reminder_date'] as String?,
     );
   }
 
@@ -288,12 +291,13 @@ class RefundTransaction {
       'transaction_number': transactionNumber,
       'date': date,
       'total_amount': totalAmount,
-      'cash_amount': cashAmount,
-      'transfer_amount': transferAmount,
+      'total_paid': totalPaid,
       'change_amount': changeAmount,
-      'payment_method': paymentMethod,
+      'outstanding_amount': outstandingAmount,
       'status': status,
       'notes': notes,
+      'transaction_date': transactionDate,
+      'outstanding_reminder_date': outstandingReminderDate,
     };
   }
 }

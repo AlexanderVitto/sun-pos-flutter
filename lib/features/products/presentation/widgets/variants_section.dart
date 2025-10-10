@@ -115,7 +115,7 @@ class _VariantCard extends StatelessWidget {
                 : 0;
 
         // Calculate remaining stock
-        final remainingStock = variant.stock - quantityInCart;
+        final remainingStock = variant.stock;
         final isOutOfStock = remainingStock <= 0;
         final isLowStock = remainingStock > 0 && remainingStock <= 10;
 

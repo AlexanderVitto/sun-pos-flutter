@@ -3,6 +3,7 @@ import 'package:http/http.dart' as http;
 import '../../../../core/services/secure_storage_service.dart';
 import '../models/create_transaction_request.dart';
 import '../models/create_transaction_response.dart';
+import '../models/transaction_list_response.dart';
 
 class TransactionApiService {
   static const String baseUrl = 'https://sfxsys.com/api/v1';
@@ -95,8 +96,8 @@ class TransactionApiService {
     }
   }
 
-  /// Get transaction by ID (bonus method)
-  Future<Map<String, dynamic>> getTransaction(int transactionId) async {
+  /// Get transaction by ID - returns full transaction detail
+  Future<CreateTransactionResponse> getTransaction(int transactionId) async {
     try {
       final token = await _secureStorage.getAccessToken();
 
@@ -107,6 +108,7 @@ class TransactionApiService {
       final url = Uri.parse('$baseUrl/transactions/$transactionId');
 
       final headers = {
+        'Content-Type': 'application/json',
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       };
@@ -114,7 +116,8 @@ class TransactionApiService {
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final responseData = jsonDecode(response.body);
+        return CreateTransactionResponse.fromJson(responseData);
       } else if (response.statusCode == 401) {
         throw Exception('401: Unauthorized access');
       } else if (response.statusCode == 404) {
@@ -132,7 +135,7 @@ class TransactionApiService {
   }
 
   /// Get transactions list with pagination and advanced filters
-  Future<Map<String, dynamic>> getTransactions({
+  Future<TransactionListResponse> getTransactions({
     int page = 1,
     int perPage = 10,
     String? search,
@@ -205,7 +208,8 @@ class TransactionApiService {
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
-        return jsonDecode(response.body);
+        final responseData = jsonDecode(response.body);
+        return TransactionListResponse.fromJson(responseData);
       } else if (response.statusCode == 401) {
         throw Exception('401: Unauthorized access');
       } else {

@@ -1,6 +1,7 @@
 import '../data/models/create_transaction_request.dart';
 import '../data/models/create_transaction_response.dart';
 import '../data/models/transaction_detail.dart';
+import '../data/models/payment_history.dart';
 import '../data/services/transaction_api_service.dart';
 
 /// Helper class untuk mempermudah penggunaan fungsi transaksi
@@ -55,10 +56,18 @@ class TransactionHelper {
           );
         }).toList();
 
+    // Create payment history
+    final payments = [
+      PaymentHistory(
+        paymentMethod: paymentMethod,
+        amount: paidAmount,
+        paymentDate: DateTime.now().toIso8601String(),
+      ),
+    ];
+
     final request = CreateTransactionRequest(
       storeId: storeId,
-      paymentMethod: paymentMethod,
-      paidAmount: paidAmount,
+      payments: payments,
       notes: notes,
       transactionDate:
           transactionDate ?? DateTime.now().toIso8601String().split('T')[0],
@@ -81,10 +90,18 @@ class TransactionHelper {
     String? customerName,
     String? customerPhone,
   }) async {
+    // Create payment history
+    final payments = [
+      PaymentHistory(
+        paymentMethod: paymentMethod,
+        amount: paidAmount,
+        paymentDate: DateTime.now().toIso8601String(),
+      ),
+    ];
+
     final request = CreateTransactionRequest(
       storeId: storeId,
-      paymentMethod: paymentMethod,
-      paidAmount: paidAmount,
+      payments: payments,
       notes: notes,
       transactionDate:
           transactionDate ?? DateTime.now().toIso8601String().split('T')[0],
@@ -168,19 +185,26 @@ class TransactionHelper {
     final detailsError = validateTransactionDetails(request.details ?? []);
     if (detailsError != null) return detailsError;
 
-    // Validate paid amount
-    if ((request.paidAmount ?? 0) <= 0) {
-      return 'Paid amount must be greater than 0';
+    // Validate payments
+    if (request.payments == null || request.payments!.isEmpty) {
+      return 'At least one payment method is required';
     }
 
-    if (!validatePaidAmount(request.paidAmount ?? 0, request.details ?? [])) {
-      return 'Paid amount is insufficient';
+    final totalPaidAmount = request.totalPaidAmount;
+    if (totalPaidAmount <= 0) {
+      return 'Total paid amount must be greater than 0';
     }
 
-    // Validate payment method
+    if (!validatePaidAmount(totalPaidAmount, request.details ?? [])) {
+      return 'Total paid amount is insufficient';
+    }
+
+    // Validate payment methods
     final validPaymentMethods = ['cash', 'card', 'transfer', 'e_wallet'];
-    if (!validPaymentMethods.contains(request.paymentMethod)) {
-      return 'Invalid payment method. Must be one of: ${validPaymentMethods.join(', ')}';
+    for (final payment in request.payments!) {
+      if (!validPaymentMethods.contains(payment.paymentMethod)) {
+        return 'Invalid payment method: ${payment.paymentMethod}. Must be one of: ${validPaymentMethods.join(', ')}';
+      }
     }
 
     return null; // No errors
@@ -206,7 +230,7 @@ class TransactionHelper {
         notes: 'Pembelian minuman dan snack',
       );
 
-      if (result1.success) {
+      if (result1.status == 'success') {
         print('Transaction created successfully!');
         print('Transaction Number: ${result1.data?.transactionNumber}');
       } else {
@@ -223,7 +247,9 @@ class TransactionHelper {
         notes: 'Pembelian cepat',
       );
 
-      print('Cash transaction result: ${result2.success}');
+      print(
+        'Cash transaction result: ${result2.status == 'success' ? 'Success' : 'Failed'}',
+      );
     } catch (e) {
       print('Error creating transaction: $e');
     }

@@ -62,13 +62,14 @@ class TransactionListItem {
   final String transactionNumber;
   final String date;
   final double totalAmount;
-  final double paidAmount;
+  final double totalPaid;
   final double changeAmount;
-  final String paymentMethod;
+  final double outstandingAmount;
+  final bool? isFullyPaid;
   final String status;
   final String? notes;
-  final DateTime? outstandingReminderDate;
   final DateTime transactionDate;
+  final DateTime? outstandingReminderDate;
   final User user;
   final Store store;
   final Customer? customer;
@@ -81,13 +82,14 @@ class TransactionListItem {
     required this.transactionNumber,
     required this.date,
     required this.totalAmount,
-    required this.paidAmount,
+    required this.totalPaid,
     required this.changeAmount,
-    required this.paymentMethod,
+    required this.outstandingAmount,
+    this.isFullyPaid,
     required this.status,
     this.notes,
-    this.outstandingReminderDate,
     required this.transactionDate,
+    this.outstandingReminderDate,
     required this.user,
     required this.store,
     this.customer,
@@ -102,18 +104,19 @@ class TransactionListItem {
       transactionNumber: json['transaction_number'] ?? '',
       date: json['date'] ?? '',
       totalAmount: (json['total_amount'] ?? 0).toDouble(),
-      paidAmount: (json['paid_amount'] ?? 0).toDouble(),
+      totalPaid: (json['total_paid'] ?? 0).toDouble(),
       changeAmount: (json['change_amount'] ?? 0).toDouble(),
-      paymentMethod: json['payment_method'] ?? '',
+      outstandingAmount: (json['outstanding_amount'] ?? 0).toDouble(),
+      isFullyPaid: json['is_fully_paid'],
       status: json['status'] ?? '',
       notes: json['notes'],
+      transactionDate: DateTime.parse(
+        json['transaction_date'] ?? DateTime.now().toIso8601String(),
+      ),
       outstandingReminderDate:
           json['outstanding_reminder_date'] != null
               ? DateTime.parse(json['outstanding_reminder_date'])
               : null,
-      transactionDate: DateTime.parse(
-        json['transaction_date'] ?? DateTime.now().toIso8601String(),
-      ),
       user: User.fromJson(json['user'] ?? {}),
       store: Store.fromJson(json['store'] ?? {}),
       customer:
@@ -134,13 +137,14 @@ class TransactionListItem {
       'transaction_number': transactionNumber,
       'date': date,
       'total_amount': totalAmount,
-      'paid_amount': paidAmount,
+      'total_paid': totalPaid,
       'change_amount': changeAmount,
-      'payment_method': paymentMethod,
+      'outstanding_amount': outstandingAmount,
+      'is_fully_paid': isFullyPaid,
       'status': status,
       'notes': notes,
-      'outstanding_reminder_date': outstandingReminderDate?.toIso8601String(),
       'transaction_date': transactionDate.toIso8601String(),
+      'outstanding_reminder_date': outstandingReminderDate?.toIso8601String(),
       'user': user.toJson(),
       'store': store.toJson(),
       'customer': customer?.toJson(),
@@ -152,7 +156,7 @@ class TransactionListItem {
 
   @override
   String toString() {
-    return 'TransactionListItem(id: $id, transactionNumber: $transactionNumber, totalAmount: $totalAmount, status: $status, outstandingReminderDate: $outstandingReminderDate)';
+    return 'TransactionListItem(id: $id, transactionNumber: $transactionNumber, totalAmount: $totalAmount, totalPaid: $totalPaid, status: $status)';
   }
 }
 

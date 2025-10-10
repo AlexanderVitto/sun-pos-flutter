@@ -320,6 +320,26 @@ class CartProvider extends ChangeNotifier {
     return item?.quantity ?? 0;
   }
 
+  // Get quantity of product variant in cart by productVariantId
+  int getProductVariantQuantity(int? productVariantId) {
+    if (productVariantId == null) return 0;
+
+    try {
+      final item = _items.firstWhere(
+        (item) => item.product.productVariantId == productVariantId,
+      );
+      return item.quantity;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  // Get remaining stock for a product variant (actual stock - quantity in cart)
+  int getRemainingStock(int actualStock, int? productVariantId) {
+    final quantityInCart = getProductVariantQuantity(productVariantId);
+    return actualStock - quantityInCart;
+  }
+
   // Process checkout
   Future<Sale?> checkout(PaymentMethod paymentMethod) async {
     if (_items.isEmpty) {

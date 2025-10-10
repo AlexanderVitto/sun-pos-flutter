@@ -34,16 +34,28 @@ class _RefundDetailPageState extends State<RefundDetailPage> {
         _errorMessage = null;
       });
 
+      debugPrint('🔍 Loading refund detail for ID: ${widget.refundId}');
+
       final response = await _apiService.getRefundById(widget.refundId);
+
+      debugPrint('📦 Refund detail API response: $response');
+
       final refundDetailResponse = RefundDetailResponse.fromJson(response);
 
       setState(() {
         _refundDetail = refundDetailResponse.data;
         _isLoading = false;
       });
-    } catch (e) {
+
+      debugPrint(
+        '✅ Refund detail loaded successfully: ${_refundDetail?.refundNumber}',
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error loading refund detail: $e');
+      debugPrint('Stack trace: $stackTrace');
+
       setState(() {
-        _errorMessage = e.toString();
+        _errorMessage = e.toString().replaceAll('Exception: ', '');
         _isLoading = false;
       });
     }

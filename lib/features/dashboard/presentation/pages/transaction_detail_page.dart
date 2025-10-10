@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../transactions/data/models/transaction_list_response.dart';
+import '../../../transactions/data/models/create_transaction_response.dart';
 import '../../../transactions/data/services/transaction_api_service.dart';
 import '../../../sales/presentation/pages/payment_confirmation_page.dart';
 import '../../../customers/data/models/customer.dart';
@@ -13,6 +14,8 @@ import '../../../sales/presentation/pages/receipt_page.dart';
 import '../../../../shared/widgets/payment_method_widgets.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../sales/providers/transaction_provider.dart';
+import '../../../transactions/data/models/payment_history.dart';
+import '../../../refunds/presentation/pages/create_refund_page.dart';
 
 class TransactionItemDetail {
   final int id;
@@ -59,7 +62,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   final TransactionApiService _apiService = TransactionApiService();
   List<TransactionItemDetail>? _transactionItems;
   TransactionListItem? _detailedTransaction;
+  TransactionData? _transactionData; // Add this for refund
   List<CartItem>? _cartItems;
+  List<PaymentHistory>? _paymentHistories;
   bool _isLoadingItems = true;
   String? _errorMessage;
 
@@ -99,77 +104,68 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       // Parse transaction items from API response
       List<TransactionItemDetail> items = [];
 
-      // Check if response has transaction items/details
-      if (response['data'] != null) {
-        final transactionData = response['data'];
+      // Check if response has transaction data
+      if (response.data != null) {
+        final transactionData = response.data!;
 
-        _detailedTransaction = TransactionListItem.fromJson(transactionData);
+        // Store full transaction data for refund
+        _transactionData = transactionData;
 
-        // Parse items from different possible API structures
-        List<dynamic>? itemsData;
+        // Store detailed transaction for later use (convert to list item format)
+        _detailedTransaction = TransactionListItem(
+          id: transactionData.id,
+          transactionNumber: transactionData.transactionNumber,
+          date: transactionData.date,
+          totalAmount: transactionData.totalAmount,
+          totalPaid: transactionData.totalPaid,
+          changeAmount: transactionData.changeAmount,
+          outstandingAmount: transactionData.outstandingAmount,
+          isFullyPaid: transactionData.isFullyPaid,
+          status: transactionData.status,
+          notes: transactionData.notes,
+          transactionDate: transactionData.transactionDate,
+          outstandingReminderDate: transactionData.outstandingReminderDate,
+          user: transactionData.user,
+          store: transactionData.store,
+          customer: transactionData.customer,
+          detailsCount: transactionData.details.length,
+          createdAt: transactionData.createdAt,
+          updatedAt: transactionData.updatedAt,
+        );
 
-        // Try different possible field names for items
-        if (transactionData['items'] != null) {
-          itemsData = transactionData['items'] as List<dynamic>;
-        } else if (transactionData['transaction_items'] != null) {
-          itemsData = transactionData['transaction_items'] as List<dynamic>;
-        } else if (transactionData['details'] != null) {
-          itemsData = transactionData['details'] as List<dynamic>;
-        } else if (transactionData['products'] != null) {
-          itemsData = transactionData['products'] as List<dynamic>;
-        }
-
-        if (itemsData != null && itemsData.isNotEmpty) {
+        // Parse items from details array (now properly typed)
+        if (transactionData.details.isNotEmpty) {
           items =
-              itemsData.map((item) {
-                final unitPrice =
-                    (item['unit_price']?.toDouble() ??
-                            item['price']?.toDouble() ??
-                            item['price_per_unit']?.toDouble() ??
-                            0)
-                        .toDouble();
-                final quantity =
-                    item['quantity']?.toInt() ?? item['qty']?.toInt() ?? 1;
-                final subtotal =
-                    (item['subtotal']?.toDouble() ??
-                            item['total']?.toDouble() ??
-                            item['total_price']?.toDouble() ??
-                            (unitPrice * quantity))
-                        .toDouble();
-
+              transactionData.details.map((detail) {
                 return TransactionItemDetail(
-                  id:
-                      item['id']?.toInt() ??
-                      DateTime.now().millisecondsSinceEpoch,
-                  productId: item['product_id']?.toInt() ?? 0,
-                  productVariantId: item['product_variant_id']?.toInt(),
-                  productName:
-                      item['product_name']?.toString() ??
-                      item['name']?.toString() ??
-                      item['product']?.toString() ??
-                      'Unknown Product',
-                  variant:
-                      item['variant']?.toString() ??
-                      item['variation']?.toString() ??
-                      item['size']?.toString() ??
-                      '',
-                  quantity: quantity,
-                  unitPrice: unitPrice,
-                  subtotal: subtotal,
-                  totalAmount:
-                      subtotal, // totalAmount same as subtotal for individual items
-                  product: item['product'] as Map<String, dynamic>?,
+                  id: detail.id,
+                  productId: detail.productId ?? 0,
+                  productVariantId: detail.productVariantId,
+                  productName: detail.productName,
+                  variant: detail.productVariant?.name ?? '',
+                  quantity: detail.quantity,
+                  unitPrice: detail.unitPrice,
+                  subtotal: detail.totalAmount,
+                  totalAmount: detail.totalAmount,
+                  product: null, // Not available in typed model
                   productVariant:
-                      item['product_variant'] as Map<String, dynamic>?,
-                  createdAt:
-                      DateTime.tryParse(item['created_at']?.toString() ?? '') ??
-                      DateTime.now(),
-                  updatedAt:
-                      DateTime.tryParse(item['updated_at']?.toString() ?? '') ??
-                      DateTime.now(),
+                      detail.productVariant != null
+                          ? {
+                            'id': detail.productVariant!.id,
+                            'name': detail.productVariant!.name,
+                            'sku': detail.productVariant!.sku,
+                            'price': detail.productVariant!.price,
+                            'stock': detail.productVariant!.stock,
+                          }
+                          : null,
+                  createdAt: detail.createdAt,
+                  updatedAt: detail.updatedAt,
                 );
               }).toList();
         }
+
+        // Store payment histories for later use
+        _paymentHistories = transactionData.paymentHistories;
 
         _cartItems =
             items.map((item) {
@@ -224,6 +220,11 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             const SizedBox(height: 24),
             _buildTransactionItems(),
             const SizedBox(height: 24),
+            // Payment History Section (for outstanding, completed, and refund)
+            if (_shouldShowPaymentHistory()) ...[
+              _buildPaymentHistorySection(),
+              const SizedBox(height: 24),
+            ],
             _buildActionButtons(context),
           ],
         ),
@@ -440,11 +441,13 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           // Conditional payment method display for outstanding transactions
           if (transaction.status.toLowerCase() == 'outstanding')
             _buildDetailRow('Status Pembayaran', 'Hutang')
-          else
+          else if (_paymentHistories != null && _paymentHistories!.isNotEmpty)
             _buildPaymentMethodRow(
               'Metode Pembayaran',
-              transaction.paymentMethod,
-            ),
+              _paymentHistories!.first.paymentMethod,
+            )
+          else
+            _buildDetailRow('Metode Pembayaran', 'Belum tersedia'),
           // Add due date for outstanding transactions
           if (transaction.status.toLowerCase() == 'outstanding' &&
               transaction.outstandingReminderDate != null)
@@ -752,6 +755,321 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     );
   }
 
+  bool _shouldShowPaymentHistory() {
+    final status = transaction.status.toLowerCase();
+    return (status == 'outstanding' ||
+            status == 'completed' ||
+            status == 'refund') &&
+        _paymentHistories != null &&
+        _paymentHistories!.isNotEmpty;
+  }
+
+  Widget _buildPaymentHistorySection() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10b981).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(
+                  LucideIcons.history,
+                  color: Color(0xFF10b981),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Histori Pembayaran',
+                style: TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          ..._paymentHistories!.asMap().entries.map((entry) {
+            final index = entry.key;
+            final payment = entry.value;
+            final isLast = index == _paymentHistories!.length - 1;
+            return _buildPaymentHistoryItem(payment, isLast);
+          }),
+          const SizedBox(height: 16),
+          const Divider(color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 16),
+          _buildPaymentSummary(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentHistoryItem(PaymentHistory payment, bool isLast) {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    final paymentDateTime = DateTime.tryParse(payment.paymentDate);
+    final formattedDate =
+        paymentDateTime != null
+            ? DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(paymentDateTime)
+            : payment.paymentDate;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        border:
+            isLast
+                ? null
+                : Border(
+                  bottom: BorderSide(
+                    color: const Color(0xFFE5E7EB).withValues(alpha: 0.5),
+                    width: 1,
+                  ),
+                ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Payment Icon
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF10b981).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              _getPaymentMethodIcon(payment.paymentMethod),
+              color: const Color(0xFF10b981),
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // Payment Details
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: PaymentMethodDisplay(
+                        paymentMethod: payment.paymentMethod,
+                        fontSize: 16,
+                        iconSize: 18,
+                        color: const Color(0xFF1F2937),
+                      ),
+                    ),
+                    Text(
+                      currencyFormat.format(payment.amount),
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Color(0xFF10b981),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  formattedDate,
+                  style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                ),
+                if (payment.notes != null &&
+                    payment.notes!.trim().isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF3F4F6),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      payment.notes!,
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF6B7280),
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentSummary() {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    // Calculate total paid from payment histories
+    final totalPaid = _paymentHistories!.fold<double>(
+      0,
+      (sum, payment) => sum + payment.amount,
+    );
+
+    final outstanding = transaction.totalAmount - totalPaid;
+    final isFullyPaid = outstanding <= 0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
+      ),
+      child: Column(
+        children: [
+          // Total Amount
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Transaksi',
+                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+              ),
+              Text(
+                currencyFormat.format(transaction.totalAmount),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Total Paid
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Total Dibayar',
+                style: TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+              ),
+              Text(
+                currencyFormat.format(totalPaid),
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF10b981),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const Divider(color: Color(0xFFE5E7EB)),
+          const SizedBox(height: 12),
+          // Outstanding or Fully Paid
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                isFullyPaid ? 'Status' : 'Sisa Utang',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1F2937),
+                ),
+              ),
+              if (isFullyPaid)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10b981).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(
+                        LucideIcons.checkCircle,
+                        size: 16,
+                        color: Color(0xFF10b981),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Lunas',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF10b981),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                Text(
+                  currencyFormat.format(outstanding),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFFEF4444),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  IconData _getPaymentMethodIcon(String paymentMethod) {
+    switch (paymentMethod.toLowerCase()) {
+      case 'cash':
+        return LucideIcons.banknote;
+      case 'card':
+      case 'credit_card':
+      case 'debit_card':
+        return LucideIcons.creditCard;
+      case 'transfer':
+      case 'bank_transfer':
+        return LucideIcons.landmark;
+      case 'e-wallet':
+      case 'ewallet':
+      case 'qris':
+        return LucideIcons.smartphone;
+      default:
+        return LucideIcons.wallet;
+    }
+  }
+
   Widget _buildItemRow(TransactionItemDetail item, bool isLast) {
     final currencyFormat = NumberFormat.currency(
       locale: 'id_ID',
@@ -856,7 +1174,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   Widget _buildActionButtons(BuildContext context) {
     final status = transaction.status.toLowerCase();
 
-    // Show "Lihat Struk" button for completed transactions
+    // Show "Lihat Struk" and "Refund" buttons for completed transactions
     if (status == 'completed') {
       return Column(
         children: [
@@ -877,6 +1195,26 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                   borderRadius: BorderRadius.circular(12),
                 ),
                 elevation: 0,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _navigateToRefund(),
+              icon: const Icon(LucideIcons.rotateCcw, size: 20),
+              label: const Text(
+                'Refund Item',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFEA580C),
+                side: const BorderSide(color: Color(0xFFEA580C), width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
             ),
           ),
@@ -924,6 +1262,27 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           ],
         ),
         const SizedBox(height: 12),
+
+        // Add Refund button for outstanding status
+        if (status == 'outstanding') ...[
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: () => _navigateToRefund(),
+              icon: const Icon(LucideIcons.rotateCcw, size: 18),
+              label: const Text('Refund Item'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFFEA580C),
+                side: const BorderSide(color: Color(0xFFEA580C), width: 1.5),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
 
         // Row(
         //   children: [
@@ -1082,7 +1441,11 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         cartItems: cartItemsToUpdate,
         totalAmount: updatedTotalAmount ?? transaction.totalAmount,
         notes: notes ?? transaction.notes ?? '',
-        paymentMethod: paymentMethod ?? transaction.paymentMethod,
+        paymentMethod:
+            paymentMethod ??
+            (_paymentHistories != null && _paymentHistories!.isNotEmpty
+                ? _paymentHistories!.first.paymentMethod
+                : 'cash'),
         storeId: _getStoreIdFromUser(context),
         customerName:
             _detailedTransaction?.customer?.name ??
@@ -1140,7 +1503,12 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             MaterialPageRoute(
               builder:
                   (context) => PaymentSuccessPage(
-                    paymentMethod: paymentMethod ?? transaction.paymentMethod,
+                    paymentMethod:
+                        paymentMethod ??
+                        (_paymentHistories != null &&
+                                _paymentHistories!.isNotEmpty
+                            ? _paymentHistories!.first.paymentMethod
+                            : 'cash'),
                     amountPaid: transaction.totalAmount,
                     totalAmount: updatedTotalAmount ?? transaction.totalAmount,
                     transactionNumber: transaction.transactionNumber,
@@ -1305,13 +1673,47 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
               subtotal: transaction.totalAmount,
               discount: 0.0,
               total: transaction.totalAmount,
-              paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
+              paymentMethod: _getPaymentMethodText(
+                _paymentHistories != null && _paymentHistories!.isNotEmpty
+                    ? _paymentHistories!.first.paymentMethod
+                    : 'cash',
+              ),
               notes: transaction.notes,
               status: transaction.status,
               dueDate: transaction.outstandingReminderDate,
             ),
       ),
     );
+  }
+
+  Future<void> _navigateToRefund() async {
+    if (_transactionData == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Data transaksi belum dimuat'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CreateRefundPage(transaction: _transactionData!),
+      ),
+    );
+
+    // Reload transaction if refund was created successfully
+    if (result == true && mounted) {
+      await _loadTransactionDetails();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan cek tab Refund untuk melihat data refund'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    }
   }
 
   String _getPaymentMethodText(String paymentMethod) {

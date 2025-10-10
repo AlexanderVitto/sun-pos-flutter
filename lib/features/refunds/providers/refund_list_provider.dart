@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../data/models/refund_list_response.dart';
+import '../data/models/create_refund_request.dart';
 import '../data/services/refund_api_service.dart';
 
 class RefundListProvider with ChangeNotifier {
@@ -93,6 +94,8 @@ class RefundListProvider with ChangeNotifier {
         sortDirection: _sortDirection,
       );
 
+      debugPrint('📦 Refund API Response: $response');
+
       final refundListResponse = RefundListResponse.fromJson(response);
 
       if (refresh) {
@@ -103,8 +106,12 @@ class RefundListProvider with ChangeNotifier {
 
       _meta = refundListResponse.data.meta;
       _links = refundListResponse.data.links;
-    } catch (e) {
-      _errorMessage = e.toString();
+
+      debugPrint('✅ Loaded ${_refunds.length} refunds successfully');
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error loading refunds: $e');
+      debugPrint('Stack trace: $stackTrace');
+      _errorMessage = e.toString().replaceAll('Exception: ', '');
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -227,5 +234,23 @@ class RefundListProvider with ChangeNotifier {
     return _refunds
         .where((refund) => refund.transactionId == transactionId)
         .toList();
+  }
+
+  /// Create new refund
+  Future<void> createRefund(CreateRefundRequest request) async {
+    try {
+      debugPrint('📤 Creating refund for transaction ${request.transactionId}');
+
+      final response = await _apiService.createRefund(request.toJson());
+
+      debugPrint('✅ Refund created successfully');
+      debugPrint('📥 Response: $response');
+
+      // Refresh the list after creating
+      await loadRefunds(refresh: true);
+    } catch (e) {
+      debugPrint('❌ Error creating refund: $e');
+      rethrow;
+    }
   }
 }

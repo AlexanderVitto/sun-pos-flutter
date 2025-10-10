@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../viewmodels/product_detail_viewmodel.dart';
 import '../../data/services/product_api_service.dart';
+import '../../providers/product_provider.dart';
 import '../../../sales/providers/cart_provider.dart';
 import '../widgets/product_detail_app_bar.dart';
 import '../widgets/product_info_card.dart';
@@ -18,18 +19,29 @@ class ProductDetailPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Get ProductProvider from context
+    final productProvider = Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    );
+
     // Create ProductDetailViewModel locally with ChangeNotifierProxyProvider
     // This avoids the StackOverflowError caused by global provider
     return ChangeNotifierProxyProvider<CartProvider, ProductDetailViewModel>(
-      create:
-          (_) => ProductDetailViewModel(
-            productId: productId,
-            apiService: ProductApiService(),
-          ),
+      create: (_) {
+        final viewModel = ProductDetailViewModel(
+          productId: productId,
+          apiService: ProductApiService(),
+        );
+        // Inject ProductProvider
+        viewModel.updateProductProvider(productProvider);
+        return viewModel;
+      },
       update: (_, cartProvider, viewModel) {
         // Reuse instance and update CartProvider reference
         if (viewModel != null) {
           viewModel.updateCartProvider(cartProvider);
+          viewModel.updateProductProvider(productProvider);
 
           // Update productId if different
           if (viewModel.productId != productId) {
@@ -41,9 +53,11 @@ class ProductDetailPage extends StatelessWidget {
 
         // Fallback if viewModel is null
         return ProductDetailViewModel(
-          productId: productId,
-          apiService: ProductApiService(),
-        )..updateCartProvider(cartProvider);
+            productId: productId,
+            apiService: ProductApiService(),
+          )
+          ..updateCartProvider(cartProvider)
+          ..updateProductProvider(productProvider);
       },
       child: Consumer<ProductDetailViewModel>(
         builder: (context, viewModel, child) {

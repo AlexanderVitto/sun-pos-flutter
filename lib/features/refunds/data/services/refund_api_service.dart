@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/services/secure_storage_service.dart';
 
@@ -167,6 +168,52 @@ class RefundApiService {
         );
       }
     } catch (e) {
+      rethrow;
+    }
+  }
+
+  // Create refund
+  Future<Map<String, dynamic>> createRefund(
+    Map<String, dynamic> requestBody,
+  ) async {
+    try {
+      final token = await _secureStorage.getAccessToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Access token not found');
+      }
+
+      final url = Uri.parse('$baseUrl/refunds');
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      };
+
+      debugPrint('📤 [CREATE REFUND] URL: $url');
+      debugPrint('📤 [CREATE REFUND] Request Body: ${jsonEncode(requestBody)}');
+
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(requestBody),
+      );
+
+      debugPrint('📥 [CREATE REFUND] Status: ${response.statusCode}');
+      debugPrint('📥 [CREATE REFUND] Response: ${response.body}');
+
+      if (response.statusCode == 201 || response.statusCode == 200) {
+        return jsonDecode(response.body) as Map<String, dynamic>;
+      } else if (response.statusCode == 401) {
+        throw Exception('401: Unauthorized access');
+      } else {
+        throw Exception(
+          'Failed to create refund: ${response.statusCode} - ${response.body}',
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ [CREATE REFUND] Error: $e');
       rethrow;
     }
   }

@@ -1,21 +1,23 @@
 import 'user.dart';
 import 'store.dart';
 import 'customer.dart';
+import 'transaction_detail_response.dart';
+import 'payment_history.dart';
 
 class CreateTransactionResponse {
-  final bool success;
+  final String status;
   final String message;
   final TransactionData? data;
 
   const CreateTransactionResponse({
-    required this.success,
+    required this.status,
     required this.message,
     this.data,
   });
 
   factory CreateTransactionResponse.fromJson(Map<String, dynamic> json) {
     return CreateTransactionResponse(
-      success: json['success'] ?? false,
+      status: json['status'] ?? '',
       message: json['message'] ?? '',
       data:
           json['data'] != null ? TransactionData.fromJson(json['data']) : null,
@@ -23,12 +25,12 @@ class CreateTransactionResponse {
   }
 
   Map<String, dynamic> toJson() {
-    return {'success': success, 'message': message, 'data': data?.toJson()};
+    return {'status': status, 'message': message, 'data': data?.toJson()};
   }
 
   @override
   String toString() {
-    return 'CreateTransactionResponse(success: $success, message: $message, data: $data)';
+    return 'CreateTransactionResponse(status: $status, message: $message, data: $data)';
   }
 }
 
@@ -37,16 +39,19 @@ class TransactionData {
   final String transactionNumber;
   final String date;
   final double totalAmount;
-  final double paidAmount;
+  final double totalPaid;
   final double changeAmount;
-  final String paymentMethod;
+  final double outstandingAmount;
+  final bool? isFullyPaid;
   final String status;
   final String? notes;
   final DateTime transactionDate;
+  final DateTime? outstandingReminderDate;
   final User user;
   final Store store;
   final Customer? customer;
-  final int detailsCount;
+  final List<TransactionDetailResponse> details;
+  final List<PaymentHistory> paymentHistories;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -55,16 +60,19 @@ class TransactionData {
     required this.transactionNumber,
     required this.date,
     required this.totalAmount,
-    required this.paidAmount,
+    required this.totalPaid,
     required this.changeAmount,
-    required this.paymentMethod,
+    required this.outstandingAmount,
+    this.isFullyPaid,
     required this.status,
     this.notes,
     required this.transactionDate,
+    this.outstandingReminderDate,
     required this.user,
     required this.store,
     this.customer,
-    required this.detailsCount,
+    required this.details,
+    required this.paymentHistories,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -75,19 +83,31 @@ class TransactionData {
       transactionNumber: json['transaction_number'] ?? '',
       date: json['date'] ?? '',
       totalAmount: (json['total_amount'] ?? 0).toDouble(),
-      paidAmount: (json['paid_amount'] ?? 0).toDouble(),
+      totalPaid: (json['total_paid'] ?? 0).toDouble(),
       changeAmount: (json['change_amount'] ?? 0).toDouble(),
-      paymentMethod: json['payment_method'] ?? '',
+      outstandingAmount: (json['outstanding_amount'] ?? 0).toDouble(),
+      isFullyPaid: json['is_fully_paid'],
       status: json['status'] ?? '',
       notes: json['notes'],
       transactionDate: DateTime.parse(
         json['transaction_date'] ?? DateTime.now().toIso8601String(),
       ),
+      outstandingReminderDate:
+          json['outstanding_reminder_date'] != null
+              ? DateTime.parse(json['outstanding_reminder_date'])
+              : null,
       user: User.fromJson(json['user'] ?? {}),
       store: Store.fromJson(json['store'] ?? {}),
       customer:
           json['customer'] != null ? Customer.fromJson(json['customer']) : null,
-      detailsCount: json['details_count'] ?? 0,
+      details:
+          (json['details'] as List<dynamic>? ?? [])
+              .map((item) => TransactionDetailResponse.fromJson(item))
+              .toList(),
+      paymentHistories:
+          (json['payment_histories'] as List<dynamic>? ?? [])
+              .map((item) => PaymentHistory.fromJson(item))
+              .toList(),
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
@@ -103,16 +123,20 @@ class TransactionData {
       'transaction_number': transactionNumber,
       'date': date,
       'total_amount': totalAmount,
-      'paid_amount': paidAmount,
+      'total_paid': totalPaid,
       'change_amount': changeAmount,
-      'payment_method': paymentMethod,
+      'outstanding_amount': outstandingAmount,
+      'is_fully_paid': isFullyPaid,
       'status': status,
       'notes': notes,
       'transaction_date': transactionDate.toIso8601String(),
+      'outstanding_reminder_date': outstandingReminderDate?.toIso8601String(),
       'user': user.toJson(),
       'store': store.toJson(),
       'customer': customer?.toJson(),
-      'details_count': detailsCount,
+      'details': details.map((detail) => detail.toJson()).toList(),
+      'payment_histories':
+          paymentHistories.map((payment) => payment.toJson()).toList(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -120,6 +144,6 @@ class TransactionData {
 
   @override
   String toString() {
-    return 'TransactionData(id: $id, transactionNumber: $transactionNumber, totalAmount: $totalAmount, status: $status)';
+    return 'TransactionData(id: $id, transactionNumber: $transactionNumber, totalAmount: $totalAmount, totalPaid: $totalPaid, status: $status)';
   }
 }

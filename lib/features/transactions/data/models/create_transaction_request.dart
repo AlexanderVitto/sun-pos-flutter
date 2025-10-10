@@ -1,53 +1,46 @@
 import 'transaction_detail.dart';
+import 'payment_history.dart';
 
 class CreateTransactionRequest {
   final int? storeId;
-  final String? paymentMethod;
-  final double? paidAmount;
-  final String? notes;
-  final String? transactionDate;
-  final List<TransactionDetail>? details;
   final String? customerName;
   final String? customerPhone;
+  final List<PaymentHistory>? payments;
   final String? status;
-  final double? cashAmount;
-  final double transferAmount;
+  final String? notes;
+  final String? transactionDate;
   final String? outstandingReminderDate;
+  final List<TransactionDetail>? details;
 
   const CreateTransactionRequest({
     this.storeId,
-    this.paymentMethod,
-    this.paidAmount,
-    this.notes,
-    this.transactionDate,
-    this.details,
     this.customerName,
     this.customerPhone,
+    this.payments,
     this.status,
-    this.cashAmount,
-    this.transferAmount = 0,
+    this.notes,
+    this.transactionDate,
     this.outstandingReminderDate,
+    this.details,
   });
 
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> json = {};
 
     if (storeId != null) json['store_id'] = storeId;
-    if (paymentMethod != null) json['payment_method'] = paymentMethod;
-    if (paidAmount != null) json['paid_amount'] = paidAmount;
-    if (notes != null) json['notes'] = notes;
-    if (transactionDate != null) json['transaction_date'] = transactionDate;
-    if (details != null) {
-      json['details'] = details!.map((detail) => detail.toJson()).toList();
-    }
     if (customerName != null) json['customer_name'] = customerName;
     if (customerPhone != null) json['customer_phone'] = customerPhone;
+    if (payments != null) {
+      json['payments'] = payments!.map((payment) => payment.toJson()).toList();
+    }
     if (status != null) json['status'] = status;
-    if (cashAmount != null) json['cash_amount'] = cashAmount;
-    // transferAmount has default value 0, so always include it
-    json['transfer_amount'] = transferAmount;
+    if (notes != null) json['notes'] = notes;
+    if (transactionDate != null) json['transaction_date'] = transactionDate;
     if (outstandingReminderDate != null) {
       json['outstanding_reminder_date'] = outstandingReminderDate;
+    }
+    if (details != null) {
+      json['details'] = details!.map((detail) => detail.toJson()).toList();
     }
 
     return json;
@@ -55,21 +48,21 @@ class CreateTransactionRequest {
 
   factory CreateTransactionRequest.fromJson(Map<String, dynamic> json) {
     return CreateTransactionRequest(
-      storeId: json['store_id'] ?? 0,
-      paymentMethod: json['payment_method'] ?? '',
-      paidAmount: (json['paid_amount'] ?? 0).toDouble(),
+      storeId: json['store_id'],
+      customerName: json['customer_name'],
+      customerPhone: json['customer_phone'],
+      payments:
+          (json['payments'] as List<dynamic>? ?? [])
+              .map((item) => PaymentHistory.fromJson(item))
+              .toList(),
+      status: json['status'],
       notes: json['notes'],
-      transactionDate: json['transaction_date'] ?? '',
+      transactionDate: json['transaction_date'],
+      outstandingReminderDate: json['outstanding_reminder_date'],
       details:
           (json['details'] as List<dynamic>? ?? [])
               .map((item) => TransactionDetail.fromJson(item))
               .toList(),
-      customerName: json['customer_name'],
-      customerPhone: json['customer_phone'],
-      status: json['status'],
-      cashAmount: json['cash_amount']?.toDouble(),
-      transferAmount: json['transfer_amount']?.toDouble() ?? 0,
-      outstandingReminderDate: json['outstanding_reminder_date'],
     );
   }
 
@@ -79,14 +72,20 @@ class CreateTransactionRequest {
         0.0;
   }
 
+  // Calculate total paid amount from all payments
+  double get totalPaidAmount {
+    return payments?.fold(0.0, (sum, payment) => sum ?? 0 + payment.amount) ??
+        0.0;
+  }
+
   // Calculate change amount
   double get changeAmount {
-    final change = paidAmount ?? 0 - totalAmount;
+    final change = totalPaidAmount - totalAmount;
     return change > 0 ? change : 0.0;
   }
 
   // Validate if paid amount is sufficient
-  bool get isPaidAmountSufficient => (paidAmount ?? 0) >= totalAmount;
+  bool get isPaidAmountSufficient => totalPaidAmount >= totalAmount;
 
   // Get total items count
   int get totalItems {
@@ -99,38 +98,32 @@ class CreateTransactionRequest {
 
   @override
   String toString() {
-    return 'CreateTransactionRequest(storeId: $storeId, paymentMethod: $paymentMethod, paidAmount: $paidAmount, notes: $notes, transactionDate: $transactionDate, details: $details, customerName: $customerName, customerPhone: $customerPhone)';
+    return 'CreateTransactionRequest(storeId: $storeId, customerName: $customerName, customerPhone: $customerPhone, payments: $payments, status: $status, notes: $notes, transactionDate: $transactionDate, details: $details)';
   }
 
   // Create a copy with updated values
   CreateTransactionRequest copyWith({
     int? storeId,
-    String? paymentMethod,
-    double? paidAmount,
-    String? notes,
-    String? transactionDate,
-    List<TransactionDetail>? details,
     String? customerName,
     String? customerPhone,
+    List<PaymentHistory>? payments,
     String? status,
-    double? cashAmount,
-    double? transferAmount,
+    String? notes,
+    String? transactionDate,
     String? outstandingReminderDate,
+    List<TransactionDetail>? details,
   }) {
     return CreateTransactionRequest(
       storeId: storeId ?? this.storeId,
-      paymentMethod: paymentMethod ?? this.paymentMethod,
-      paidAmount: paidAmount ?? this.paidAmount,
-      notes: notes ?? this.notes,
-      transactionDate: transactionDate ?? this.transactionDate,
-      details: details ?? this.details,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
+      payments: payments ?? this.payments,
       status: status ?? this.status,
-      cashAmount: cashAmount ?? this.cashAmount,
-      transferAmount: transferAmount ?? this.transferAmount,
+      notes: notes ?? this.notes,
+      transactionDate: transactionDate ?? this.transactionDate,
       outstandingReminderDate:
           outstandingReminderDate ?? this.outstandingReminderDate,
+      details: details ?? this.details,
     );
   }
 }

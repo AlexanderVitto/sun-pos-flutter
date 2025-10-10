@@ -85,9 +85,8 @@ class TransactionListProvider with ChangeNotifier {
         status: _status,
       );
 
-      final transactionListResponse = TransactionListResponse.fromJson(
-        response,
-      );
+      // response is already TransactionListResponse, no need to parse
+      final transactionListResponse = response;
 
       if (refresh) {
         _transactions = transactionListResponse.data.data;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/models/create_transaction_request.dart';
 import '../data/models/create_transaction_response.dart';
 import '../data/models/transaction_detail.dart';
+import '../data/models/payment_history.dart';
 import '../data/services/transaction_api_service.dart';
 
 class TransactionProvider extends ChangeNotifier {
@@ -192,10 +193,18 @@ class TransactionProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Create payment history from payment method and paid amount
+      final payments = [
+        PaymentHistory(
+          paymentMethod: _paymentMethod,
+          amount: _paidAmount,
+          paymentDate: DateTime.now().toIso8601String(),
+        ),
+      ];
+
       final request = CreateTransactionRequest(
         storeId: _storeId,
-        paymentMethod: _paymentMethod,
-        paidAmount: _paidAmount,
+        payments: payments,
         notes: _notes,
         transactionDate: _transactionDate,
         details: _details,
@@ -206,7 +215,7 @@ class TransactionProvider extends ChangeNotifier {
       final response = await _apiService.createTransaction(request);
       _lastTransactionResponse = response;
 
-      if (response.success) {
+      if (response.status == 'success') {
         // Clear form after successful transaction
         clearForm();
         _isLoading = false;

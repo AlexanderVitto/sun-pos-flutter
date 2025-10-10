@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../data/services/product_api_service.dart';
 import '../../data/models/product_detail_response.dart';
+import '../../providers/product_provider.dart';
 import '../../../sales/providers/cart_provider.dart';
 import '../../../sales/presentation/services/payment_service.dart';
 import '../../../../data/models/product.dart';
@@ -8,6 +9,7 @@ import '../../../../data/models/product.dart';
 class ProductDetailViewModel extends ChangeNotifier {
   final ProductApiService _apiService;
   CartProvider? _cartProvider;
+  ProductProvider? _productProvider;
   int _productId;
   bool _disposed = false;
 
@@ -132,6 +134,16 @@ class ProductDetailViewModel extends ChangeNotifier {
     }
   }
 
+  /// Update ProductProvider reference
+  void updateProductProvider(ProductProvider productProvider) {
+    if (_productProvider != productProvider) {
+      print(
+        '🔄 ProductDetailViewModel: Updating ProductProvider instance ${productProvider.hashCode}',
+      );
+      _productProvider = productProvider;
+    }
+  }
+
   /// Update productId jika dibutuhkan (untuk reuse ViewModel dengan product berbeda)
   void updateProductId(int newProductId) {
     if (_productId != newProductId) {
@@ -252,7 +264,7 @@ class ProductDetailViewModel extends ChangeNotifier {
             : 0;
 
     // Calculate remaining stock
-    final remainingStock = variant.stock - quantityInCart;
+    final remainingStock = variant.stock;
 
     // Validate quantity against remaining stock
     int validQuantity = quantity;
@@ -471,13 +483,17 @@ class ProductDetailViewModel extends ChangeNotifier {
         );
 
         if (existingItem.product.productVariantId == variantId) {
-          // Update existing item quantity
+          // Update existing item quantity - set to new quantity (not add)
+          // Don't pass context to prevent automatic draft transaction processing
+          // We'll manually update draft transaction later
           _cartProvider!.updateItemQuantity(existingItem.id, quantity);
           print(
             '📝 ProductDetailViewModel: Updated variant $variantId quantity to $quantity',
           );
         } else {
           // Add new item to cart
+          // Don't pass context to prevent automatic draft transaction processing
+          // We'll manually update draft transaction later
           _cartProvider!.addItem(product, quantity: quantity);
           print(
             '➕ ProductDetailViewModel: Added variant $variantId to cart with quantity $quantity',
@@ -490,16 +506,41 @@ class ProductDetailViewModel extends ChangeNotifier {
         await _updateDraftTransactionOnServer(context);
       }
 
-      // Clean up variant quantities - remove entries with 0 after successful update
-      _variantQuantities.removeWhere((key, value) => value == 0);
+      // Clear variant quantities after successful update to prevent double-adding
+      // This ensures that the next time user adds, it starts fresh
+      _variantQuantities.clear();
+      print(
+        '🧹 ProductDetailViewModel: Cleared variant quantities after successful cart update',
+      );
 
       // Reload product detail to refresh stock info and cart status
       await _reloadProductDetail();
+
+      // Refresh product list in POS to update stock display
+      await _refreshProductList();
 
       return true;
     } catch (e) {
       print('❌ Error updating cart: ${e.toString()}');
       return false;
+    }
+  }
+
+  /// Refresh product list to update stock display in POS
+  Future<void> _refreshProductList() async {
+    try {
+      if (_productProvider != null) {
+        print('🔄 ProductDetailViewModel: Refreshing product list in POS');
+        await _productProvider!.refreshProducts();
+        print('✅ ProductDetailViewModel: Product list refreshed successfully');
+      } else {
+        print(
+          '⚠️ ProductDetailViewModel: ProductProvider not available for refresh',
+        );
+      }
+    } catch (e) {
+      // Silent failure for refresh to not interrupt UX
+      print('❌ Error refreshing product list: ${e.toString()}');
     }
   }
 
@@ -535,6 +576,9 @@ class ProductDetailViewModel extends ChangeNotifier {
 
         // Reinitialize quantity from cart after reload
         _initializeQuantityFromCart();
+
+        // Reinitialize variant quantities from cart to show current cart state
+        _initializeVariantQuantitiesFromCart();
 
         print('✅ ProductDetailViewModel: Product detail reloaded successfully');
       } else {

@@ -1181,7 +1181,8 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
                                 color: Color(0xFF1F2937),
                               ),
                             ),
-                            if (refund.customer.phone != null) ...[
+                            if (refund.customer.phone != null &&
+                                refund.customer.phone!.isNotEmpty) ...[
                               Text(
                                 refund.customer.phone!,
                                 style: const TextStyle(

@@ -182,18 +182,24 @@ class _ProductCardState extends State<ProductCard> {
                 ),
                 const SizedBox(height: 2),
 
-                // Stock Info
-                Text(
-                  'Stok: ${widget.product.stock}',
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.w500,
-                    color:
-                        widget.product.stock < 10
-                            ? const Color(0xFFef4444)
-                            : const Color(0xFF6b7280),
-                    letterSpacing: 0.1,
-                  ),
+                // Stock Info - Shows remaining stock (actual stock - quantity in cart)
+                Consumer<CartProvider>(
+                  builder: (context, cartProvider, child) {
+                    final remainingStock = widget.product.stock;
+
+                    return Text(
+                      'Stok: $remainingStock',
+                      style: TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color:
+                            remainingStock < 10
+                                ? const Color(0xFFef4444)
+                                : const Color(0xFF6b7280),
+                        letterSpacing: 0.1,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
 

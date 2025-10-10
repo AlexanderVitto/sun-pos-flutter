@@ -3,6 +3,7 @@ import '../../transactions/data/services/transaction_api_service.dart';
 import '../../transactions/data/models/create_transaction_request.dart';
 import '../../transactions/data/models/transaction_detail.dart';
 import '../../transactions/data/models/create_transaction_response.dart';
+import '../../transactions/data/models/payment_history.dart';
 import '../../../data/models/cart_item.dart';
 import '../../../core/events/transaction_events.dart';
 
@@ -115,18 +116,49 @@ class TransactionProvider extends ChangeNotifier {
           );
         }).toList();
 
+    // Create payments array based on payment method and amounts
+    final payments = <PaymentHistory>[];
+
+    if ((cashAmount ?? 0) > 0) {
+      payments.add(
+        PaymentHistory(
+          paymentMethod: 'cash',
+          amount: cashAmount!,
+          paymentDate: transactionDate,
+        ),
+      );
+    }
+
+    if (transferAmount > 0) {
+      payments.add(
+        PaymentHistory(
+          paymentMethod: 'transfer',
+          amount: transferAmount,
+          paymentDate: transactionDate,
+        ),
+      );
+    }
+
+    // If no specific amounts provided, use the payment method and total amount
+    if (payments.isEmpty) {
+      payments.add(
+        PaymentHistory(
+          paymentMethod: paymentMethod ?? 'cash',
+          amount: totalAmount ?? 0,
+          paymentDate: transactionDate,
+        ),
+      );
+    }
+
     return CreateTransactionRequest(
       storeId: storeId,
-      paymentMethod: paymentMethod,
-      paidAmount: totalAmount,
+      payments: payments,
       notes: notes?.trim() ?? '',
       transactionDate: transactionDate,
       details: details,
       customerName: customerName,
       customerPhone: customerPhone,
       status: status ?? 'pending',
-      cashAmount: cashAmount,
-      transferAmount: transferAmount,
       outstandingReminderDate: outstandingReminderDate,
     );
   }
