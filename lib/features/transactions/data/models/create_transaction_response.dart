@@ -142,6 +142,11 @@ class TransactionData {
     };
   }
 
+  /// Check if transaction has any items that can be refunded
+  bool get hasRefundableItems {
+    return details.any((detail) => detail.remainingQty > 0);
+  }
+
   @override
   String toString() {
     return 'TransactionData(id: $id, transactionNumber: $transactionNumber, totalAmount: $totalAmount, totalPaid: $totalPaid, status: $status)';

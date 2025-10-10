@@ -16,6 +16,7 @@ import '../../../auth/providers/auth_provider.dart';
 import '../../../sales/providers/transaction_provider.dart';
 import '../../../transactions/data/models/payment_history.dart';
 import '../../../refunds/presentation/pages/create_refund_page.dart';
+import '../../../transactions/presentation/pages/pay_outstanding_page.dart';
 
 class TransactionItemDetail {
   final int id;
@@ -24,6 +25,8 @@ class TransactionItemDetail {
   final String productName;
   final String variant;
   final int quantity;
+  final int returnedQty;
+  final int remainingQty;
   final double unitPrice;
   final double subtotal;
   final double totalAmount;
@@ -39,6 +42,8 @@ class TransactionItemDetail {
     required this.productName,
     required this.variant,
     required this.quantity,
+    this.returnedQty = 0,
+    this.remainingQty = 0,
     required this.unitPrice,
     required this.subtotal,
     required this.totalAmount,
@@ -144,6 +149,8 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                   productName: detail.productName,
                   variant: detail.productVariant?.name ?? '',
                   quantity: detail.quantity,
+                  returnedQty: detail.returnedQty,
+                  remainingQty: detail.remainingQty,
                   unitPrice: detail.unitPrice,
                   subtotal: detail.totalAmount,
                   totalAmount: detail.totalAmount,
@@ -1127,6 +1134,70 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                   '${item.quantity}x @ ${currencyFormat.format(item.unitPrice)}',
                   style: TextStyle(color: Colors.grey[600], fontSize: 14),
                 ),
+                // Show returned quantity if any
+                if (item.returnedQty > 0) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: Colors.orange.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              LucideIcons.rotateCcw,
+                              size: 12,
+                              color: Colors.orange.shade700,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Refund: ${item.returnedQty}x',
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: Colors.orange.shade700,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 6,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.shade50,
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: Colors.green.shade200,
+                            width: 1,
+                          ),
+                        ),
+                        child: Text(
+                          'Sisa: ${item.remainingQty}x',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.green.shade700,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 if (item.variant.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Container(
@@ -1198,26 +1269,30 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
               ),
             ),
           ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => _navigateToRefund(),
-              icon: const Icon(LucideIcons.rotateCcw, size: 20),
-              label: const Text(
-                'Refund Item',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-              ),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFFEA580C),
-                side: const BorderSide(color: Color(0xFFEA580C), width: 1.5),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          // Show Refund button only if there are items with remaining_qty > 0
+          if (_transactionData != null &&
+              _transactionData!.hasRefundableItems) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () => _navigateToRefund(),
+                icon: const Icon(LucideIcons.rotateCcw, size: 20),
+                label: const Text(
+                  'Refund Item',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFEA580C),
+                  side: const BorderSide(color: Color(0xFFEA580C), width: 1.5),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                 ),
               ),
             ),
-          ),
+          ],
         ],
       );
     }
@@ -1233,7 +1308,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => _showCompleteTransactionDialog(context),
+                onPressed: () => _navigateToPayOutstanding(),
                 icon: Icon(
                   status == 'outstanding'
                       ? LucideIcons.dollarSign
@@ -1263,8 +1338,10 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         ),
         const SizedBox(height: 12),
 
-        // Add Refund button for outstanding status
-        if (status == 'outstanding') ...[
+        // Add Refund button for outstanding status (only if there are refundable items)
+        if (status == 'outstanding' &&
+            _transactionData != null &&
+            _transactionData!.hasRefundableItems) ...[
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -1706,13 +1783,60 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
     // Reload transaction if refund was created successfully
     if (result == true && mounted) {
+      // Show loading indicator
+      setState(() {
+        _isLoadingItems = true;
+      });
+
+      // Force reload transaction details
       await _loadTransactionDetails();
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(LucideIcons.checkCircle, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text('Refund berhasil! Data transaksi diperbarui'),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _navigateToPayOutstanding() async {
+    if (_transactionData == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Silakan cek tab Refund untuk melihat data refund'),
-          backgroundColor: Colors.green,
+          content: Text('Data transaksi belum dimuat'),
+          backgroundColor: Colors.red,
         ),
       );
+      return;
+    }
+
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder:
+            (context) => PayOutstandingPage(transaction: _transactionData!),
+      ),
+    );
+
+    // Reload transaction if payment was successful
+    if (result == true && mounted) {
+      await _loadTransactionDetails();
+
+      // Pop back to previous screen to refresh the list
+      Navigator.of(context).pop(true);
     }
   }
 

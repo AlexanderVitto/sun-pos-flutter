@@ -445,4 +445,75 @@ class TransactionApiService {
       }
     }
   }
+
+  /// Update transaction payment (for paying outstanding debt)
+  /// Only updates payments array and status
+  Future<CreateTransactionResponse> updateTransactionPayment(
+    int transactionId,
+    Map<String, dynamic> paymentData,
+  ) async {
+    try {
+      final token = await _secureStorage.getAccessToken();
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Access token not found');
+      }
+
+      final url = Uri.parse('$baseUrl/transactions/$transactionId');
+
+      final headers = {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+        'Accept': 'application/json',
+      };
+
+      print(
+        'Payment Update Request: ${jsonEncode(paymentData)}',
+      ); // Debug print
+
+      final response = await http.put(
+        url,
+        headers: headers,
+        body: jsonEncode(paymentData),
+      );
+
+      // Handle different HTTP status codes
+      if (response.statusCode == 200) {
+        // Success response
+        final responseData = jsonDecode(response.body);
+        return CreateTransactionResponse.fromJson(responseData);
+      } else if (response.statusCode == 401) {
+        // Unauthorized
+        throw Exception('401: Unauthorized access');
+      } else if (response.statusCode == 404) {
+        // Transaction not found
+        throw Exception('Transaction not found');
+      } else if (response.statusCode == 422) {
+        // Validation error
+        final responseData = jsonDecode(response.body);
+        final errorMessage = _extractValidationErrors(responseData);
+        throw Exception('Validation error: $errorMessage');
+      } else if (response.statusCode == 400) {
+        // Bad request
+        final responseData = jsonDecode(response.body);
+        final message = responseData['message'] ?? 'Bad request';
+        throw Exception('Bad request: $message');
+      } else if (response.statusCode >= 500) {
+        // Server error
+        throw Exception(
+          'Server error (${response.statusCode}): Please try again later',
+        );
+      } else {
+        // Other errors
+        throw Exception('Failed to update payment (${response.statusCode})');
+      }
+    } catch (e) {
+      // Re-throw with more context if it's not already an Exception
+      if (e is Exception) {
+        rethrow;
+      } else {
+        throw Exception('Network error: ${e.toString()}');
+      }
+    }
+  }
 }

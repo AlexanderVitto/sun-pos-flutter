@@ -685,10 +685,9 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
                   style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 12),
-                // Outstanding reminder date section (only for outstanding transactions)
-                if (transaction.status.toLowerCase() == 'outstanding' &&
-                    transaction.outstandingReminderDate != null) ...[
-                  _buildOutstandingReminder(transaction),
+                // Outstanding amount section (only for outstanding transactions)
+                if (transaction.status.toLowerCase() == 'outstanding') ...[
+                  _buildOutstandingAmount(transaction),
                   const SizedBox(height: 12),
                 ],
                 Row(
@@ -750,128 +749,77 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     );
   }
 
-  Widget _buildOutstandingReminder(TransactionListItem transaction) {
-    if (transaction.outstandingReminderDate == null) {
-      return const SizedBox.shrink();
-    }
-
-    final now = DateTime.now();
-    final dueDate = transaction.outstandingReminderDate!;
-    final difference = dueDate.difference(now);
-
-    final isOverdue = difference.isNegative;
-    final isDueToday = !isOverdue && difference.inDays == 0;
-    final isDueTomorrow = !isOverdue && difference.inDays == 1;
-
-    Color backgroundColor;
-    Color textColor;
-    Color iconColor;
-    IconData icon;
-    String message;
-    String timeText;
-
-    if (isOverdue) {
-      // Overdue - Red
-      backgroundColor = const Color(0xFFEF4444).withValues(alpha: 0.1);
-      textColor = const Color(0xFFDC2626);
-      iconColor = const Color(0xFFDC2626);
-      icon = LucideIcons.alertTriangle;
-      final overdueDays = difference.inDays.abs();
-      message = 'Terlambat';
-      timeText =
-          overdueDays == 0
-              ? 'Jatuh tempo hari ini'
-              : '$overdueDays hari yang lalu';
-    } else if (isDueToday) {
-      // Due today - Orange/Amber
-      backgroundColor = const Color(0xFFF59E0B).withValues(alpha: 0.1);
-      textColor = const Color(0xFFD97706);
-      iconColor = const Color(0xFFD97706);
-      icon = LucideIcons.clock;
-      message = 'Jatuh tempo hari ini';
-      final hoursLeft = difference.inHours;
-      timeText =
-          hoursLeft > 0
-              ? '$hoursLeft jam lagi'
-              : '${difference.inMinutes} menit lagi';
-    } else if (isDueTomorrow) {
-      // Due tomorrow - Yellow
-      backgroundColor = const Color(0xFFFBBF24).withValues(alpha: 0.1);
-      textColor = const Color(0xFFD97706);
-      iconColor = const Color(0xFFD97706);
-      icon = LucideIcons.calendar;
-      message = 'Jatuh tempo besok';
-      timeText = DateFormat('HH:mm').format(dueDate);
-    } else {
-      // Future due date - Blue
-      backgroundColor = const Color(0xFF3B82F6).withValues(alpha: 0.1);
-      textColor = const Color(0xFF2563EB);
-      iconColor = const Color(0xFF2563EB);
-      icon = LucideIcons.calendarDays;
-      final daysLeft = difference.inDays;
-      message = 'Jatuh tempo dalam $daysLeft hari';
-      timeText = DateFormat('dd MMM yyyy').format(dueDate);
-    }
+  Widget _buildOutstandingAmount(TransactionListItem transaction) {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: textColor.withValues(alpha: 0.3), width: 1),
+        border: Border.all(
+          color: const Color(0xFF8B5CF6).withValues(alpha: 0.3),
+          width: 1,
+        ),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.2),
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.2),
               borderRadius: BorderRadius.circular(6),
             ),
-            child: Icon(icon, size: 16, color: iconColor),
+            child: const Icon(
+              LucideIcons.alertCircle,
+              size: 16,
+              color: Color(0xFF8B5CF6),
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  message,
+                const Text(
+                  'Jumlah Utang',
                   style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
-                    color: textColor,
+                    color: Color(0xFF8B5CF6),
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  timeText,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: textColor.withValues(alpha: 0.8),
+                  currencyFormat.format(transaction.outstandingAmount),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF8B5CF6),
                   ),
                 ),
               ],
             ),
           ),
-          // Countdown timer for due today and overdue
-          if (isDueToday || isOverdue) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: textColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                isOverdue ? 'TERLAMBAT' : 'HARI INI',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Text(
+              'BELUM DIBAYAR',
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF8B5CF6),
               ),
             ),
-          ],
+          ),
         ],
       ),
     );
@@ -907,12 +855,22 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     }
   }
 
-  void _navigateToTransactionDetail(transaction) {
-    Navigator.of(context).push(
+  Future<void> _navigateToTransactionDetail(transaction) async {
+    final result = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (context) => TransactionDetailPage(transaction: transaction),
       ),
     );
+
+    // Reload transactions if there were changes (refund, payment, etc.)
+    if (result == true && mounted) {
+      final provider = Provider.of<TransactionListProvider>(
+        context,
+        listen: false,
+      );
+      // Reload the current status transactions
+      await provider.loadTransactions(refresh: true);
+    }
   }
 
   Widget _buildRefundsList(RefundListProvider provider) {

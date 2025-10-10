@@ -32,10 +32,12 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize controllers for each item
+    // Initialize controllers only for items with remaining_qty > 0
     for (var detail in widget.transaction.details) {
-      _quantityControllers[detail.id] = TextEditingController(text: '0');
-      _selectedItems[detail.id] = false;
+      if (detail.remainingQty > 0) {
+        _quantityControllers[detail.id] = TextEditingController(text: '0');
+        _selectedItems[detail.id] = false;
+      }
     }
   }
 
@@ -60,6 +62,16 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
     return total;
   }
 
+  bool get _hasSelectedItems {
+    return _selectedItems.values.any((selected) => selected == true);
+  }
+
+  bool get _canSubmit {
+    if (!_hasSelectedItems) return false;
+    if (_calculateTotalRefund() <= 0) return false;
+    return true;
+  }
+
   void _onRefundMethodChanged(String? value) {
     setState(() {
       _refundMethod = value ?? 'cash';
@@ -75,6 +87,280 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
         _transferAmountController.clear();
       }
     });
+  }
+
+  void _showConfirmationDialog() {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    final totalRefund = _calculateTotalRefund();
+    final cashAmount = double.tryParse(_cashAmountController.text) ?? 0;
+    final transferAmount = double.tryParse(_transferAmountController.text) ?? 0;
+
+    String refundMethodText = '';
+    switch (_refundMethod) {
+      case 'cash':
+        refundMethodText = 'Cash';
+        break;
+      case 'transfer':
+        refundMethodText = 'Transfer';
+        break;
+      case 'cash_and_transfer':
+        refundMethodText = 'Cash & Transfer';
+        break;
+    }
+
+    // Count selected items
+    int selectedItemCount = 0;
+    for (var detail in widget.transaction.details) {
+      if (_selectedItems[detail.id] == true) {
+        selectedItemCount++;
+      }
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.help_outline,
+                  color: Colors.green.shade600,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Konfirmasi Refund',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Apakah Anda yakin ingin memproses refund ini?',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Transaksi:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          '#${widget.transaction.transactionNumber}',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Item di-refund:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          '$selectedItemCount item',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Metode Refund:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          refundMethodText,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (_refundMethod == 'cash' ||
+                        _refundMethod == 'cash_and_transfer') ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text('Cash:', style: TextStyle(fontSize: 14)),
+                          Text(
+                            currencyFormat.format(cashAmount),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    if (_refundMethod == 'transfer' ||
+                        _refundMethod == 'cash_and_transfer') ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Transfer:',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            currencyFormat.format(transferAmount),
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                    const Divider(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Refund:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          currencyFormat.format(totalRefund),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Refund akan diproses dan tidak dapat dibatalkan',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                side: BorderSide(color: Colors.grey.shade400),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Batal',
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                _submitRefund(); // Proceed with refund
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Ya, Proses',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _submitRefund() async {
@@ -320,8 +606,10 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Item List
-                    ...widget.transaction.details.map((detail) {
+                    // Item List - only show items with remaining_qty > 0
+                    ...widget.transaction.details.where((detail) => detail.remainingQty > 0).map((
+                      detail,
+                    ) {
                       return Card(
                         elevation: 1,
                         margin: const EdgeInsets.only(bottom: 12),
@@ -414,7 +702,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                                               ),
                                             ),
                                             child: Text(
-                                              '${detail.quantity}x',
+                                              'Sisa: ${detail.remainingQty}x',
                                               style: TextStyle(
                                                 fontSize: 12,
                                                 color: Colors.blue.shade700,
@@ -548,8 +836,9 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                                                     if (qty <= 0) {
                                                       return 'Min 1';
                                                     }
-                                                    if (qty > detail.quantity) {
-                                                      return 'Max ${detail.quantity}';
+                                                    if (qty >
+                                                        detail.remainingQty) {
+                                                      return 'Max ${detail.remainingQty}';
                                                     }
                                                     return null;
                                                   },
@@ -564,7 +853,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                                               ),
                                               const Spacer(),
                                               Text(
-                                                'Max: ${detail.quantity}',
+                                                'Max: ${detail.remainingQty}',
                                                 style: TextStyle(
                                                   fontSize: 12,
                                                   color: Colors.grey.shade600,
@@ -925,7 +1214,10 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitRefund,
+                  onPressed:
+                      (_isLoading || !_canSubmit)
+                          ? null
+                          : _showConfirmationDialog,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade600,
                     foregroundColor: Colors.white,
@@ -953,7 +1245,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                               Icon(Icons.check_circle_outline, size: 22),
                               SizedBox(width: 8),
                               Text(
-                                'Submit Refund',
+                                'Konfirmasi Refund',
                                 style: TextStyle(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

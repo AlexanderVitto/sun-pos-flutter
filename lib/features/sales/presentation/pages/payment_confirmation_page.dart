@@ -119,9 +119,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   }
 
   bool get _isPaymentValid {
-    // Check if due date is required for debt payment
-    if (_paymentStatus == 'utang' && _outstandingDueDate == null) {
-      return false;
+    // For outstanding/debt payment, no payment validation needed
+    if (_paymentStatus == 'utang') {
+      return true; // Always valid for debt payment
     }
 
     // For cash payment, check if amount paid is filled and sufficient
@@ -163,6 +163,271 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     return baseMethod;
   }
 
+  void _showConfirmationDialog() {
+    // Calculate total payment based on method
+    double totalPayment = 0.0;
+    String paymentMethodText =
+        PaymentConstants.paymentMethods[_selectedPaymentMethod] ?? '';
+
+    if (_selectedPaymentMethod == 'cash') {
+      totalPayment =
+          double.tryParse(
+            _amountPaidController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+          ) ??
+          0.0;
+    } else if (_selectedPaymentMethod == 'bank_transfer') {
+      if (_bankTransferType == 'partial') {
+        final cash =
+            double.tryParse(
+              _cashAmountController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+            ) ??
+            0.0;
+        final transfer =
+            double.tryParse(
+              _transferAmountController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+            ) ??
+            0.0;
+        totalPayment = cash + transfer;
+        paymentMethodText = '$paymentMethodText (Sebagian)';
+      } else {
+        totalPayment = _calculateTotalWithEditedPrices();
+        paymentMethodText = '$paymentMethodText (Penuh)';
+      }
+    }
+
+    final statusText = _paymentStatus == 'lunas' ? 'Lunas' : 'Hutang';
+    final statusColor =
+        _paymentStatus == 'lunas' ? Colors.green : Colors.orange;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  Icons.help_outline,
+                  color: Colors.green.shade600,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Konfirmasi Pembayaran',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Apakah Anda yakin ingin memproses pembayaran ini?',
+                style: TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Item:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          '${widget.itemCount} item',
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Harga:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          'Rp ${_calculateTotalWithEditedPrices().toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Metode Bayar:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          paymentMethodText,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total Bayar:',
+                          style: TextStyle(fontSize: 14),
+                        ),
+                        Text(
+                          'Rp ${totalPayment.toStringAsFixed(0)}',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.green.shade700,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Divider(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Status:', style: TextStyle(fontSize: 14)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            color: statusColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: statusColor),
+                          ),
+                          child: Text(
+                            statusText,
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: statusColor,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _paymentStatus == 'lunas'
+                            ? 'Transaksi akan diselesaikan dan tersimpan'
+                            : 'Transaksi akan disimpan sebagai hutang',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+              },
+              style: OutlinedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                side: BorderSide(color: Colors.grey.shade400),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: Text(
+                'Batal',
+                style: TextStyle(
+                  color: Colors.grey.shade700,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                _handleConfirmPayment(); // Proceed with payment
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green.shade600,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 12,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text(
+                'Ya, Proses',
+                style: TextStyle(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   void _handleConfirmPayment() async {
     if (_isProcessing) return;
 
@@ -197,9 +462,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         }
       }
 
-      // Format tanggal jatuh tempo untuk API
+      // Format tanggal jatuh tempo untuk API (opsional untuk pembayaran hutang)
       String? outstandingReminderDateStr;
-      if (_paymentStatus == 'utang' && _outstandingDueDate != null) {
+      if (_outstandingDueDate != null) {
         outstandingReminderDateStr =
             '${_outstandingDueDate!.year}-${_outstandingDueDate!.month.toString().padLeft(2, '0')}-${_outstandingDueDate!.day.toString().padLeft(2, '0')}';
       }
@@ -885,7 +1150,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Tanggal Jatuh Tempo',
+                                  'Tanggal Jatuh Tempo (Opsional)',
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
@@ -953,7 +1218,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                       child: Text(
                                         _outstandingDueDate != null
                                             ? '${_outstandingDueDate!.day.toString().padLeft(2, '0')}/${_outstandingDueDate!.month.toString().padLeft(2, '0')}/${_outstandingDueDate!.year}'
-                                            : 'Pilih tanggal jatuh tempo',
+                                            : 'Pilih tanggal (opsional)',
                                         style: TextStyle(
                                           fontSize: 14,
                                           color:
@@ -976,18 +1241,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                 ),
                               ),
                             ),
-                            if (_outstandingDueDate == null)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: Text(
-                                  'Tanggal jatuh tempo wajib diisi untuk pembayaran utang',
-                                  style: TextStyle(
-                                    fontSize: 12,
-                                    color: Colors.red.shade600,
-                                    fontStyle: FontStyle.italic,
-                                  ),
-                                ),
-                              ),
                           ],
                         ),
                       ),
@@ -999,132 +1252,136 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
             const SizedBox(height: 16),
 
-            // Payment Method Selection Card
-            Card(
-              elevation: 2,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.teal.shade600,
-                            borderRadius: BorderRadius.circular(8),
+            // Payment Method Selection Card (hide when payment status is 'utang')
+            if (_paymentStatus != 'utang')
+              Card(
+                elevation: 2,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.teal.shade600,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.payment,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                           ),
-                          child: const Icon(
-                            Icons.payment,
-                            color: Colors.white,
-                            size: 20,
+                          const SizedBox(width: 12),
+                          const Text(
+                            'Metode Pembayaran',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
                           ),
-                        ),
-                        const SizedBox(width: 12),
-                        const Text(
-                          'Metode Pembayaran',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
 
-                    // Payment Method Options
-                    Column(
-                      children:
-                          PaymentConstants.paymentMethods.entries.map((entry) {
-                            final String methodKey = entry.key;
-                            final String methodLabel = entry.value;
-                            final bool isSelected =
-                                _selectedPaymentMethod == methodKey;
+                      // Payment Method Options
+                      Column(
+                        children:
+                            PaymentConstants.paymentMethods.entries.map((
+                              entry,
+                            ) {
+                              final String methodKey = entry.key;
+                              final String methodLabel = entry.value;
+                              final bool isSelected =
+                                  _selectedPaymentMethod == methodKey;
 
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 8),
-                              child: InkWell(
-                                onTap: () {
-                                  setState(() {
-                                    _selectedPaymentMethod = methodKey;
-                                    // Clear all input fields when changing payment method
-                                    _amountPaidController.clear();
-                                    _cashAmountController.clear();
-                                    _transferAmountController.clear();
-                                  });
-                                },
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color:
-                                        isSelected
-                                            ? Colors.teal.shade50
-                                            : Colors.grey.shade50,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 8),
+                                child: InkWell(
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedPaymentMethod = methodKey;
+                                      // Clear all input fields when changing payment method
+                                      _amountPaidController.clear();
+                                      _cashAmountController.clear();
+                                      _transferAmountController.clear();
+                                    });
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
                                       color:
                                           isSelected
-                                              ? Colors.teal.shade400
-                                              : Colors.grey.shade300,
-                                      width: isSelected ? 2 : 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        _getPaymentMethodIcon(methodKey),
+                                              ? Colors.teal.shade50
+                                              : Colors.grey.shade50,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
                                         color:
                                             isSelected
-                                                ? Colors.teal.shade600
-                                                : Colors.grey.shade600,
-                                        size: 22,
+                                                ? Colors.teal.shade400
+                                                : Colors.grey.shade300,
+                                        width: isSelected ? 2 : 1,
                                       ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: Text(
-                                          methodLabel,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            fontWeight:
-                                                isSelected
-                                                    ? FontWeight.w600
-                                                    : FontWeight.w500,
-                                            color:
-                                                isSelected
-                                                    ? Colors.teal.shade700
-                                                    : Colors.black87,
-                                          ),
-                                        ),
-                                      ),
-                                      if (isSelected)
+                                    ),
+                                    child: Row(
+                                      children: [
                                         Icon(
-                                          Icons.check_circle,
-                                          color: Colors.teal.shade600,
+                                          _getPaymentMethodIcon(methodKey),
+                                          color:
+                                              isSelected
+                                                  ? Colors.teal.shade600
+                                                  : Colors.grey.shade600,
                                           size: 22,
                                         ),
-                                    ],
+                                        const SizedBox(width: 12),
+                                        Expanded(
+                                          child: Text(
+                                            methodLabel,
+                                            style: TextStyle(
+                                              fontSize: 16,
+                                              fontWeight:
+                                                  isSelected
+                                                      ? FontWeight.w600
+                                                      : FontWeight.w500,
+                                              color:
+                                                  isSelected
+                                                      ? Colors.teal.shade700
+                                                      : Colors.black87,
+                                            ),
+                                          ),
+                                        ),
+                                        if (isSelected)
+                                          Icon(
+                                            Icons.check_circle,
+                                            color: Colors.teal.shade600,
+                                            size: 22,
+                                          ),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            );
-                          }).toList(),
-                    ),
-                  ],
+                              );
+                            }).toList(),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
 
             const SizedBox(height: 16),
 
-            // Bank Transfer Type Selection (only show when bank_transfer is selected)
-            if (_selectedPaymentMethod == 'bank_transfer')
+            // Bank Transfer Type Selection (only show when bank_transfer is selected and payment status is NOT 'utang')
+            if (_selectedPaymentMethod == 'bank_transfer' &&
+                _paymentStatus != 'utang')
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -1325,8 +1582,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
             const SizedBox(height: 16),
 
-            // Cash Amount Input Card (only show for cash payment)
-            if (_selectedPaymentMethod == 'cash')
+            // Cash Amount Input Card (only show for cash payment and payment status is NOT 'utang')
+            if (_selectedPaymentMethod == 'cash' && _paymentStatus != 'utang')
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -1550,9 +1807,10 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                 ),
               ),
 
-            // Payment Amount Details Card (only show for bank_transfer and partial payment)
+            // Payment Amount Details Card (only show for bank_transfer and partial payment and payment status is NOT 'utang')
             if (_selectedPaymentMethod == 'bank_transfer' &&
-                _bankTransferType == 'partial')
+                _bankTransferType == 'partial' &&
+                _paymentStatus != 'utang')
               Card(
                 elevation: 2,
                 shape: RoundedRectangleBorder(
@@ -1922,7 +2180,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                         onPressed:
                             (_isProcessing || !_isPaymentValid)
                                 ? null
-                                : _handleConfirmPayment,
+                                : _showConfirmationDialog,
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               _isPaymentValid

@@ -8,6 +8,8 @@ class TransactionDetailResponse {
   final String productSku;
   final double unitPrice;
   final int quantity;
+  final int returnedQty;
+  final int remainingQty;
   final double totalAmount;
   final dynamic product; // Can be null or Product object
   final ProductVariant? productVariant;
@@ -22,6 +24,8 @@ class TransactionDetailResponse {
     required this.productSku,
     required this.unitPrice,
     required this.quantity,
+    this.returnedQty = 0,
+    this.remainingQty = 0,
     required this.totalAmount,
     this.product,
     this.productVariant,
@@ -38,6 +42,8 @@ class TransactionDetailResponse {
       productSku: json['product_sku'] ?? '',
       unitPrice: (json['unit_price'] ?? 0).toDouble(),
       quantity: json['quantity'] ?? 0,
+      returnedQty: json['returned_qty'] ?? 0,
+      remainingQty: json['remaining_qty'] ?? 0,
       totalAmount: (json['total_amount'] ?? 0).toDouble(),
       product: json['product'],
       productVariant:
@@ -62,6 +68,8 @@ class TransactionDetailResponse {
       'product_sku': productSku,
       'unit_price': unitPrice,
       'quantity': quantity,
+      'returned_qty': returnedQty,
+      'remaining_qty': remainingQty,
       'total_amount': totalAmount,
       'product': product,
       'product_variant': productVariant?.toJson(),
@@ -72,7 +80,7 @@ class TransactionDetailResponse {
 
   @override
   String toString() {
-    return 'TransactionDetailResponse(id: $id, productName: $productName, quantity: $quantity, unitPrice: $unitPrice, totalAmount: $totalAmount)';
+    return 'TransactionDetailResponse(id: $id, productName: $productName, quantity: $quantity, returnedQty: $returnedQty, remainingQty: $remainingQty, unitPrice: $unitPrice, totalAmount: $totalAmount)';
   }
 
   @override
@@ -83,6 +91,8 @@ class TransactionDetailResponse {
         other.productId == productId &&
         other.productVariantId == productVariantId &&
         other.quantity == quantity &&
+        other.returnedQty == returnedQty &&
+        other.remainingQty == remainingQty &&
         other.unitPrice == unitPrice &&
         other.totalAmount == totalAmount;
   }
@@ -93,6 +103,8 @@ class TransactionDetailResponse {
         productId.hashCode ^
         productVariantId.hashCode ^
         quantity.hashCode ^
+        returnedQty.hashCode ^
+        remainingQty.hashCode ^
         unitPrice.hashCode ^
         totalAmount.hashCode;
   }

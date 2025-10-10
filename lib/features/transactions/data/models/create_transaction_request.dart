@@ -30,9 +30,14 @@ class CreateTransactionRequest {
     if (storeId != null) json['store_id'] = storeId;
     if (customerName != null) json['customer_name'] = customerName;
     if (customerPhone != null) json['customer_phone'] = customerPhone;
-    if (payments != null) {
+
+    // Only include payments if status is NOT draft, pending, or outstanding
+    if (payments != null &&
+        status != null &&
+        !['draft', 'pending', 'outstanding'].contains(status!.toLowerCase())) {
       json['payments'] = payments!.map((payment) => payment.toJson()).toList();
     }
+
     if (status != null) json['status'] = status;
     if (notes != null) json['notes'] = notes;
     if (transactionDate != null) json['transaction_date'] = transactionDate;
