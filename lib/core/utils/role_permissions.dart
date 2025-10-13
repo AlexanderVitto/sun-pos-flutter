@@ -136,9 +136,32 @@ class RolePermissions {
     return userHasPermission(user, manageSettings);
   }
 
+  // NEW: Check if user is restricted based on role ID (role ID > 2 = restricted)
+  static bool isRestrictedUser(User? user) {
+    if (user == null) return true;
+
+    // Check if any role has ID > 2
+    return user.roles.every((role) => role.id > 2);
+  }
+
+  // NEW: Check if user has full access (role ID <= 2)
+  static bool hasFullAccess(User? user) {
+    if (user == null) return false;
+
+    // User has full access if ANY role has ID <= 2
+    return user.roles.any((role) => role.id <= 2);
+  }
+
   // Check if user can access dashboard
   static bool canAccessDashboard(List<String> userRoles) {
     return hasPermission(userRoles, accessDashboard);
+  }
+
+  // NEW: Check if user can access dashboard based on User object
+  static bool canAccessDashboardByUser(User? user) {
+    if (user == null) return false;
+    // Restricted users (role ID > 2) can only see limited dashboard
+    return true; // All users can see dashboard, but content is restricted
   }
 
   // Check if user can access POS
@@ -146,9 +169,23 @@ class RolePermissions {
     return hasPermission(userRoles, accessPOS);
   }
 
+  // NEW: Check if user can access POS by User object
+  static bool canAccessPOSByUser(User? user) {
+    if (user == null) return false;
+    // Restricted users cannot access POS
+    return hasFullAccess(user);
+  }
+
   // Check if user can access products
   static bool canAccessProducts(List<String> userRoles) {
     return hasPermission(userRoles, accessProducts);
+  }
+
+  // NEW: Check if user can access products by User object
+  static bool canAccessProductsByUser(User? user) {
+    if (user == null) return false;
+    // Restricted users cannot access product management
+    return hasFullAccess(user);
   }
 
   // Check if user can access reports
@@ -156,9 +193,35 @@ class RolePermissions {
     return hasPermission(userRoles, accessReports);
   }
 
+  // NEW: Check if user can access reports by User object
+  static bool canAccessReportsByUser(User? user) {
+    if (user == null) return false;
+    // Restricted users cannot access reports
+    return hasFullAccess(user);
+  }
+
   // Check if user can access profile
   static bool canAccessProfile(List<String> userRoles) {
     return hasPermission(userRoles, accessProfile);
+  }
+
+  // NEW: Check if user can access profile by User object
+  static bool canAccessProfileByUser(User? user) {
+    // All users can access their profile
+    return user != null;
+  }
+
+  // NEW: Check if user can access pending transactions
+  static bool canAccessPendingTransactionsByUser(User? user) {
+    // All users can access pending transactions
+    return user != null;
+  }
+
+  // NEW: Check if user should see full dashboard or limited dashboard
+  static bool shouldShowFullDashboard(User? user) {
+    if (user == null) return false;
+    // Only users with role ID <= 2 can see full dashboard
+    return hasFullAccess(user);
   }
 
   // Get available bottom navigation items for user

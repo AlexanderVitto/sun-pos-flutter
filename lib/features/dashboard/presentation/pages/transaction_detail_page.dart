@@ -140,61 +140,58 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
         // Parse items from details array (now properly typed)
         if (transactionData.details.isNotEmpty) {
-          items =
-              transactionData.details.map((detail) {
-                return TransactionItemDetail(
-                  id: detail.id,
-                  productId: detail.productId ?? 0,
-                  productVariantId: detail.productVariantId,
-                  productName: detail.productName,
-                  variant: detail.productVariant?.name ?? '',
-                  quantity: detail.quantity,
-                  returnedQty: detail.returnedQty,
-                  remainingQty: detail.remainingQty,
-                  unitPrice: detail.unitPrice,
-                  subtotal: detail.totalAmount,
-                  totalAmount: detail.totalAmount,
-                  product: null, // Not available in typed model
-                  productVariant:
-                      detail.productVariant != null
-                          ? {
-                            'id': detail.productVariant!.id,
-                            'name': detail.productVariant!.name,
-                            'sku': detail.productVariant!.sku,
-                            'price': detail.productVariant!.price,
-                            'stock': detail.productVariant!.stock,
-                          }
-                          : null,
-                  createdAt: detail.createdAt,
-                  updatedAt: detail.updatedAt,
-                );
-              }).toList();
+          items = transactionData.details.map((detail) {
+            return TransactionItemDetail(
+              id: detail.id,
+              productId: detail.productId ?? 0,
+              productVariantId: detail.productVariantId,
+              productName: detail.productName,
+              variant: detail.productVariant?.name ?? '',
+              quantity: detail.quantity,
+              returnedQty: detail.returnedQty,
+              remainingQty: detail.remainingQty,
+              unitPrice: detail.unitPrice,
+              subtotal: detail.totalAmount,
+              totalAmount: detail.totalAmount,
+              product: null, // Not available in typed model
+              productVariant: detail.productVariant != null
+                  ? {
+                      'id': detail.productVariant!.id,
+                      'name': detail.productVariant!.name,
+                      'sku': detail.productVariant!.sku,
+                      'price': detail.productVariant!.price,
+                      'stock': detail.productVariant!.stock,
+                    }
+                  : null,
+              createdAt: detail.createdAt,
+              updatedAt: detail.updatedAt,
+            );
+          }).toList();
         }
 
         // Store payment histories for later use
         _paymentHistories = transactionData.paymentHistories;
 
-        _cartItems =
-            items.map((item) {
-              // Create a mock product based on transaction item
-              final product = Product(
-                id: item.product?['id'] ?? item.id,
-                name: item.product?['name'] ?? item.productName,
-                price: item.unitPrice,
-                productVariantId: item.productVariantId ?? 0,
+        _cartItems = items.map((item) {
+          // Create a mock product based on transaction item
+          final product = Product(
+            id: item.product?['id'] ?? item.id,
+            name: item.product?['name'] ?? item.productName,
+            price: item.unitPrice,
+            productVariantId: item.productVariantId ?? 0,
 
-                // Add other required fields with mock or default values
-                description: '',
-                stock: 0,
-                category: '',
-              );
-              return CartItem(
-                id: item.id,
-                product: product,
-                quantity: item.quantity,
-                addedAt: item.createdAt,
-              );
-            }).toList();
+            // Add other required fields with mock or default values
+            description: '',
+            stock: 0,
+            category: '',
+          );
+          return CartItem(
+            id: item.id,
+            product: product,
+            quantity: item.quantity,
+            addedAt: item.createdAt,
+          );
+        }).toList();
       }
 
       setState(() {
@@ -838,23 +835,21 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     );
 
     final paymentDateTime = DateTime.tryParse(payment.paymentDate);
-    final formattedDate =
-        paymentDateTime != null
-            ? DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(paymentDateTime)
-            : payment.paymentDate;
+    final formattedDate = paymentDateTime != null
+        ? DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(paymentDateTime)
+        : payment.paymentDate;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        border:
-            isLast
-                ? null
-                : Border(
-                  bottom: BorderSide(
-                    color: const Color(0xFFE5E7EB).withValues(alpha: 0.5),
-                    width: 1,
-                  ),
+        border: isLast
+            ? null
+            : Border(
+                bottom: BorderSide(
+                  color: const Color(0xFFE5E7EB).withValues(alpha: 0.5),
+                  width: 1,
                 ),
+              ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1087,15 +1082,14 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        border:
-            isLast
-                ? null
-                : Border(
-                  bottom: BorderSide(
-                    color: const Color(0xFFE5E7EB).withValues(alpha: 0.5),
-                    width: 1,
-                  ),
+        border: isLast
+            ? null
+            : Border(
+                bottom: BorderSide(
+                  color: const Color(0xFFE5E7EB).withValues(alpha: 0.5),
+                  width: 1,
                 ),
+              ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1308,7 +1302,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           children: [
             Expanded(
               child: ElevatedButton.icon(
-                onPressed: () => _navigateToPayOutstanding(),
+                onPressed: () => status == 'outstanding'
+                    ? _navigateToPayOutstanding()
+                    : _showCompleteTransactionDialog(context),
                 icon: Icon(
                   status == 'outstanding'
                       ? LucideIcons.dollarSign
@@ -1321,10 +1317,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                       : 'Selesaikan Transaksi',
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      status == 'outstanding'
-                          ? const Color(0xFFEA580C)
-                          : const Color(0xFF059669),
+                  backgroundColor: status == 'outstanding'
+                      ? const Color(0xFFEA580C)
+                      : const Color(0xFF059669),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
@@ -1425,14 +1420,14 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) => PaymentConfirmationPage(
-              cartItems: _cartItems ?? [],
-              totalAmount: transaction.totalAmount,
-              itemCount: _cartItems?.length ?? 0,
-              notesController: notesController,
-              selectedCustomer: selectedCustomer,
-              onConfirm: (
+        builder: (context) => PaymentConfirmationPage(
+          cartItems: _cartItems ?? [],
+          totalAmount: transaction.totalAmount,
+          itemCount: _cartItems?.length ?? 0,
+          notesController: notesController,
+          selectedCustomer: selectedCustomer,
+          onConfirm:
+              (
                 customerName,
                 customerPhone,
                 paymentMethod,
@@ -1456,7 +1451,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                   updatedTotalAmount: updatedTotalAmount,
                 );
               },
-            ),
+        ),
       ),
     );
   }
@@ -1578,30 +1573,25 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           // Navigate to PaymentSuccessPage instead of just going back
           navigator.pushReplacement(
             MaterialPageRoute(
-              builder:
-                  (context) => PaymentSuccessPage(
-                    paymentMethod:
-                        paymentMethod ??
-                        (_paymentHistories != null &&
-                                _paymentHistories!.isNotEmpty
-                            ? _paymentHistories!.first.paymentMethod
-                            : 'cash'),
-                    amountPaid: transaction.totalAmount,
-                    totalAmount: updatedTotalAmount ?? transaction.totalAmount,
-                    transactionNumber: transaction.transactionNumber,
-                    store: transaction.store,
-                    cartItems: cartItemsToUpdate,
-                    notes: notes ?? transaction.notes,
-                    user:
-                        Provider.of<AuthProvider>(context, listen: false).user,
-                    status:
-                        paymentStatus == 'utang' ? 'outstanding' : 'completed',
-                    dueDate:
-                        paymentStatus == 'utang' &&
-                                outstandingReminderDate != null
-                            ? DateTime.tryParse(outstandingReminderDate)
-                            : null,
-                  ),
+              builder: (context) => PaymentSuccessPage(
+                paymentMethod:
+                    paymentMethod ??
+                    (_paymentHistories != null && _paymentHistories!.isNotEmpty
+                        ? _paymentHistories!.first.paymentMethod
+                        : 'cash'),
+                amountPaid: transaction.totalAmount,
+                totalAmount: updatedTotalAmount ?? transaction.totalAmount,
+                transactionNumber: transaction.transactionNumber,
+                store: transaction.store,
+                cartItems: cartItemsToUpdate,
+                notes: notes ?? transaction.notes,
+                user: Provider.of<AuthProvider>(context, listen: false).user,
+                status: paymentStatus == 'utang' ? 'outstanding' : 'completed',
+                dueDate:
+                    paymentStatus == 'utang' && outstandingReminderDate != null
+                    ? DateTime.tryParse(outstandingReminderDate)
+                    : null,
+              ),
             ),
           );
         }
@@ -1690,28 +1680,26 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     if (_cartItems != null && _cartItems!.isNotEmpty) {
       receiptItems = _cartItems!;
     } else if (_transactionItems != null && _transactionItems!.isNotEmpty) {
-      receiptItems =
-          _transactionItems!.map((item) {
-            final product = Product(
-              id: item.productId,
-              name: item.productName,
-              code: item.productId.toString(),
-              description:
-                  item.variant.isNotEmpty
-                      ? 'Variant: ${item.variant}'
-                      : 'Item transaksi',
-              price: item.unitPrice,
-              stock: 1,
-              category: 'General',
-            );
+      receiptItems = _transactionItems!.map((item) {
+        final product = Product(
+          id: item.productId,
+          name: item.productName,
+          code: item.productId.toString(),
+          description: item.variant.isNotEmpty
+              ? 'Variant: ${item.variant}'
+              : 'Item transaksi',
+          price: item.unitPrice,
+          stock: 1,
+          category: 'General',
+        );
 
-            return CartItem(
-              id: item.id,
-              product: product,
-              quantity: item.quantity,
-              addedAt: item.createdAt,
-            );
-          }).toList();
+        return CartItem(
+          id: item.id,
+          product: product,
+          quantity: item.quantity,
+          addedAt: item.createdAt,
+        );
+      }).toList();
     } else {
       // Fallback: buat placeholder items berdasarkan total dan jumlah item
       if (transaction.detailsCount > 0) {
@@ -1740,25 +1728,24 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) => ReceiptPage(
-              receiptId: transaction.transactionNumber,
-              transactionDate: transaction.transactionDate,
-              items: receiptItems,
-              store: transaction.store,
-              user: transaction.user,
-              subtotal: transaction.totalAmount,
-              discount: 0.0,
-              total: transaction.totalAmount,
-              paymentMethod: _getPaymentMethodText(
-                _paymentHistories != null && _paymentHistories!.isNotEmpty
-                    ? _paymentHistories!.first.paymentMethod
-                    : 'cash',
-              ),
-              notes: transaction.notes,
-              status: transaction.status,
-              dueDate: transaction.outstandingReminderDate,
-            ),
+        builder: (context) => ReceiptPage(
+          receiptId: transaction.transactionNumber,
+          transactionDate: transaction.transactionDate,
+          items: receiptItems,
+          store: transaction.store,
+          user: transaction.user,
+          subtotal: transaction.totalAmount,
+          discount: 0.0,
+          total: transaction.totalAmount,
+          paymentMethod: _getPaymentMethodText(
+            _paymentHistories != null && _paymentHistories!.isNotEmpty
+                ? _paymentHistories!.first.paymentMethod
+                : 'cash',
+          ),
+          notes: transaction.notes,
+          status: transaction.status,
+          dueDate: transaction.outstandingReminderDate,
+        ),
       ),
     );
   }
@@ -1826,8 +1813,8 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => PayOutstandingPage(transaction: _transactionData!),
+        builder: (context) =>
+            PayOutstandingPage(transaction: _transactionData!),
       ),
     );
 

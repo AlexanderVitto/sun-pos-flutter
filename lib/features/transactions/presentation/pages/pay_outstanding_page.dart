@@ -8,6 +8,9 @@ import '../../../transactions/data/models/payment_history.dart';
 import '../../../transactions/data/services/transaction_api_service.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../../core/constants/payment_constants.dart';
+import '../../../sales/presentation/pages/receipt_page.dart';
+import '../../../../data/models/cart_item.dart';
+import '../../../../data/models/product.dart';
 
 class PayOutstandingPage extends StatefulWidget {
   final TransactionData transaction;
@@ -89,27 +92,28 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
 
     if (_isProcessing) return;
 
+    // Cache BuildContext-dependent values before async
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final userId = authProvider.user?.id ?? 0;
+
     // Show confirmation dialog
     final confirm = await _showConfirmationDialog();
     if (!confirm) return;
+    if (!mounted) return;
 
     setState(() {
       _isProcessing = true;
     });
 
     try {
-      final authProvider = Provider.of<AuthProvider>(context, listen: false);
-      final userId = authProvider.user?.id ?? 0;
-
       // Create new payment object
       final newPayment = {
         'payment_method': _selectedPaymentMethod,
         'amount': _inputAmount,
         'payment_date': DateTime.now().toIso8601String(),
-        'notes':
-            _notesController.text.trim().isEmpty
-                ? null
-                : _notesController.text.trim(),
+        'notes': _notesController.text.trim().isEmpty
+            ? null
+            : _notesController.text.trim(),
         'user_id': userId,
       };
 
@@ -142,8 +146,10 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
       // Include outstandingReminderDate if status is still outstanding
       if (newStatus == 'outstanding' &&
           widget.transaction.outstandingReminderDate != null) {
-        requestBody['outstanding_reminder_date'] =
-            widget.transaction.outstandingReminderDate!.toIso8601String();
+        requestBody['outstanding_reminder_date'] = widget
+            .transaction
+            .outstandingReminderDate!
+            .toIso8601String();
       }
 
       // Call API to update transaction
@@ -154,30 +160,8 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
 
       if (!mounted) return;
 
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(LucideIcons.checkCircle, color: Colors.white),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  newStatus == 'completed'
-                      ? 'Pembayaran berhasil! Transaksi telah lunas'
-                      : 'Pembayaran berhasil! Sisa utang: ${NumberFormat.currency(locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0).format(newOutstanding)}',
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        ),
-      );
-
-      // Return true to indicate success
-      Navigator.of(context).pop(true);
+      // Navigate to receipt page
+      _navigateToReceipt(newStatus, newTotalPaid, newOutstanding);
     } catch (e) {
       if (!mounted) return;
 
@@ -304,10 +288,9 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color:
-                      willBeCompleted
-                          ? Colors.green.shade50
-                          : Colors.blue.shade50,
+                  color: willBeCompleted
+                      ? Colors.green.shade50
+                      : Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -316,10 +299,9 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
                       willBeCompleted
                           ? LucideIcons.checkCircle
                           : LucideIcons.info,
-                      color:
-                          willBeCompleted
-                              ? Colors.green.shade700
-                              : Colors.blue.shade700,
+                      color: willBeCompleted
+                          ? Colors.green.shade700
+                          : Colors.blue.shade700,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
@@ -330,10 +312,9 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
                             : 'Pembayaran akan ditambahkan ke riwayat pembayaran',
                         style: TextStyle(
                           fontSize: 13,
-                          color:
-                              willBeCompleted
-                                  ? Colors.green.shade700
-                                  : Colors.blue.shade700,
+                          color: willBeCompleted
+                              ? Colors.green.shade700
+                              : Colors.blue.shade700,
                         ),
                       ),
                     ),
@@ -734,23 +715,21 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
     NumberFormat currencyFormat,
   ) {
     final paymentDate = DateTime.tryParse(payment.paymentDate);
-    final formattedDate =
-        paymentDate != null
-            ? DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(paymentDate)
-            : payment.paymentDate;
+    final formattedDate = paymentDate != null
+        ? DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(paymentDate)
+        : payment.paymentDate;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        border:
-            isLast
-                ? null
-                : Border(
-                  bottom: BorderSide(
-                    color: const Color(0xFFE5E7EB).withValues(alpha: 0.5),
-                    width: 1,
-                  ),
+        border: isLast
+            ? null
+            : Border(
+                bottom: BorderSide(
+                  color: const Color(0xFFE5E7EB).withValues(alpha: 0.5),
+                  width: 1,
                 ),
+              ),
       ),
       child: Row(
         children: [
@@ -863,35 +842,31 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children:
-                PaymentConstants.paymentMethods.entries.map((entry) {
-                  final isSelected = _selectedPaymentMethod == entry.key;
-                  return ChoiceChip(
-                    label: Text(entry.value),
-                    selected: isSelected,
-                    onSelected: (selected) {
-                      setState(() {
-                        _selectedPaymentMethod = entry.key;
-                      });
-                    },
-                    selectedColor: const Color(0xFF10B981),
-                    backgroundColor: Colors.white,
-                    side: BorderSide(
-                      color:
-                          isSelected
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFFE5E7EB),
-                      width: 1,
-                    ),
-                    labelStyle: TextStyle(
-                      color:
-                          isSelected ? Colors.white : const Color(0xFF6B7280),
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.normal,
-                    ),
-                    showCheckmark: false,
-                  );
-                }).toList(),
+            children: PaymentConstants.paymentMethods.entries.map((entry) {
+              final isSelected = _selectedPaymentMethod == entry.key;
+              return ChoiceChip(
+                label: Text(entry.value),
+                selected: isSelected,
+                onSelected: (selected) {
+                  setState(() {
+                    _selectedPaymentMethod = entry.key;
+                  });
+                },
+                selectedColor: const Color(0xFF10B981),
+                backgroundColor: Colors.white,
+                side: BorderSide(
+                  color: isSelected
+                      ? const Color(0xFF10B981)
+                      : const Color(0xFFE5E7EB),
+                  width: 1,
+                ),
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF6B7280),
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                ),
+                showCheckmark: false,
+              );
+            }).toList(),
           ),
           const SizedBox(height: 24),
 
@@ -990,8 +965,9 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: ElevatedButton(
-            onPressed:
-                _isProcessing || !_isPaymentValid ? null : _submitPayment,
+            onPressed: _isProcessing || !_isPaymentValid
+                ? null
+                : _submitPayment,
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF10B981),
               foregroundColor: Colors.white,
@@ -1003,33 +979,98 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
-            child:
-                _isProcessing
-                    ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                        color: Colors.white,
-                        strokeWidth: 2,
-                      ),
-                    )
-                    : Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(LucideIcons.checkCircle, size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          _inputAmount >= _outstandingAmount
-                              ? 'Bayar & Selesaikan'
-                              : 'Proses Pembayaran',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+            child: _isProcessing
+                ? const SizedBox(
+                    height: 20,
+                    width: 20,
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
                     ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(LucideIcons.checkCircle, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        _inputAmount >= _outstandingAmount
+                            ? 'Bayar & Selesaikan'
+                            : 'Proses Pembayaran',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToReceipt(
+    String newStatus,
+    double newTotalPaid,
+    double newOutstanding,
+  ) {
+    final currencyFormat = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+
+    // Convert transaction details to cart items for receipt
+    final cartItems = widget.transaction.details.map((detail) {
+      final product = Product(
+        id: detail.productId ?? 0,
+        name: detail.productName,
+        price: detail.unitPrice,
+        productVariantId: detail.productVariantId,
+        description: detail.productVariant?.name ?? '',
+        stock: 0,
+        category: '',
+      );
+
+      return CartItem(
+        id: detail.id,
+        product: product,
+        quantity: detail.quantity,
+        addedAt: detail.createdAt,
+      );
+    }).toList();
+
+    // Prepare notes with payment info
+    String receiptNotes =
+        'Pembayaran Utang: ${currencyFormat.format(_inputAmount)}';
+    if (newStatus == 'outstanding') {
+      receiptNotes += '\nSisa Utang: ${currencyFormat.format(newOutstanding)}';
+    } else {
+      receiptNotes += '\nStatus: LUNAS';
+    }
+    if (_notesController.text.trim().isNotEmpty) {
+      receiptNotes += '\nCatatan: ${_notesController.text.trim()}';
+    }
+
+    // Navigate to receipt page
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (context) => ReceiptPage(
+          receiptId: widget.transaction.transactionNumber,
+          transactionDate: widget.transaction.transactionDate,
+          items: cartItems,
+          store: widget.transaction.store,
+          user: widget.transaction.user, // Use transaction user to match type
+          subtotal: widget.transaction.totalAmount,
+          discount: 0.0,
+          total: widget.transaction.totalAmount,
+          paymentMethod: _selectedPaymentMethod,
+          notes: receiptNotes,
+          status: newStatus,
+          dueDate: newStatus == 'outstanding'
+              ? widget.transaction.outstandingReminderDate
+              : null,
         ),
       ),
     );

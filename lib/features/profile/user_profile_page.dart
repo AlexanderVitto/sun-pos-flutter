@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../auth/providers/auth_provider.dart';
-import '../auth/presentation/pages/change_password_page.dart';
 import '../../core/theme/app_theme.dart';
 
 class UserProfilePage extends StatefulWidget {
@@ -51,11 +50,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
                             // Quick Actions
                             _buildQuickActions(context, authProvider),
-
-                            const SizedBox(height: AppTheme.spacingXLarge),
-
-                            // Account Settings
-                            _buildAccountSettings(context),
 
                             const SizedBox(height: AppTheme.spacingXXLarge),
                           ],
@@ -256,30 +250,29 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     if (user.roleNames != null && user.roleNames!.isNotEmpty)
                       Wrap(
                         spacing: 8,
-                        children:
-                            user.roleNames!.map<Widget>((role) {
-                              return Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 8,
-                                  vertical: 4,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppTheme.primaryGreen.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                  borderRadius: BorderRadius.circular(
-                                    AppTheme.radiusSmall,
-                                  ),
-                                ),
-                                child: Text(
-                                  role.toString().toUpperCase(),
-                                  style: AppTheme.caption.copyWith(
-                                    color: AppTheme.primaryGreen,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              );
-                            }).toList(),
+                        children: user.roleNames!.map<Widget>((role) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryGreen.withValues(
+                                alpha: 0.1,
+                              ),
+                              borderRadius: BorderRadius.circular(
+                                AppTheme.radiusSmall,
+                              ),
+                            ),
+                            child: Text(
+                              role.toString().toUpperCase(),
+                              style: AppTheme.caption.copyWith(
+                                color: AppTheme.primaryGreen,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                   ],
                 ),
@@ -300,19 +293,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
       //   'color': AppTheme.primaryAmber,
       //   'onTap': () => _navigateToChangePassword(context),
       // },
-      {
-        'title': 'Edit Profil',
-        'subtitle': 'Ubah informasi profil',
-        'icon': LucideIcons.edit,
-        'color': AppTheme.primaryBlue,
-        'onTap': () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Fitur edit profil akan segera tersedia'),
-            ),
-          );
-        },
-      },
       // {
       //   'title': 'Refresh Data',
       //   'subtitle': 'Perbarui informasi profil',
@@ -342,8 +322,9 @@ class _UserProfilePageState extends State<UserProfilePage> {
           crossAxisSpacing: AppTheme.spacingMedium,
           mainAxisSpacing: AppTheme.spacingMedium,
           childAspectRatio: 1.2,
-          children:
-              quickActions.map((action) => _buildActionCard(action)).toList(),
+          children: quickActions
+              .map((action) => _buildActionCard(action))
+              .toList(),
         ),
       ],
     );
@@ -396,116 +377,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  Widget _buildAccountSettings(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingLarge),
-      decoration: AppTheme.cardDecoration,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Pengaturan Akun', style: AppTheme.headingSmall),
-
-          const SizedBox(height: AppTheme.spacingMedium),
-
-          // _buildSettingItem(
-          //   icon: LucideIcons.bell,
-          //   title: 'Notifikasi',
-          //   subtitle: 'Kelola notifikasi aplikasi',
-          //   onTap: () {
-          //     ScaffoldMessenger.of(context).showSnackBar(
-          //       const SnackBar(
-          //         content: Text('Fitur notifikasi akan segera tersedia'),
-          //       ),
-          //     );
-          //   },
-          // ),
-
-          // const Divider(height: 32),
-          _buildSettingItem(
-            icon: LucideIcons.shield,
-            title: 'Keamanan',
-            subtitle: 'Pengaturan keamanan akun',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Fitur keamanan akan segera tersedia'),
-                ),
-              );
-            },
-          ),
-
-          const Divider(height: 32),
-
-          _buildSettingItem(
-            icon: LucideIcons.helpCircle,
-            title: 'Bantuan',
-            subtitle: 'Pusat bantuan dan FAQ',
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Fitur bantuan akan segera tersedia'),
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSettingItem({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(AppTheme.spacingMedium),
-          child: Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryIndigo.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusSmall),
-                ),
-                child: Icon(icon, color: AppTheme.primaryIndigo, size: 20),
-              ),
-
-              const SizedBox(width: AppTheme.spacingMedium),
-
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      title,
-                      style: AppTheme.bodyLarge.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(subtitle, style: AppTheme.bodySmall),
-                  ],
-                ),
-              ),
-
-              Icon(
-                LucideIcons.chevronRight,
-                color: AppTheme.textTertiary,
-                size: 20,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   Future<void> _refreshProfile() async {
     if (_isRefreshing) return;
 
@@ -539,13 +410,6 @@ class _UserProfilePageState extends State<UserProfilePage> {
         });
       }
     }
-  }
-
-  void _navigateToChangePassword(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ChangePasswordPage()),
-    );
   }
 
   void _handleLogout(BuildContext context, AuthProvider authProvider) async {

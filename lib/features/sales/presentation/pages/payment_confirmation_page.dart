@@ -196,8 +196,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     }
 
     final statusText = _paymentStatus == 'lunas' ? 'Lunas' : 'Hutang';
-    final statusColor =
-        _paymentStatus == 'lunas' ? Colors.green : Colors.orange;
+    final statusColor = _paymentStatus == 'lunas'
+        ? Colors.green
+        : Colors.orange;
 
     showDialog(
       context: context,
@@ -470,16 +471,15 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
       }
 
       // Create updated cart items with edited prices
-      final updatedCartItems =
-          widget.cartItems.map((item) {
-            final editedPrice = _editedPrices[item.id];
-            if (editedPrice != null && editedPrice != item.product.price) {
-              // Create new product with updated price
-              final updatedProduct = item.product.copyWith(price: editedPrice);
-              return item.copyWith(product: updatedProduct);
-            }
-            return item;
-          }).toList();
+      final updatedCartItems = widget.cartItems.map((item) {
+        final editedPrice = _editedPrices[item.id];
+        if (editedPrice != null && editedPrice != item.product.price) {
+          // Create new product with updated price
+          final updatedProduct = item.product.copyWith(price: editedPrice);
+          return item.copyWith(product: updatedProduct);
+        }
+        return item;
+      }).toList();
 
       // Calculate updated total amount
       final updatedTotalAmount = updatedCartItems.fold<double>(
@@ -587,8 +587,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: widget.cartItems.length,
-                      separatorBuilder:
-                          (context, index) => const Divider(height: 20),
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 20),
                       itemBuilder: (context, index) {
                         final item = widget.cartItems[index];
                         return Row(
@@ -606,22 +606,22 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                 borderRadius: BorderRadius.circular(12),
                                 child:
                                     item.product.imagePath?.isNotEmpty == true
-                                        ? Image.network(
-                                          item.product.imagePath!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  Icon(
-                                                    Icons.image_not_supported,
-                                                    color: Colors.grey.shade400,
-                                                    size: 24,
-                                                  ),
-                                        )
-                                        : Icon(
-                                          Icons.shopping_bag,
-                                          color: Colors.grey.shade400,
-                                          size: 24,
-                                        ),
+                                    ? Image.network(
+                                        item.product.imagePath!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Icon(
+                                                  Icons.image_not_supported,
+                                                  color: Colors.grey.shade400,
+                                                  size: 24,
+                                                ),
+                                      )
+                                    : Icon(
+                                        Icons.shopping_bag,
+                                        color: Colors.grey.shade400,
+                                        size: 24,
+                                      ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -983,16 +983,14 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color:
-                              _paymentStatus == 'lunas'
-                                  ? Colors.green.shade50
-                                  : Colors.white,
+                          color: _paymentStatus == 'lunas'
+                              ? Colors.green.shade50
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color:
-                                _paymentStatus == 'lunas'
-                                    ? Colors.green.shade400
-                                    : Colors.grey.shade300,
+                            color: _paymentStatus == 'lunas'
+                                ? Colors.green.shade400
+                                : Colors.grey.shade300,
                             width: _paymentStatus == 'lunas' ? 2 : 1,
                           ),
                         ),
@@ -1000,10 +998,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           children: [
                             Icon(
                               Icons.check_circle,
-                              color:
-                                  _paymentStatus == 'lunas'
-                                      ? Colors.green.shade600
-                                      : Colors.grey.shade600,
+                              color: _paymentStatus == 'lunas'
+                                  ? Colors.green.shade600
+                                  : Colors.grey.shade600,
                               size: 22,
                             ),
                             const SizedBox(width: 12),
@@ -1015,14 +1012,12 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                     'Lunas',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      fontWeight:
-                                          _paymentStatus == 'lunas'
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                      color:
-                                          _paymentStatus == 'lunas'
-                                              ? Colors.green.shade700
-                                              : Colors.black87,
+                                      fontWeight: _paymentStatus == 'lunas'
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                      color: _paymentStatus == 'lunas'
+                                          ? Colors.green.shade700
+                                          : Colors.black87,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -1054,6 +1049,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                       onTap: () {
                         setState(() {
                           _paymentStatus = 'utang';
+                          // Automatically set due date to current date/time
+                          _outstandingDueDate = DateTime.now();
                         });
                       },
                       borderRadius: BorderRadius.circular(12),
@@ -1061,16 +1058,14 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                         width: double.infinity,
                         padding: const EdgeInsets.all(16),
                         decoration: BoxDecoration(
-                          color:
-                              _paymentStatus == 'utang'
-                                  ? Colors.orange.shade50
-                                  : Colors.white,
+                          color: _paymentStatus == 'utang'
+                              ? Colors.orange.shade50
+                              : Colors.white,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color:
-                                _paymentStatus == 'utang'
-                                    ? Colors.orange.shade400
-                                    : Colors.grey.shade300,
+                            color: _paymentStatus == 'utang'
+                                ? Colors.orange.shade400
+                                : Colors.grey.shade300,
                             width: _paymentStatus == 'utang' ? 2 : 1,
                           ),
                         ),
@@ -1078,10 +1073,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           children: [
                             Icon(
                               Icons.schedule,
-                              color:
-                                  _paymentStatus == 'utang'
-                                      ? Colors.orange.shade600
-                                      : Colors.grey.shade600,
+                              color: _paymentStatus == 'utang'
+                                  ? Colors.orange.shade600
+                                  : Colors.grey.shade600,
                               size: 22,
                             ),
                             const SizedBox(width: 12),
@@ -1093,14 +1087,12 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                     'Utang',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      fontWeight:
-                                          _paymentStatus == 'utang'
-                                              ? FontWeight.w600
-                                              : FontWeight.w500,
-                                      color:
-                                          _paymentStatus == 'utang'
-                                              ? Colors.orange.shade700
-                                              : Colors.black87,
+                                      fontWeight: _paymentStatus == 'utang'
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                      color: _paymentStatus == 'utang'
+                                          ? Colors.orange.shade700
+                                          : Colors.black87,
                                     ),
                                   ),
                                   const SizedBox(height: 2),
@@ -1125,126 +1117,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                       ),
                     ),
 
-                    // Due Date Picker (show only when utang is selected)
-                    if (_paymentStatus == 'utang') ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.shade50,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: Colors.orange.shade200,
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.calendar_today,
-                                  color: Colors.orange.shade600,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Tanggal Jatuh Tempo (Opsional)',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.orange.shade700,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 12),
-                            InkWell(
-                              onTap: () async {
-                                final DateTime? pickedDate =
-                                    await showDatePicker(
-                                      context: context,
-                                      initialDate:
-                                          _outstandingDueDate ??
-                                          DateTime.now().add(
-                                            const Duration(days: 7),
-                                          ),
-                                      firstDate: DateTime.now(),
-                                      lastDate: DateTime.now().add(
-                                        const Duration(days: 365),
-                                      ),
-                                      builder: (context, child) {
-                                        return Theme(
-                                          data: Theme.of(context).copyWith(
-                                            colorScheme: ColorScheme.light(
-                                              primary: Colors.orange.shade600,
-                                              onPrimary: Colors.white,
-                                              surface: Colors.white,
-                                              onSurface: Colors.black87,
-                                            ),
-                                          ),
-                                          child: child!,
-                                        );
-                                      },
-                                    );
-                                if (pickedDate != null) {
-                                  setState(() {
-                                    _outstandingDueDate = pickedDate;
-                                  });
-                                }
-                              },
-                              borderRadius: BorderRadius.circular(8),
-                              child: Container(
-                                width: double.infinity,
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                  border: Border.all(
-                                    color: Colors.orange.shade300,
-                                    width: 1,
-                                  ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.date_range,
-                                      color: Colors.orange.shade600,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        _outstandingDueDate != null
-                                            ? '${_outstandingDueDate!.day.toString().padLeft(2, '0')}/${_outstandingDueDate!.month.toString().padLeft(2, '0')}/${_outstandingDueDate!.year}'
-                                            : 'Pilih tanggal (opsional)',
-                                        style: TextStyle(
-                                          fontSize: 14,
-                                          color:
-                                              _outstandingDueDate != null
-                                                  ? Colors.black87
-                                                  : Colors.grey.shade600,
-                                          fontWeight:
-                                              _outstandingDueDate != null
-                                                  ? FontWeight.w500
-                                                  : FontWeight.normal,
-                                        ),
-                                      ),
-                                    ),
-                                    Icon(
-                                      Icons.keyboard_arrow_down,
-                                      color: Colors.orange.shade600,
-                                      size: 20,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                    // Note: Due date is automatically set to DateTime.now() when "Utang" is selected
+                    // No need for user input
                   ],
                 ),
               ),
@@ -1293,84 +1167,78 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
                       // Payment Method Options
                       Column(
-                        children:
-                            PaymentConstants.paymentMethods.entries.map((
-                              entry,
-                            ) {
-                              final String methodKey = entry.key;
-                              final String methodLabel = entry.value;
-                              final bool isSelected =
-                                  _selectedPaymentMethod == methodKey;
+                        children: PaymentConstants.paymentMethods.entries.map((
+                          entry,
+                        ) {
+                          final String methodKey = entry.key;
+                          final String methodLabel = entry.value;
+                          final bool isSelected =
+                              _selectedPaymentMethod == methodKey;
 
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: InkWell(
-                                  onTap: () {
-                                    setState(() {
-                                      _selectedPaymentMethod = methodKey;
-                                      // Clear all input fields when changing payment method
-                                      _amountPaidController.clear();
-                                      _cashAmountController.clear();
-                                      _transferAmountController.clear();
-                                    });
-                                  },
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _selectedPaymentMethod = methodKey;
+                                  // Clear all input fields when changing payment method
+                                  _amountPaidController.clear();
+                                  _cashAmountController.clear();
+                                  _transferAmountController.clear();
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(12),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: isSelected
+                                      ? Colors.teal.shade50
+                                      : Colors.grey.shade50,
                                   borderRadius: BorderRadius.circular(12),
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color:
-                                          isSelected
-                                              ? Colors.teal.shade50
-                                              : Colors.grey.shade50,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color:
-                                            isSelected
-                                                ? Colors.teal.shade400
-                                                : Colors.grey.shade300,
-                                        width: isSelected ? 2 : 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          _getPaymentMethodIcon(methodKey),
-                                          color:
-                                              isSelected
-                                                  ? Colors.teal.shade600
-                                                  : Colors.grey.shade600,
-                                          size: 22,
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            methodLabel,
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight:
-                                                  isSelected
-                                                      ? FontWeight.w600
-                                                      : FontWeight.w500,
-                                              color:
-                                                  isSelected
-                                                      ? Colors.teal.shade700
-                                                      : Colors.black87,
-                                            ),
-                                          ),
-                                        ),
-                                        if (isSelected)
-                                          Icon(
-                                            Icons.check_circle,
-                                            color: Colors.teal.shade600,
-                                            size: 22,
-                                          ),
-                                      ],
-                                    ),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? Colors.teal.shade400
+                                        : Colors.grey.shade300,
+                                    width: isSelected ? 2 : 1,
                                   ),
                                 ),
-                              );
-                            }).toList(),
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      _getPaymentMethodIcon(methodKey),
+                                      color: isSelected
+                                          ? Colors.teal.shade600
+                                          : Colors.grey.shade600,
+                                      size: 22,
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        methodLabel,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: isSelected
+                                              ? FontWeight.w600
+                                              : FontWeight.w500,
+                                          color: isSelected
+                                              ? Colors.teal.shade700
+                                              : Colors.black87,
+                                        ),
+                                      ),
+                                    ),
+                                    if (isSelected)
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.teal.shade600,
+                                        size: 22,
+                                      ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
                     ],
                   ),
@@ -1434,16 +1302,14 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color:
-                                _bankTransferType == 'full'
-                                    ? Colors.indigo.shade50
-                                    : Colors.grey.shade50,
+                            color: _bankTransferType == 'full'
+                                ? Colors.indigo.shade50
+                                : Colors.grey.shade50,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color:
-                                  _bankTransferType == 'full'
-                                      ? Colors.indigo.shade400
-                                      : Colors.grey.shade300,
+                              color: _bankTransferType == 'full'
+                                  ? Colors.indigo.shade400
+                                  : Colors.grey.shade300,
                               width: _bankTransferType == 'full' ? 2 : 1,
                             ),
                           ),
@@ -1451,10 +1317,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                             children: [
                               Icon(
                                 Icons.payment,
-                                color:
-                                    _bankTransferType == 'full'
-                                        ? Colors.indigo.shade600
-                                        : Colors.grey.shade600,
+                                color: _bankTransferType == 'full'
+                                    ? Colors.indigo.shade600
+                                    : Colors.grey.shade600,
                                 size: 22,
                               ),
                               const SizedBox(width: 12),
@@ -1466,14 +1331,12 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                       'Bayar Penuh',
                                       style: TextStyle(
                                         fontSize: 16,
-                                        fontWeight:
-                                            _bankTransferType == 'full'
-                                                ? FontWeight.w600
-                                                : FontWeight.w500,
-                                        color:
-                                            _bankTransferType == 'full'
-                                                ? Colors.indigo.shade700
-                                                : Colors.black87,
+                                        fontWeight: _bankTransferType == 'full'
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: _bankTransferType == 'full'
+                                            ? Colors.indigo.shade700
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -1512,16 +1375,14 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color:
-                                _bankTransferType == 'partial'
-                                    ? Colors.indigo.shade50
-                                    : Colors.grey.shade50,
+                            color: _bankTransferType == 'partial'
+                                ? Colors.indigo.shade50
+                                : Colors.grey.shade50,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color:
-                                  _bankTransferType == 'partial'
-                                      ? Colors.indigo.shade400
-                                      : Colors.grey.shade300,
+                              color: _bankTransferType == 'partial'
+                                  ? Colors.indigo.shade400
+                                  : Colors.grey.shade300,
                               width: _bankTransferType == 'partial' ? 2 : 1,
                             ),
                           ),
@@ -1529,10 +1390,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                             children: [
                               Icon(
                                 Icons.pie_chart,
-                                color:
-                                    _bankTransferType == 'partial'
-                                        ? Colors.indigo.shade600
-                                        : Colors.grey.shade600,
+                                color: _bankTransferType == 'partial'
+                                    ? Colors.indigo.shade600
+                                    : Colors.grey.shade600,
                                 size: 22,
                               ),
                               const SizedBox(width: 12),
@@ -1546,12 +1406,11 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                         fontSize: 16,
                                         fontWeight:
                                             _bankTransferType == 'partial'
-                                                ? FontWeight.w600
-                                                : FontWeight.w500,
-                                        color:
-                                            _bankTransferType == 'partial'
-                                                ? Colors.indigo.shade700
-                                                : Colors.black87,
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        color: _bankTransferType == 'partial'
+                                            ? Colors.indigo.shade700
+                                            : Colors.black87,
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -1747,10 +1606,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
-                                        color:
-                                            isValid
-                                                ? Colors.green.shade700
-                                                : Colors.red.shade600,
+                                        color: isValid
+                                            ? Colors.green.shade700
+                                            : Colors.red.shade600,
                                       ),
                                     );
                                   },
@@ -2022,9 +1880,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                         fontWeight: FontWeight.bold,
                                         color:
                                             totalPaid >=
-                                                    _calculateTotalWithEditedPrices()
-                                                ? Colors.green.shade700
-                                                : Colors.red.shade700,
+                                                _calculateTotalWithEditedPrices()
+                                            ? Colors.green.shade700
+                                            : Colors.red.shade700,
                                       ),
                                     );
                                   },
@@ -2136,10 +1994,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                     Expanded(
                       flex: 2,
                       child: OutlinedButton(
-                        onPressed:
-                            _isProcessing
-                                ? null
-                                : () => Navigator.of(context).pop(),
+                        onPressed: _isProcessing
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           side: BorderSide(
@@ -2177,15 +2034,13 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                     Expanded(
                       flex: 3,
                       child: ElevatedButton(
-                        onPressed:
-                            (_isProcessing || !_isPaymentValid)
-                                ? null
-                                : _showConfirmationDialog,
+                        onPressed: (_isProcessing || !_isPaymentValid)
+                            ? null
+                            : _showConfirmationDialog,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              _isPaymentValid
-                                  ? Colors.green.shade600
-                                  : Colors.grey.shade400,
+                          backgroundColor: _isPaymentValid
+                              ? Colors.green.shade600
+                              : Colors.grey.shade400,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 4,
@@ -2193,43 +2048,42 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child:
-                            _isProcessing
-                                ? const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
+                        child: _isProcessing
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
                                     ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Memproses...',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Memproses...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                )
-                                : const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.check_circle, size: 22),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Konfirmasi Pembayaran',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
+                                  ),
+                                ],
+                              )
+                            : const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.check_circle, size: 22),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Konfirmasi Pembayaran',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
                                     ),
-                                  ],
-                                ),
+                                  ),
+                                ],
+                              ),
                       ),
                     ),
                   ],

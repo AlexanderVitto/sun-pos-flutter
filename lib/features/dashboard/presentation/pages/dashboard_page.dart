@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../auth/data/models/user.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/utils/role_permissions.dart';
@@ -252,20 +253,16 @@ class _DashboardPageState extends State<DashboardPage>
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color:
-                                isSelected
-                                    ? const Color(
-                                      0xFF6366f1,
-                                    ).withValues(alpha: 0.1)
-                                    : Colors.transparent,
+                            color: isSelected
+                                ? const Color(0xFF6366f1).withValues(alpha: 0.1)
+                                : Colors.transparent,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color:
-                                  isSelected
-                                      ? const Color(
-                                        0xFF6366f1,
-                                      ).withValues(alpha: 0.3)
-                                      : Colors.grey.withValues(alpha: 0.2),
+                              color: isSelected
+                                  ? const Color(
+                                      0xFF6366f1,
+                                    ).withValues(alpha: 0.3)
+                                  : Colors.grey.withValues(alpha: 0.2),
                               width: 1,
                             ),
                           ),
@@ -276,16 +273,12 @@ class _DashboardPageState extends State<DashboardPage>
                               height: 48,
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
-                                  colors:
-                                      isSelected
-                                          ? [
-                                            const Color(0xFF6366f1),
-                                            const Color(0xFF8b5cf6),
-                                          ]
-                                          : [
-                                            Colors.grey[400]!,
-                                            Colors.grey[300]!,
-                                          ],
+                                  colors: isSelected
+                                      ? [
+                                          const Color(0xFF6366f1),
+                                          const Color(0xFF8b5cf6),
+                                        ]
+                                      : [Colors.grey[400]!, Colors.grey[300]!],
                                 ),
                                 borderRadius: BorderRadius.circular(12),
                               ),
@@ -303,10 +296,9 @@ class _DashboardPageState extends State<DashboardPage>
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w600,
-                                      color:
-                                          isSelected
-                                              ? const Color(0xFF6366f1)
-                                              : const Color(0xFF1f2937),
+                                      color: isSelected
+                                          ? const Color(0xFF6366f1)
+                                          : const Color(0xFF1f2937),
                                     ),
                                   ),
                                 ),
@@ -353,10 +345,9 @@ class _DashboardPageState extends State<DashboardPage>
                                       width: 6,
                                       height: 6,
                                       decoration: BoxDecoration(
-                                        color:
-                                            store.isActive
-                                                ? const Color(0xFF10b981)
-                                                : const Color(0xFFef4444),
+                                        color: store.isActive
+                                            ? const Color(0xFF10b981)
+                                            : const Color(0xFFef4444),
                                         shape: BoxShape.circle,
                                       ),
                                     ),
@@ -365,10 +356,9 @@ class _DashboardPageState extends State<DashboardPage>
                                       store.isActive ? 'Aktif' : 'Tidak Aktif',
                                       style: TextStyle(
                                         fontSize: 12,
-                                        color:
-                                            store.isActive
-                                                ? const Color(0xFF10b981)
-                                                : const Color(0xFFef4444),
+                                        color: store.isActive
+                                            ? const Color(0xFF10b981)
+                                            : const Color(0xFFef4444),
                                         fontWeight: FontWeight.w500,
                                       ),
                                     ),
@@ -384,26 +374,23 @@ class _DashboardPageState extends State<DashboardPage>
                                 ),
                               ],
                             ),
-                            onTap:
-                                isSelected
-                                    ? null
-                                    : () {
-                                      // Set selected store using StoreProvider
-                                      storeProvider.setSelectedStore(store);
-                                      Navigator.pop(context);
-                                      ScaffoldMessenger.of(
-                                        context,
-                                      ).showSnackBar(
-                                        SnackBar(
-                                          content: Text(
-                                            'Berhasil beralih ke ${store.name}',
-                                          ),
-                                          backgroundColor: const Color(
-                                            0xFF6366f1,
-                                          ),
+                            onTap: isSelected
+                                ? null
+                                : () {
+                                    // Set selected store using StoreProvider
+                                    storeProvider.setSelectedStore(store);
+                                    Navigator.pop(context);
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Berhasil beralih ke ${store.name}',
                                         ),
-                                      );
-                                    },
+                                        backgroundColor: const Color(
+                                          0xFF6366f1,
+                                        ),
+                                      ),
+                                    );
+                                  },
                           ),
                         );
                       },
@@ -420,8 +407,14 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  void _handleLogout(BuildContext context) async {
-    final authProvider = context.read<AuthProvider>();
+  Future<void> _handleLogout(BuildContext context) async {
+    // Capture the navigator and authProvider before any async operation
+    final NavigatorState navigator = Navigator.of(context);
+    final AuthProvider authProvider = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    );
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (BuildContext dialogContext) {
@@ -442,32 +435,48 @@ class _DashboardPageState extends State<DashboardPage>
       },
     );
 
-    if (confirmed == true && mounted) {
+    if (confirmed != true) return;
+
+    // Check if widget is still mounted
+    if (!mounted) return;
+
+    try {
+      // Perform logout using captured authProvider
       await authProvider.logout();
-      if (mounted) {
-        // Navigate to login using Navigator instead of context across async gap
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          Navigator.of(context).pushReplacementNamed(AppRoutes.login);
-        });
-      }
+    } catch (e) {
+      debugPrint('Error during logout: $e');
     }
+
+    // Navigate to login screen using captured navigator
+    // This is safe even if the widget tree has changed
+    navigator.pushNamedAndRemoveUntil(
+      AppRoutes.login,
+      (route) => false, // Remove all previous routes
+    );
   }
 
-  List<Widget> _getAvailablePages(List<String>? userRoles) {
-    if (userRoles == null) return [];
+  List<Widget> _getAvailablePages(User? user) {
+    if (user == null) return [];
 
     List<Widget> pages = [];
 
-    if (RolePermissions.canAccessDashboard(userRoles)) {
+    // All users can access dashboard (but content varies based on role)
+    if (RolePermissions.canAccessDashboardByUser(user)) {
       pages.add(_buildDashboardContent());
     }
-    if (RolePermissions.canAccessPOS(userRoles)) {
+
+    // Only full access users (role ID <= 2) can access POS
+    if (RolePermissions.canAccessPOSByUser(user)) {
       pages.add(const TransactionTabPage());
     }
-    if (RolePermissions.canAccessPOS(userRoles)) {
+
+    // All users can access pending transactions
+    if (RolePermissions.canAccessPendingTransactionsByUser(user)) {
       pages.add(const PendingTransactionListPage());
     }
-    if (RolePermissions.canAccessProfile(userRoles)) {
+
+    // All users can access profile
+    if (RolePermissions.canAccessProfileByUser(user)) {
       pages.add(const UserProfilePage());
     }
 
@@ -477,47 +486,66 @@ class _DashboardPageState extends State<DashboardPage>
   Widget _buildDashboardContent() {
     final greeting = _getGreeting();
 
-    return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: _refreshDashboardData,
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Modern Header
-              _buildModernHeader(context, greeting),
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final user = authProvider.user;
+        final showFullDashboard = RolePermissions.shouldShowFullDashboard(user);
 
-              // Content with padding
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Quick stats with modern design
-                    _buildModernQuickStats(),
+        return SafeArea(
+          child: RefreshIndicator(
+            onRefresh: _refreshDashboardData,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Modern Header
+                  _buildModernHeader(context, greeting),
 
-                    const SizedBox(height: 24),
+                  // Content with padding
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Show full dashboard for role ID <= 2
+                        if (showFullDashboard) ...[
+                          // Quick stats with modern design
+                          _buildModernQuickStats(),
 
-                    // Store information card
-                    _buildStoreInfoCard(),
+                          const SizedBox(height: 24),
 
-                    const SizedBox(height: 32),
+                          // Store information card
+                          _buildStoreInfoCard(),
 
-                    // Quick actions with modern design
-                    _buildModernQuickActions(context),
+                          const SizedBox(height: 32),
 
-                    const SizedBox(height: 32),
+                          // // Quick actions with modern design
+                          // _buildModernQuickActions(context),
+                          const SizedBox(height: 32),
 
-                    // Recent activity with modern design
-                    _buildModernRecentActivity(),
-                  ],
-                ),
+                          // Recent activity with modern design
+                          _buildModernRecentActivity(),
+                        ]
+                        // Show limited dashboard for role ID > 2 (only store info)
+                        else ...[
+                          // Store information card only
+                          _buildStoreInfoCard(),
+
+                          const SizedBox(height: 24),
+
+                          // Restricted user notice
+                          _buildRestrictedUserNotice(),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -791,11 +819,10 @@ class _DashboardPageState extends State<DashboardPage>
                                       color: Colors.transparent,
                                       child: InkWell(
                                         borderRadius: BorderRadius.circular(8),
-                                        onTap:
-                                            () => _showStoreSelector(
-                                              context,
-                                              user?.stores ?? [],
-                                            ),
+                                        onTap: () => _showStoreSelector(
+                                          context,
+                                          user?.stores ?? [],
+                                        ),
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 8,
@@ -849,8 +876,9 @@ class _DashboardPageState extends State<DashboardPage>
           0,
           (sum, transaction) => sum + transaction.totalAmount,
         );
-        final avgTransaction =
-            totalTransactions > 0 ? totalRevenue / totalTransactions : 0;
+        final avgTransaction = totalTransactions > 0
+            ? totalRevenue / totalTransactions
+            : 0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1151,11 +1179,10 @@ class _DashboardPageState extends State<DashboardPage>
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
-                              onTap:
-                                  () => _showStoreSelector(
-                                    context,
-                                    user?.stores ?? [],
-                                  ),
+                              onTap: () => _showStoreSelector(
+                                context,
+                                user?.stores ?? [],
+                              ),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 12,
@@ -1263,10 +1290,9 @@ class _DashboardPageState extends State<DashboardPage>
                         width: 8,
                         height: 8,
                         decoration: BoxDecoration(
-                          color:
-                              currentStore.isActive
-                                  ? const Color(0xFF10b981)
-                                  : const Color(0xFFef4444),
+                          color: currentStore.isActive
+                              ? const Color(0xFF10b981)
+                              : const Color(0xFFef4444),
                           shape: BoxShape.circle,
                         ),
                       ),
@@ -1278,10 +1304,9 @@ class _DashboardPageState extends State<DashboardPage>
                         style: TextStyle(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color:
-                              currentStore.isActive
-                                  ? const Color(0xFF10b981)
-                                  : const Color(0xFFef4444),
+                          color: currentStore.isActive
+                              ? const Color(0xFF10b981)
+                              : const Color(0xFFef4444),
                         ),
                       ),
                       const Spacer(),
@@ -1305,74 +1330,86 @@ class _DashboardPageState extends State<DashboardPage>
   }
 
   Widget _buildModernQuickActions(BuildContext context) {
-    final authProvider = context.read<AuthProvider>();
-    final userRoles = authProvider.user?.roleNames ?? [];
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final user = authProvider.user;
+        final hasFullAccess = RolePermissions.hasFullAccess(user);
 
-    final quickActions = <Map<String, dynamic>>[];
+        final quickActions = <Map<String, dynamic>>[];
 
-    if (RolePermissions.canAccessPOS(userRoles)) {
-      quickActions.add({
-        'title': 'Transaksi Baru',
-        'subtitle': 'Buat penjualan baru',
-        'icon': LucideIcons.plus,
-        'color': const Color(0xFF10b981),
-        'onTap': () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const PendingTransactionListPage(),
+        // Only full access users (role ID <= 2) can access POS
+        if (hasFullAccess && RolePermissions.canAccessPOSByUser(user)) {
+          quickActions.add({
+            'title': 'Transaksi Baru',
+            'subtitle': 'Buat penjualan baru',
+            'icon': LucideIcons.plus,
+            'color': const Color(0xFF10b981),
+            'onTap': () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const PendingTransactionListPage(),
+                ),
+              );
+            },
+          });
+        }
+
+        // Customer management for all roles
+        quickActions.add({
+          'title': 'Kelola Pelanggan',
+          'subtitle': 'Manajemen customer',
+          'icon': LucideIcons.users,
+          'color': const Color(0xFFf97316),
+          'onTap': () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const CustomerListPage()),
+            );
+          },
+        });
+
+        // Settings for all roles
+        quickActions.add({
+          'title': 'Pengaturan',
+          'subtitle': 'Kelola akun & profil',
+          'icon': LucideIcons.settings,
+          'color': const Color(0xFFf59e0b),
+          'onTap': () {
+            // Navigate to profile tab
+            final availablePages = _getAvailablePages(user);
+            final profileIndex = availablePages.length - 1; // Profile is last
+            setState(() => _selectedIndex = profileIndex);
+          },
+        });
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Aksi Cepat',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1f2937),
+              ),
             ),
-          );
-        },
-      });
-    }
+            const SizedBox(height: 16),
 
-    // Customer management for all roles
-    quickActions.add({
-      'title': 'Kelola Pelanggan',
-      'subtitle': 'Manajemen customer',
-      'icon': LucideIcons.users,
-      'color': const Color(0xFFf97316),
-      'onTap': () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CustomerListPage()),
+            GridView.count(
+              crossAxisCount: 2,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1.1,
+              children: quickActions
+                  .map((action) => _buildActionCard(action))
+                  .toList(),
+            ),
+          ],
         );
       },
-    });
-
-    quickActions.add({
-      'title': 'Pengaturan',
-      'subtitle': 'Kelola akun & profil',
-      'icon': LucideIcons.settings,
-      'color': const Color(0xFFf59e0b),
-      'onTap': () => setState(() => _selectedIndex = 3),
-    });
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Aksi Cepat',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFF1f2937),
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 1.1,
-          children:
-              quickActions.map((action) => _buildActionCard(action)).toList(),
-        ),
-      ],
     );
   }
 
@@ -1482,8 +1519,9 @@ class _DashboardPageState extends State<DashboardPage>
   Widget _buildModernRecentActivity() {
     return Consumer<TransactionListProvider>(
       builder: (context, transactionProvider, child) {
-        final recentTransactions =
-            transactionProvider.transactions.take(5).toList();
+        final recentTransactions = transactionProvider.transactions
+            .take(5)
+            .toList();
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1612,12 +1650,9 @@ class _DashboardPageState extends State<DashboardPage>
                   ],
                 ),
                 child: Column(
-                  children:
-                      recentTransactions
-                          .map(
-                            (transaction) => _buildTransactionItem(transaction),
-                          )
-                          .toList(),
+                  children: recentTransactions
+                      .map((transaction) => _buildTransactionItem(transaction))
+                      .toList(),
                 ),
               ),
           ],
@@ -1696,12 +1731,128 @@ class _DashboardPageState extends State<DashboardPage>
         );
   }
 
-  List<BottomNavigationBarItem> _getAvailableNavItems(List<String>? userRoles) {
-    if (userRoles == null) return [];
+  Widget _buildRestrictedUserNotice() {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            const Color(0xFFfef3c7).withValues(alpha: 0.8),
+            const Color(0xFFfde68a).withValues(alpha: 0.5),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: const Color(0xFFfbbf24).withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFf59e0b).withValues(alpha: 0.1),
+            blurRadius: 15,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [const Color(0xFFf59e0b), const Color(0xFFd97706)],
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFf59e0b).withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: const Icon(LucideIcons.info, size: 32, color: Colors.white),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Akses Terbatas',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF92400e),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Akun Anda memiliki akses terbatas. Anda dapat melihat informasi toko, mengelola pesanan, dan mengatur profil.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: const Color(0xFF92400e).withValues(alpha: 0.8),
+              height: 1.5,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Consumer<AuthProvider>(
+            builder: (context, authProvider, child) {
+              final user = authProvider.user;
+              if (user == null) return const SizedBox.shrink();
+
+              return Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: WrapAlignment.center,
+                children: user.roles.map((role) {
+                  return Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFf59e0b).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: const Color(0xFFf59e0b).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          LucideIcons.shield,
+                          size: 14,
+                          color: Color(0xFF92400e),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${role.displayName} (ID: ${role.id})',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF92400e),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<BottomNavigationBarItem> _getAvailableNavItems(User? user) {
+    if (user == null) return [];
 
     List<BottomNavigationBarItem> items = [];
 
-    if (RolePermissions.canAccessDashboard(userRoles)) {
+    // All users can access dashboard
+    if (RolePermissions.canAccessDashboardByUser(user)) {
       items.add(
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.layoutDashboard),
@@ -1709,7 +1860,9 @@ class _DashboardPageState extends State<DashboardPage>
         ),
       );
     }
-    if (RolePermissions.canAccessPOS(userRoles)) {
+
+    // Only full access users (role ID <= 2) can access POS
+    if (RolePermissions.canAccessPOSByUser(user)) {
       items.add(
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.clock),
@@ -1717,7 +1870,9 @@ class _DashboardPageState extends State<DashboardPage>
         ),
       );
     }
-    if (RolePermissions.canAccessPOS(userRoles)) {
+
+    // All users can access pending transactions
+    if (RolePermissions.canAccessPendingTransactionsByUser(user)) {
       items.add(
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.clipboard),
@@ -1725,7 +1880,9 @@ class _DashboardPageState extends State<DashboardPage>
         ),
       );
     }
-    if (RolePermissions.canAccessProfile(userRoles)) {
+
+    // All users can access profile
+    if (RolePermissions.canAccessProfileByUser(user)) {
       items.add(
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.user),
@@ -1749,73 +1906,64 @@ class _DashboardPageState extends State<DashboardPage>
           );
         }
 
-        final userRoles = user.roleNames;
-        final availablePages = _getAvailablePages(userRoles);
-        final availableNavItems = _getAvailableNavItems(userRoles);
+        final availablePages = _getAvailablePages(user);
+        final availableNavItems = _getAvailableNavItems(user);
 
         // Ensure selectedIndex doesn't exceed available pages
         if (_selectedIndex >= availablePages.length) {
           _selectedIndex = 0;
         }
 
-        // For kasir, if they can't access dashboard, default to POS
-        if (!RolePermissions.canAccessDashboard(userRoles) &&
-            _selectedIndex == 0) {
-          _selectedIndex = RolePermissions.canAccessPOS(userRoles) ? 0 : 0;
-        }
-
         return Scaffold(
           backgroundColor: const Color(0xFFf8fafc),
-          body:
-              availablePages.isNotEmpty
-                  ? availablePages[_selectedIndex]
-                  : const Center(child: Text('No accessible features')),
-          bottomNavigationBar:
-              availableNavItems.isNotEmpty
-                  ? Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, -2),
-                        ),
-                      ],
-                    ),
-                    child: BottomNavigationBar(
-                      type: BottomNavigationBarType.fixed,
-                      currentIndex: _selectedIndex,
-                      onTap: (index) {
-                        setState(() {
-                          _selectedIndex = index;
-                        });
+          body: availablePages.isNotEmpty
+              ? availablePages[_selectedIndex]
+              : const Center(child: Text('No accessible features')),
+          bottomNavigationBar: availableNavItems.isNotEmpty
+              ? Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: BottomNavigationBar(
+                    type: BottomNavigationBarType.fixed,
+                    currentIndex: _selectedIndex,
+                    onTap: (index) {
+                      setState(() {
+                        _selectedIndex = index;
+                      });
 
-                        // Refresh transaction data when returning to dashboard
-                        if (index == 0) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            final transactionProvider =
-                                context.read<TransactionListProvider>();
-                            transactionProvider.loadTransactions(refresh: true);
-                          });
-                        }
-                      },
-                      selectedItemColor: const Color(0xFF6366f1),
-                      unselectedItemColor: Colors.grey[400],
-                      backgroundColor: Colors.white,
-                      elevation: 0,
-                      selectedLabelStyle: const TextStyle(
-                        fontWeight: FontWeight.w600,
-                        fontSize: 12,
-                      ),
-                      unselectedLabelStyle: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 12,
-                      ),
-                      items: availableNavItems,
+                      // Refresh transaction data when returning to dashboard
+                      if (index == 0) {
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          final transactionProvider = context
+                              .read<TransactionListProvider>();
+                          transactionProvider.loadTransactions(refresh: true);
+                        });
+                      }
+                    },
+                    selectedItemColor: const Color(0xFF6366f1),
+                    unselectedItemColor: Colors.grey[400],
+                    backgroundColor: Colors.white,
+                    elevation: 0,
+                    selectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 12,
                     ),
-                  )
-                  : null,
+                    unselectedLabelStyle: const TextStyle(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 12,
+                    ),
+                    items: availableNavItems,
+                  ),
+                )
+              : null,
         );
       },
     );

@@ -237,42 +237,41 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
                 size: 20,
               ),
             ),
-            suffixIcon:
-                _isSearching
-                    ? Container(
-                      padding: const EdgeInsets.all(12),
-                      child: const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Color(0xFF6366f1),
-                          ),
+            suffixIcon: _isSearching
+                ? Container(
+                    padding: const EdgeInsets.all(12),
+                    child: const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Color(0xFF6366f1),
                         ),
                       ),
-                    )
-                    : _searchQuery.isNotEmpty
-                    ? Container(
-                      padding: const EdgeInsets.all(4),
-                      child: IconButton(
-                        icon: const Icon(
-                          LucideIcons.x,
-                          color: Color(0xFF6B7280),
-                          size: 18,
-                        ),
-                        onPressed: _clearSearch,
-                        style: IconButton.styleFrom(
-                          backgroundColor: const Color(0xFFF3F4F6),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.all(8),
-                          minimumSize: const Size(32, 32),
-                        ),
+                    ),
+                  )
+                : _searchQuery.isNotEmpty
+                ? Container(
+                    padding: const EdgeInsets.all(4),
+                    child: IconButton(
+                      icon: const Icon(
+                        LucideIcons.x,
+                        color: Color(0xFF6B7280),
+                        size: 18,
                       ),
-                    )
-                    : null,
+                      onPressed: _clearSearch,
+                      style: IconButton.styleFrom(
+                        backgroundColor: const Color(0xFFF3F4F6),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.all(8),
+                        minimumSize: const Size(32, 32),
+                      ),
+                    ),
+                  )
+                : null,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(16),
               borderSide: BorderSide.none,
@@ -374,16 +373,15 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        boxShadow:
-            isSelected
-                ? [
-                  BoxShadow(
-                    color: const Color(0xFF6366f1).withValues(alpha: 0.15),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ]
-                : null,
+        boxShadow: isSelected
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF6366f1).withValues(alpha: 0.15),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ]
+            : null,
       ),
       child: FilterChip(
         label: Padding(
