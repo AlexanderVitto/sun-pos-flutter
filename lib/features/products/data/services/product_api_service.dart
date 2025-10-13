@@ -1,5 +1,3 @@
-import 'package:flutter/material.dart';
-
 import '../../../../core/network/auth_http_client.dart';
 import '../models/product_response.dart';
 import '../models/product_detail_response.dart';
@@ -65,7 +63,7 @@ class ProductApiService {
       );
 
       final responseData = _httpClient.parseJsonResponse(response);
-      debugPrint('Response data: $responseData', wrapWidth: 2024);
+      // debugPrint('Response data: $responseData', wrapWidth: 2024); // Commented out - too verbose
       return ProductResponse.fromJson(responseData);
     } catch (e) {
       throw Exception('Failed to get products: ${e.toString()}');

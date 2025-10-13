@@ -10,7 +10,7 @@ import '../widgets/pos_app_bar.dart';
 import '../widgets/mobile_layout.dart';
 import '../widgets/tablet_layout.dart';
 import '../widgets/bottom_navigation_bar_widget.dart';
-import '../widgets/cart_bottom_sheet.dart';
+import 'cart_page.dart';
 import '../services/payment_service.dart';
 import '../utils/pos_ui_helpers.dart';
 
@@ -192,32 +192,27 @@ class _POSTransactionView extends StatelessWidget {
       ),
       body: Container(
         color: const Color.fromARGB(255, 244, 244, 244),
-        child:
-            isTablet
-                ? TabletLayout(
-                  viewModel: viewModel,
-                  onAddToCart:
-                      (product, quantity) =>
-                          _addToCart(product, quantity, context),
-                  onPaymentPressed: () => _processPayment(context),
-                  onOrderPressed: () => _processOrder(context),
-                )
-                : MobileLayout(
-                  viewModel: viewModel,
-                  onAddToCart:
-                      (product, quantity) =>
-                          _addToCart(product, quantity, context),
-                  onProductTap:
-                      (product) => _handleProductTap(product, context),
-                ),
-      ),
-      bottomNavigationBar:
-          !isTablet
-              ? BottomNavigationBarWidget(
+        child: isTablet
+            ? TabletLayout(
+                viewModel: viewModel,
+                onAddToCart: (product, quantity) =>
+                    _addToCart(product, quantity, context),
                 onPaymentPressed: () => _processPayment(context),
                 onOrderPressed: () => _processOrder(context),
               )
-              : null,
+            : MobileLayout(
+                viewModel: viewModel,
+                onAddToCart: (product, quantity) =>
+                    _addToCart(product, quantity, context),
+                onProductTap: (product) => _handleProductTap(product, context),
+              ),
+      ),
+      bottomNavigationBar: !isTablet
+          ? BottomNavigationBarWidget(
+              onPaymentPressed: () => _processPayment(context),
+              onOrderPressed: () => _processOrder(context),
+            )
+          : null,
     );
   }
 
@@ -309,22 +304,20 @@ class _POSTransactionView extends StatelessWidget {
     final cartProvider = viewModel.cartProvider;
 
     if (cartProvider != null) {
-      print('🛒 Opening bottom sheet - items: ${cartProvider.items.length}');
+      print('🛒 Opening cart page - items: ${cartProvider.items.length}');
 
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) {
-          // Pass cartProvider as value to ensure it's available in the modal
-          return ChangeNotifierProvider<CartProvider>.value(
+      // Navigate to cart page instead of showing bottom sheet
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChangeNotifierProvider<CartProvider>.value(
             value: cartProvider,
-            child: CartBottomSheet(
+            child: CartPage(
               viewModel: viewModel,
               onPaymentPressed: () => _processPayment(context),
             ),
-          );
-        },
+          ),
+        ),
       );
     }
   }

@@ -38,22 +38,20 @@ class _UserProfilePageState extends State<UserProfilePage> {
                     onRefresh: _refreshProfile,
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
-                      child: Padding(
-                        padding: const EdgeInsets.all(AppTheme.spacingLarge),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Profile Info Card
-                            _buildProfileInfoCard(user),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Profile Info Section
+                          _buildProfileInfoSection(user),
 
-                            const SizedBox(height: AppTheme.spacingXLarge),
+                          // Divider
+                          const Divider(height: 1, thickness: 1),
 
-                            // Quick Actions
-                            _buildQuickActions(context, authProvider),
+                          // Quick Actions Section
+                          _buildQuickActionsSection(context, authProvider),
 
-                            const SizedBox(height: AppTheme.spacingXXLarge),
-                          ],
-                        ),
+                          const SizedBox(height: AppTheme.spacingXXLarge),
+                        ],
                       ),
                     ),
                   );
@@ -197,22 +195,37 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  Widget _buildProfileInfoCard(dynamic user) {
-    return Container(
-      padding: const EdgeInsets.all(AppTheme.spacingLarge),
-      decoration: AppTheme.cardDecoration,
+  Widget _buildProfileInfoSection(dynamic user) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingXLarge,
+        vertical: AppTheme.spacingXXLarge,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Section Title
+          Text(
+            'Informasi Profil',
+            style: AppTheme.headingMedium.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppTheme.spacingXLarge),
+
+          // Avatar and Main Info
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // Avatar
               Container(
-                width: 60,
-                height: 60,
+                width: 80,
+                height: 80,
                 decoration: BoxDecoration(
                   color: AppTheme.primaryIndigo.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+                  borderRadius: BorderRadius.circular(AppTheme.radiusXLarge),
+                  border: Border.all(
+                    color: AppTheme.primaryIndigo.withValues(alpha: 0.2),
+                    width: 2,
+                  ),
                 ),
                 child: Center(
                   child: Text(
@@ -220,7 +233,7 @@ class _UserProfilePageState extends State<UserProfilePage> {
                         ? user.name[0].toUpperCase()
                         : 'U',
                     style: const TextStyle(
-                      fontSize: 24,
+                      fontSize: 32,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.primaryIndigo,
                     ),
@@ -228,45 +241,72 @@ class _UserProfilePageState extends State<UserProfilePage> {
                 ),
               ),
 
-              const SizedBox(width: AppTheme.spacingLarge),
+              const SizedBox(width: AppTheme.spacingXLarge),
 
-              // User Info
+              // User Details
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Name
                     Text(
                       user.name ?? 'Nama tidak tersedia',
-                      style: AppTheme.headingSmall,
-                    ),
-                    const SizedBox(height: AppTheme.spacingXSmall),
-                    Text(
-                      user.email ?? 'Email tidak tersedia',
-                      style: AppTheme.bodyMedium.copyWith(
-                        color: AppTheme.textSecondary,
+                      style: AppTheme.headingSmall.copyWith(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: AppTheme.spacingXSmall),
+                    const SizedBox(height: AppTheme.spacingSmall),
+
+                    // Email
+                    Row(
+                      children: [
+                        Icon(
+                          LucideIcons.mail,
+                          size: 16,
+                          color: AppTheme.textSecondary,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            user.email ?? 'Email tidak tersedia',
+                            style: AppTheme.bodyMedium.copyWith(
+                              color: AppTheme.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: AppTheme.spacingMedium),
+
+                    // Roles
                     if (user.roleNames != null && user.roleNames!.isNotEmpty)
                       Wrap(
                         spacing: 8,
+                        runSpacing: 8,
                         children: user.roleNames!.map<Widget>((role) {
                           return Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 4,
+                              horizontal: 12,
+                              vertical: 6,
                             ),
                             decoration: BoxDecoration(
                               color: AppTheme.primaryGreen.withValues(
                                 alpha: 0.1,
                               ),
                               borderRadius: BorderRadius.circular(
-                                AppTheme.radiusSmall,
+                                AppTheme.radiusMedium,
+                              ),
+                              border: Border.all(
+                                color: AppTheme.primaryGreen.withValues(
+                                  alpha: 0.3,
+                                ),
                               ),
                             ),
                             child: Text(
                               role.toString().toUpperCase(),
-                              style: AppTheme.caption.copyWith(
+                              style: AppTheme.bodySmall.copyWith(
                                 color: AppTheme.primaryGreen,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -284,7 +324,10 @@ class _UserProfilePageState extends State<UserProfilePage> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context, AuthProvider authProvider) {
+  Widget _buildQuickActionsSection(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) {
     final quickActions = [
       // {
       //   'title': 'Ubah Password',
@@ -309,65 +352,84 @@ class _UserProfilePageState extends State<UserProfilePage> {
       },
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Aksi Cepat', style: AppTheme.headingSmall),
-        const SizedBox(height: AppTheme.spacingMedium),
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppTheme.spacingXLarge,
+        vertical: AppTheme.spacingXXLarge,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section Title
+          Text(
+            'Aksi Cepat',
+            style: AppTheme.headingMedium.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppTheme.spacingXLarge),
 
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: AppTheme.spacingMedium,
-          mainAxisSpacing: AppTheme.spacingMedium,
-          childAspectRatio: 1.2,
-          children: quickActions
-              .map((action) => _buildActionCard(action))
-              .toList(),
-        ),
-      ],
+          // Action Items
+          ...quickActions.map((action) => _buildActionItem(action)),
+        ],
+      ),
     );
   }
 
-  Widget _buildActionCard(Map<String, dynamic> action) {
-    return Container(
-      decoration: AppTheme.cardDecoration,
+  Widget _buildActionItem(Map<String, dynamic> action) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: AppTheme.spacingMedium),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(AppTheme.radiusLarge),
+          borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
           onTap: action['onTap'],
           child: Padding(
-            padding: const EdgeInsets.all(AppTheme.spacingMedium),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppTheme.spacingMedium,
+              vertical: AppTheme.spacingLarge,
+            ),
+            child: Row(
               children: [
+                // Icon
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
                     color: action['color'].withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppTheme.radiusMedium),
                   ),
-                  child: Icon(action['icon'], color: action['color'], size: 24),
+                  child: Icon(action['icon'], color: action['color'], size: 26),
                 ),
-                const SizedBox(height: AppTheme.spacingMedium),
 
-                Text(
-                  action['title'],
-                  style: AppTheme.bodyLarge.copyWith(
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: AppTheme.spacingLarge),
+
+                // Text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        action['title'],
+                        style: AppTheme.bodyLarge.copyWith(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 17,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        action['subtitle'],
+                        style: AppTheme.bodyMedium.copyWith(
+                          color: AppTheme.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: AppTheme.spacingXSmall),
 
-                Text(
-                  action['subtitle'],
-                  style: AppTheme.bodySmall,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
+                // Arrow
+                Icon(
+                  LucideIcons.chevronRight,
+                  color: AppTheme.textTertiary,
+                  size: 20,
                 ),
               ],
             ),

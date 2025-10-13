@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
@@ -21,6 +22,11 @@ class CartProvider extends ChangeNotifier {
   String? _customerPhone;
   User? _currentUser;
   int? _draftTransactionId; // ✅ Added to track draft transaction ID
+  int _itemIdCounter = 1; // ✅ Added counter for unique IDs
+  Timer? _refreshTimer; // ✅ Timer for debounced product refresh
+  Map<int, int> _initialQuantities =
+      {}; // ✅ Store initial quantities per product ID
+  bool _hasUserAction = false; // ✅ Track if user has made any cart action
 
   // Getters
   List<CartItem> get items => List.unmodifiable(_items);
@@ -32,6 +38,9 @@ class CartProvider extends ChangeNotifier {
   String? get customerPhone => _customerPhone;
   User? get currentUser => _currentUser;
   int? get draftTransactionId => _draftTransactionId; // ✅ Added getter
+  Map<int, int> get initialQuantities =>
+      Map.unmodifiable(_initialQuantities); // ✅ Getter for initial quantities
+  bool get hasUserAction => _hasUserAction; // ✅ Getter for user action flag
 
   int get itemCount => _items.fold(
     0,
@@ -83,18 +92,26 @@ class CartProvider extends ChangeNotifier {
         return;
       }
 
+      // Generate unique ID using counter + timestamp to avoid collisions
+      // This ensures each cart item has a truly unique ID even if added simultaneously
+      final uniqueId =
+          _itemIdCounter * 1000000000 +
+          DateTime.now().millisecondsSinceEpoch % 1000000000;
+      _itemIdCounter++; // Increment counter for next item
+
       // Add new item
       final cartItem = CartItem(
-        id: DateTime.now().millisecondsSinceEpoch,
+        id: uniqueId,
         product: product,
         quantity: quantity,
         addedAt: DateTime.now(),
       );
       _items.add(cartItem);
-      debugPrint('🛒 Added new item to cart');
+      debugPrint('🛒 Added new item to cart with unique ID: $uniqueId');
     }
 
     debugPrint('🛒 Current items after add: ${_items.length}');
+    markUserAction(); // ✅ Mark that user has taken action
     _clearError();
     notifyListeners();
 
@@ -102,9 +119,8 @@ class CartProvider extends ChangeNotifier {
     if (context != null) {
       _processDraftTransaction(context);
     }
-  }
+  } // Update item quantity
 
-  // Update item quantity
   void updateItemQuantity(
     int itemId,
     int newQuantity, {
@@ -131,6 +147,7 @@ class CartProvider extends ChangeNotifier {
     }
 
     _items[index] = item.copyWith(quantity: newQuantity);
+    markUserAction(); // ✅ Mark that user has taken action
     _clearError();
     notifyListeners();
 
@@ -167,8 +184,21 @@ class CartProvider extends ChangeNotifier {
 
   // Decrease item quantity
   void decreaseQuantity(int itemId, {BuildContext? context}) {
+    debugPrint('🛒 CartProvider: Decreasing quantity for item ID: $itemId');
+    debugPrint('🛒 Current cart items:');
+    for (var i = 0; i < _items.length; i++) {
+      debugPrint(
+        '   [$i] ID: ${_items[i].id}, Product: ${_items[i].product.name}, Qty: ${_items[i].quantity}',
+      );
+    }
+
     final index = _items.indexWhere((item) => item.id == itemId);
-    if (index == -1) return;
+    debugPrint('🛒 Found item at index: $index');
+
+    if (index == -1) {
+      debugPrint('❌ Item with ID $itemId not found in cart!');
+      return;
+    }
 
     final item = _items[index];
     final newQuantity = item.quantity - 1;
@@ -179,6 +209,8 @@ class CartProvider extends ChangeNotifier {
     }
 
     _items[index] = item.copyWith(quantity: newQuantity);
+    debugPrint('✅ Updated item at index $index to quantity: $newQuantity');
+    markUserAction(); // ✅ Mark that user has taken action
     notifyListeners();
 
     // Process draft transaction when context is available
@@ -203,6 +235,7 @@ class CartProvider extends ChangeNotifier {
     }
 
     _items[index] = item.copyWith(quantity: newQuantity);
+    markUserAction(); // ✅ Mark that user has taken action
     notifyListeners();
 
     // Process draft transaction when context is available
@@ -231,12 +264,17 @@ class CartProvider extends ChangeNotifier {
     _customerName = null;
     _customerPhone = null;
     _draftTransactionId = null; // ✅ Clear draft transaction ID
+    _initialQuantities.clear(); // ✅ Clear initial quantities
+    _hasUserAction = false; // ✅ Reset user action flag
     _clearError();
     notifyListeners();
   }
 
   void clearItems() {
     _items.clear();
+    _initialQuantities
+        .clear(); // ✅ Clear initial quantities when clearing items
+    _hasUserAction = false; // ✅ Reset user action flag
     notifyListeners();
   }
 
@@ -357,17 +395,16 @@ class CartProvider extends ChangeNotifier {
       await Future.delayed(const Duration(seconds: 2));
 
       // Create sale items
-      final saleItems =
-          _items
-              .map(
-                (cartItem) => SaleItem(
-                  productId: cartItem.product.id.toString(),
-                  productName: cartItem.product.name,
-                  price: cartItem.product.price,
-                  quantity: cartItem.quantity,
-                ),
-              )
-              .toList();
+      final saleItems = _items
+          .map(
+            (cartItem) => SaleItem(
+              productId: cartItem.product.id.toString(),
+              productName: cartItem.product.name,
+              price: cartItem.product.price,
+              quantity: cartItem.quantity,
+            ),
+          )
+          .toList();
 
       // Create sale
       final sale = Sale(
@@ -494,10 +531,9 @@ class CartProvider extends ChangeNotifier {
   String? get userName => _currentUser?.name;
   String? get userEmail => _currentUser?.email;
   int? get userId => _currentUser?.id;
-  String? get userRole =>
-      _currentUser?.roles.isNotEmpty == true
-          ? _currentUser!.roles.first.name
-          : null;
+  String? get userRole => _currentUser?.roles.isNotEmpty == true
+      ? _currentUser!.roles.first.name
+      : null;
 
   // Get full user object
   User? get user => _currentUser;
@@ -511,6 +547,25 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ✅ Capture initial quantities for stock calculation
+  void captureInitialQuantities() {
+    _initialQuantities.clear();
+    for (var item in _items) {
+      _initialQuantities[item.product.id] = item.quantity;
+    }
+    _hasUserAction = false; // Reset user action flag
+    debugPrint('📊 Captured initial quantities: $_initialQuantities');
+  }
+
+  // ✅ Mark that user has performed an action
+  void markUserAction() {
+    if (!_hasUserAction) {
+      _hasUserAction = true;
+      notifyListeners();
+      debugPrint('✋ User action marked');
+    }
+  }
+
   // Process draft transaction when items are added to cart
   void _processDraftTransaction(BuildContext context) async {
     try {
@@ -519,8 +574,14 @@ class CartProvider extends ChangeNotifier {
         cartProvider: this,
       );
 
-      // Reload products after successful draft transaction processing
-      _reloadProductsData(context);
+      // Debounced product refresh to show updated stock
+      // Cancel previous timer if exists
+      _refreshTimer?.cancel();
+
+      // Schedule refresh after 1 second of inactivity
+      _refreshTimer = Timer(const Duration(seconds: 1), () {
+        _reloadProductsData(context);
+      });
     } catch (e) {
       // Silent failure to not interrupt user experience
       debugPrint('Failed to process draft transaction: ${e.toString()}');
@@ -572,5 +633,11 @@ class CartProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('Failed to reload products with provider: ${e.toString()}');
     }
+  }
+
+  @override
+  void dispose() {
+    _refreshTimer?.cancel();
+    super.dispose();
   }
 }
