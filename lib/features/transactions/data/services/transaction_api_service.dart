@@ -168,9 +168,9 @@ class TransactionApiService {
       if (storeId != null) {
         queryParameters['store_id'] = storeId.toString();
       }
-      if (userId != null) {
-        queryParameters['user_id'] = userId.toString();
-      }
+      // if (userId != null) {
+      //   queryParameters['user_id'] = userId.toString();
+      // }
       if (dateFrom != null && dateFrom.isNotEmpty) {
         queryParameters['date_from'] = dateFrom;
       }
