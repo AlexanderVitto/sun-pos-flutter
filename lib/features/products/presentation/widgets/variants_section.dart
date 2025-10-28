@@ -105,13 +105,9 @@ class _VariantCard extends StatelessWidget {
         final quantity = viewModel.getVariantQuantity(variant.id);
 
         // Get quantity already in cart for this variant
-        final cartItem = cartProvider.items.firstWhere(
-          (item) => item.product.productVariantId == variant.id,
-          orElse: () => cartProvider.items.first,
-        );
-        final quantityInCart = cartItem.product.productVariantId == variant.id
-            ? cartItem.quantity
-            : 0;
+        final quantityInCart = cartProvider.items
+            .where((item) => item.product.productVariantId == variant.id)
+            .fold<int>(0, (sum, item) => sum + item.quantity);
 
         // Calculate remaining stock
         final remainingStock = variant.stock;

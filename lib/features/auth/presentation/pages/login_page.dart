@@ -223,8 +223,9 @@ class _LoginPageState extends State<LoginPage> {
                     child: Consumer<AuthProvider>(
                       builder: (context, authProvider, child) {
                         return ElevatedButton(
-                          onPressed:
-                              authProvider.isLoading ? null : _handleLogin,
+                          onPressed: authProvider.isLoading
+                              ? null
+                              : _handleLogin,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Theme.of(context).primaryColor,
                             foregroundColor: Colors.white,
@@ -236,70 +237,69 @@ class _LoginPageState extends State<LoginPage> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                           ),
-                          child:
-                              authProvider.isLoading
-                                  ? const SizedBox(
-                                    height: 20,
-                                    width: 20,
-                                    child: CircularProgressIndicator(
-                                      color: Colors.white,
-                                      strokeWidth: 2,
-                                    ),
-                                  )
-                                  : const Text(
-                                    'LOGIN',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1,
-                                    ),
+                          child: authProvider.isLoading
+                              ? const SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
                                   ),
+                                )
+                              : const Text(
+                                  'LOGIN',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 1,
+                                  ),
+                                ),
                         );
                       },
                     ),
                   ),
                   const SizedBox(height: 24),
 
-                  // Demo credentials hint
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.blue[50],
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue[200]!),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.info_outline,
-                              color: Colors.blue[700],
-                              size: 20,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Demo Credentials',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Email: admin@gmail.com\nPassword: password',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.blue[600],
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                  // // Demo credentials hint
+                  // Container(
+                  //   padding: const EdgeInsets.all(16),
+                  //   decoration: BoxDecoration(
+                  //     color: Colors.blue[50],
+                  //     borderRadius: BorderRadius.circular(12),
+                  //     border: Border.all(color: Colors.blue[200]!),
+                  //   ),
+                  //   child: Column(
+                  //     children: [
+                  //       Row(
+                  //         mainAxisSize: MainAxisSize.min,
+                  //         children: [
+                  //           Icon(
+                  //             Icons.info_outline,
+                  //             color: Colors.blue[700],
+                  //             size: 20,
+                  //           ),
+                  //           const SizedBox(width: 8),
+                  //           Text(
+                  //             'Demo Credentials',
+                  //             style: TextStyle(
+                  //               fontWeight: FontWeight.bold,
+                  //               color: Colors.blue[700],
+                  //             ),
+                  //           ),
+                  //         ],
+                  //       ),
+                  //       const SizedBox(height: 8),
+                  //       Text(
+                  //         'Email: admin@gmail.com\nPassword: password',
+                  //         textAlign: TextAlign.center,
+                  //         style: TextStyle(
+                  //           color: Colors.blue[600],
+                  //           fontSize: 12,
+                  //         ),
+                  //       ),
+                  //     ],
+                  //   ),
+                  // ),
                 ],
               ),
             ),

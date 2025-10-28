@@ -176,15 +176,15 @@ class ThermalPrinterService {
   /// Auto-reconnect ke printer terakhir yang tersimpan
   Future<bool> autoReconnectToLastPrinter() async {
     try {
-      final autoConnect =
-          await PrinterPreferencesService.instance.getAutoConnect();
+      final autoConnect = await PrinterPreferencesService.instance
+          .getAutoConnect();
       if (!autoConnect) {
         debugPrint('Auto-connect disabled');
         return false;
       }
 
-      final savedPrinter =
-          await PrinterPreferencesService.instance.getLastConnectedPrinter();
+      final savedPrinter = await PrinterPreferencesService.instance
+          .getLastConnectedPrinter();
       if (savedPrinter == null) {
         debugPrint('No saved printer found');
         return false;
@@ -462,8 +462,8 @@ class ThermalPrinterService {
         // Baris kedua: Quantity@harga (kiri) dan subtotal (kanan) dengan font lebih kecil
         _printer!.row([
           PosColumn(
-            text: '${item.quantity}@ Rp ${_formatPrice(item.product.price)}',
-            width: 7,
+            text: '${item.quantity}@ ${_formatPrice(item.product.price)}',
+            width: 6,
             styles: const PosStyles(
               align: PosAlign.left,
               height: PosTextSize.size1,
@@ -472,7 +472,7 @@ class ThermalPrinterService {
           ),
           PosColumn(
             text: 'Rp ${_formatPrice(item.subtotal)}',
-            width: 5,
+            width: 6,
             styles: const PosStyles(
               align: PosAlign.right,
               height: PosTextSize.size1,
@@ -522,21 +522,21 @@ class ThermalPrinterService {
       _printer!.text('================================');
       _printer!.row([
         PosColumn(
-          text: 'TOTAL BAYAR',
-          width: 8,
+          text: 'TOTAL',
+          width: 4,
           styles: const PosStyles(
             align: PosAlign.left,
             bold: true,
-            height: PosTextSize.size2,
+            height: PosTextSize.size1,
           ),
         ),
         PosColumn(
           text: 'Rp ${_formatPrice(total)}',
-          width: 4,
+          width: 8,
           styles: const PosStyles(
             align: PosAlign.right,
             bold: true,
-            height: PosTextSize.size2,
+            height: PosTextSize.size1,
           ),
         ),
       ]);
@@ -798,8 +798,8 @@ class ThermalPrinterService {
         // Baris kedua: Quantity@harga (kiri) dan subtotal (kanan) dengan font lebih kecil
         bytes += generator.row([
           PosColumn(
-            text: '${item.quantity}@ Rp ${_formatPrice(item.product.price)}',
-            width: 7,
+            text: '${item.quantity}@ ${_formatPrice(item.product.price)}',
+            width: 6,
             styles: const PosStyles(
               align: PosAlign.left,
               height: PosTextSize.size1,
@@ -808,7 +808,7 @@ class ThermalPrinterService {
           ),
           PosColumn(
             text: 'Rp ${_formatPrice(item.subtotal)}',
-            width: 5,
+            width: 6,
             styles: const PosStyles(
               align: PosAlign.right,
               height: PosTextSize.size1,
@@ -857,21 +857,21 @@ class ThermalPrinterService {
       bytes += generator.text('================================');
       bytes += generator.row([
         PosColumn(
-          text: 'TOTAL BAYAR',
-          width: 8,
+          text: 'TOTAL',
+          width: 4,
           styles: const PosStyles(
             align: PosAlign.left,
             bold: true,
-            height: PosTextSize.size2,
+            height: PosTextSize.size1,
           ),
         ),
         PosColumn(
           text: 'Rp ${_formatPrice(total)}',
-          width: 4,
+          width: 8,
           styles: const PosStyles(
             align: PosAlign.right,
             bold: true,
-            height: PosTextSize.size2,
+            height: PosTextSize.size1,
           ),
         ),
       ]);
@@ -901,7 +901,20 @@ class ThermalPrinterService {
         'Atas kunjungan Anda',
         styles: const PosStyles(align: PosAlign.center),
       );
+      bytes += generator.feed(1);
 
+      bytes += generator.text(
+        'Barang yang sudah dibeli tidak dapat',
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      bytes += generator.text(
+        'ditukar kembali kecuali ada kerusakan',
+        styles: const PosStyles(align: PosAlign.center),
+      );
+      bytes += generator.text(
+        'dari pihak toko',
+        styles: const PosStyles(align: PosAlign.center),
+      );
       bytes += generator.feed(2);
 
       // Peringatan kembang api

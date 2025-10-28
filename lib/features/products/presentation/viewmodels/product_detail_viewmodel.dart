@@ -72,11 +72,15 @@ class ProductDetailViewModel extends ChangeNotifier {
 
     double total = 0;
     _variantQuantities.forEach((variantId, quantity) {
-      final variant = _productDetail!.variants.firstWhere(
-        (v) => v.id == variantId,
-        orElse: () => _productDetail!.variants.first,
-      );
-      total += variant.price * quantity;
+      try {
+        final variant = _productDetail!.variants.firstWhere(
+          (v) => v.id == variantId,
+        );
+        total += variant.price * quantity;
+      } catch (e) {
+        // Variant not found, skip
+        print('⚠️ Variant $variantId not found in totalPrice calculation');
+      }
     });
     return total;
   }
@@ -85,15 +89,23 @@ class ProductDetailViewModel extends ChangeNotifier {
   List<Map<String, dynamic>> get selectedVariants {
     if (_productDetail == null) return [];
 
-    return _variantQuantities.entries.where((entry) => entry.value > 0).map((
-      entry,
-    ) {
-      final variant = _productDetail!.variants.firstWhere(
-        (v) => v.id == entry.key,
-        orElse: () => _productDetail!.variants.first,
-      );
-      return {'variant': variant, 'quantity': entry.value};
-    }).toList();
+    return _variantQuantities.entries
+        .where((entry) => entry.value > 0)
+        .map((entry) {
+          try {
+            final variant = _productDetail!.variants.firstWhere(
+              (v) => v.id == entry.key,
+            );
+            return {'variant': variant, 'quantity': entry.value};
+          } catch (e) {
+            // Variant not found, return null and filter it out later
+            print('⚠️ Variant ${entry.key} not found in selectedVariants');
+            return null;
+          }
+        })
+        .where((item) => item != null)
+        .cast<Map<String, dynamic>>()
+        .toList();
   }
 
   /// Check if any variant is selected
@@ -181,10 +193,9 @@ class ProductDetailViewModel extends ChangeNotifier {
       } else {
         _productDetail = null;
         _isLoading = false;
-        _errorMessage =
-            response.message.isNotEmpty
-                ? response.message
-                : 'Failed to load product details';
+        _errorMessage = response.message.isNotEmpty
+            ? response.message
+            : 'Failed to load product details';
       }
     } catch (e) {
       _productDetail = null;
@@ -225,18 +236,20 @@ class ProductDetailViewModel extends ChangeNotifier {
   void _initializeVariantQuantitiesFromCart() {
     _variantQuantities.clear();
 
-    if (_productDetail == null || _cartProvider == null) return;
+    if (_productDetail == null || (_cartProvider?.items.length ?? 0) == 0)
+      return;
 
     // Check cart for each variant
     for (final variant in _productDetail!.variants) {
-      final productInCart = _cartProvider!.items.firstWhere(
-        (item) => item.product.productVariantId == variant.id,
-        orElse: () => _cartProvider!.items.first,
-      );
-
-      // If found in cart, set the quantity
-      if (productInCart.product.productVariantId == variant.id) {
+      try {
+        final productInCart = _cartProvider!.items.firstWhere(
+          (item) => item.product.productVariantId == variant.id,
+        );
+        // If found in cart, set the quantity
         _variantQuantities[variant.id] = productInCart.quantity;
+      } catch (e) {
+        // Variant not found in cart, skip
+        continue;
       }
     }
   }
@@ -246,22 +259,16 @@ class ProductDetailViewModel extends ChangeNotifier {
     if (quantity < 0) return;
 
     // Get the variant to check stock
-    final variant = _productDetail?.variants.firstWhere(
-      (v) => v.id == variantId,
-      orElse: () => _productDetail!.variants.first,
-    );
+    ProductVariant? variant;
+    try {
+      variant = _productDetail?.variants.firstWhere((v) => v.id == variantId);
+    } catch (e) {
+      // Variant not found
+      print('⚠️ Variant with ID $variantId not found');
+      return;
+    }
 
     if (variant == null) return;
-
-    // Get quantity already in cart for this variant
-    final cartItem = _cartProvider?.items.firstWhere(
-      (item) => item.product.productVariantId == variantId,
-      orElse: () => _cartProvider!.items.first,
-    );
-    final quantityInCart =
-        cartItem?.product.productVariantId == variantId
-            ? cartItem!.quantity
-            : 0;
 
     // Calculate remaining stock
     final remainingStock = variant.stock;
@@ -429,16 +436,19 @@ class ProductDetailViewModel extends ChangeNotifier {
 
         if (quantity == 0) {
           // Check if this variant exists in cart
-          final existingItem = _cartProvider!.items.firstWhere(
-            (item) => item.product.productVariantId == variantId,
-            orElse: () => _cartProvider!.items.first,
-          );
-
-          if (existingItem.product.productVariantId == variantId) {
+          try {
+            final existingItem = _cartProvider!.items.firstWhere(
+              (item) => item.product.productVariantId == variantId,
+            );
             // Mark for removal
             itemsToRemove.add(existingItem.id);
             print(
               '🗑️ ProductDetailViewModel: Marking variant $variantId for removal (quantity = 0)',
+            );
+          } catch (e) {
+            // Item not found in cart, nothing to remove
+            print(
+              '⚠️ ProductDetailViewModel: Variant $variantId not found in cart for removal',
             );
           }
         }
@@ -456,10 +466,15 @@ class ProductDetailViewModel extends ChangeNotifier {
         final quantity = entry.value;
 
         // Find the variant
-        final variant = _productDetail!.variants.firstWhere(
-          (v) => v.id == variantId,
-          orElse: () => _productDetail!.variants.first,
-        );
+        ProductVariant? variant;
+        try {
+          variant = _productDetail!.variants.firstWhere(
+            (v) => v.id == variantId,
+          );
+        } catch (e) {
+          print('⚠️ ProductDetailViewModel: Variant $variantId not found');
+          continue;
+        }
 
         // Convert ProductDetail + Variant to Product model
         final product = Product(
@@ -477,12 +492,10 @@ class ProductDetailViewModel extends ChangeNotifier {
         );
 
         // Check if this variant already exists in cart
-        final existingItem = _cartProvider!.items.firstWhere(
-          (item) => item.product.productVariantId == variantId,
-          orElse: () => _cartProvider!.items.first,
-        );
-
-        if (existingItem.product.productVariantId == variantId) {
+        try {
+          final existingItem = _cartProvider!.items.firstWhere(
+            (item) => item.product.productVariantId == variantId,
+          );
           // Update existing item quantity - set to new quantity (not add)
           // Don't pass context to prevent automatic draft transaction processing
           // We'll manually update draft transaction later
@@ -490,7 +503,7 @@ class ProductDetailViewModel extends ChangeNotifier {
           print(
             '📝 ProductDetailViewModel: Updated variant $variantId quantity to $quantity',
           );
-        } else {
+        } catch (e) {
           // Add new item to cart
           // Don't pass context to prevent automatic draft transaction processing
           // We'll manually update draft transaction later

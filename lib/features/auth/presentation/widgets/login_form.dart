@@ -57,9 +57,8 @@ class _LoginFormState extends State<LoginForm> {
                   prefixIcon: const Icon(AppIcons.user),
                   hintText: 'Enter your username',
                 ),
-                validator:
-                    (value) =>
-                        Validators.validateRequired(value, AppStrings.username),
+                validator: (value) =>
+                    Validators.validateRequired(value, AppStrings.username),
                 textInputAction: TextInputAction.next,
               ),
               const SizedBox(height: 16),
@@ -137,67 +136,66 @@ class _LoginFormState extends State<LoginForm> {
               // Login Button
               ElevatedButton(
                 onPressed: authProvider.isLoading ? null : _handleLogin,
-                child:
-                    authProvider.isLoading
-                        ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.white,
-                            ),
+                child: authProvider.isLoading
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
                           ),
-                        )
-                        : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: const [
-                            Icon(AppIcons.login),
-                            SizedBox(width: 8),
-                            Text(AppStrings.login),
-                          ],
                         ),
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Icon(AppIcons.login),
+                          SizedBox(width: 8),
+                          Text(AppStrings.login),
+                        ],
+                      ),
               ),
               const SizedBox(height: 16),
 
-              // Demo Credentials Info
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  border: Border.all(color: Colors.blue.shade200),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Icon(
-                          AppIcons.info,
-                          color: Colors.blue.shade700,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Demo Credentials:',
-                          style: TextStyle(
-                            color: Colors.blue.shade700,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Username: admin\nPassword: 123456',
-                      style: TextStyle(
-                        color: Colors.blue.shade700,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // // Demo Credentials Info
+              // Container(
+              //   padding: const EdgeInsets.all(12),
+              //   decoration: BoxDecoration(
+              //     color: Colors.blue.shade50,
+              //     border: Border.all(color: Colors.blue.shade200),
+              //     borderRadius: BorderRadius.circular(8),
+              //   ),
+              //   child: Column(
+              //     children: [
+              //       Row(
+              //         children: [
+              //           Icon(
+              //             AppIcons.info,
+              //             color: Colors.blue.shade700,
+              //             size: 20,
+              //           ),
+              //           const SizedBox(width: 8),
+              //           Text(
+              //             'Demo Credentials:',
+              //             style: TextStyle(
+              //               color: Colors.blue.shade700,
+              //               fontWeight: FontWeight.w600,
+              //             ),
+              //           ),
+              //         ],
+              //       ),
+              //       const SizedBox(height: 4),
+              //       Text(
+              //         'Username: admin\nPassword: 123456',
+              //         style: TextStyle(
+              //           color: Colors.blue.shade700,
+              //           fontSize: 12,
+              //         ),
+              //       ),
+              //     ],
+              //   ),
+              // ),
             ],
           ),
         );

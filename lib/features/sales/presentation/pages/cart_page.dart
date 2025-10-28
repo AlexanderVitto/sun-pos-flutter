@@ -347,7 +347,7 @@ class _CartPageState extends State<CartPage> {
                                   Text(
                                     'Stok Tersisa: $availableStock',
                                     style: TextStyle(
-                                      fontSize: 12,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: isOutOfStock
                                           ? const Color(0xFFef4444)
