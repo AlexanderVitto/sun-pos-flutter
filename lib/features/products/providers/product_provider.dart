@@ -10,41 +10,40 @@ class ProductProvider extends ChangeNotifier {
   String? _errorMessage;
   String _searchQuery = '';
   String _selectedCategory = '';
+  int? _customerId; // Customer ID for pricing
 
   // Getters
   List<Product> get products =>
       _searchQuery.isEmpty && _selectedCategory.isEmpty
-          ? _products
-          : _filteredProducts;
+      ? _products
+      : _filteredProducts;
 
   List<Product> get _filteredProducts {
     List<Product> filtered = _products;
 
     // Filter by category
     if (_selectedCategory.isNotEmpty) {
-      filtered =
-          filtered
-              .where((product) => product.category == _selectedCategory)
-              .toList();
+      filtered = filtered
+          .where((product) => product.category == _selectedCategory)
+          .toList();
     }
 
     // Filter by search query
     if (_searchQuery.isNotEmpty) {
-      filtered =
-          filtered
-              .where(
-                (product) =>
-                    product.name.toLowerCase().contains(
-                      _searchQuery.toLowerCase(),
-                    ) ||
-                    product.code.toLowerCase().contains(
-                      _searchQuery.toLowerCase(),
-                    ) ||
-                    product.description.toLowerCase().contains(
-                      _searchQuery.toLowerCase(),
-                    ),
-              )
-              .toList();
+      filtered = filtered
+          .where(
+            (product) =>
+                product.name.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ||
+                product.code.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ) ||
+                product.description.toLowerCase().contains(
+                  _searchQuery.toLowerCase(),
+                ),
+          )
+          .toList();
     }
 
     return filtered;
@@ -65,20 +64,42 @@ class ProductProvider extends ChangeNotifier {
 
   int get totalProducts => _products.length;
   int get lowStockCount => _products.where((p) => p.stock <= 5).length;
+  int? get customerId => _customerId;
 
   ProductProvider() {
-    _loadProductsFromApi();
+    // Don't auto-load on initialization
+    // Products will be loaded after customer is selected
+  }
+
+  /// Set customer ID for product pricing
+  void setCustomerId(int? customerId) {
+    if (_customerId != customerId) {
+      _customerId = customerId;
+      if (customerId != null) {
+        _loadProductsFromApi();
+      } else {
+        _products.clear();
+        notifyListeners();
+      }
+    }
   }
 
   // Load products from API
   Future<void> _loadProductsFromApi() async {
+    if (_customerId == null) {
+      _errorMessage = 'Customer ID is required to load products';
+      notifyListeners();
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // Get products from API
+      // Get products from API with customer ID
       final response = await _apiService.getProducts(
+        customerId: _customerId!,
         perPage: 100, // Load more products for POS
         activeOnly: true,
       );
@@ -120,166 +141,6 @@ class ProductProvider extends ChangeNotifier {
       createdAt: apiProduct.createdAt,
       updatedAt: apiProduct.updatedAt,
     );
-  }
-
-  // Estimate price based on category (since API doesn't provide price)
-  double _getEstimatedPrice(ApiProduct.Product apiProduct) {
-    final category = apiProduct.category.name.toLowerCase();
-    if (category.contains('minuman') || category.contains('drink')) {
-      return 15000.0 + (apiProduct.id % 10) * 5000.0; // 15k-60k
-    } else if (category.contains('makanan') || category.contains('food')) {
-      return 25000.0 + (apiProduct.id % 15) * 3000.0; // 25k-70k
-    } else if (category.contains('snack')) {
-      return 8000.0 + (apiProduct.id % 8) * 2000.0; // 8k-24k
-    } else {
-      return 20000.0 + (apiProduct.id % 12) * 4000.0; // 20k-68k
-    }
-  }
-
-  // Estimate stock (since API doesn't provide current stock)
-  int _getEstimatedStock(ApiProduct.Product apiProduct) {
-    // Use min_stock as base and add some random variation
-    final baseStock = apiProduct.minStock > 0 ? apiProduct.minStock : 10;
-    return baseStock + (apiProduct.id % 20) + 5; // Add 5-24 to min stock
-  }
-
-  // Load dummy products as fallback
-  // void _loadDummyProducts() {
-  //   _isLoading = true;
-  //   notifyListeners();
-
-  //   // Simulate loading delay
-  //   Future.delayed(const Duration(milliseconds: 500), () {
-  //     _products.addAll(_generateDummyProducts());
-  //     _isLoading = false;
-  //     notifyListeners();
-  //   });
-  // }
-
-  List<Product> _generateDummyProducts() {
-    final now = DateTime.now();
-    return [
-      Product(
-        id: 1,
-        name: 'Kopi Arabica Premium',
-        code: 'KAP001',
-        description: 'Kopi arabica berkualitas premium dari pegunungan Jawa',
-        price: 45000,
-        stock: 25,
-        category: 'Minuman',
-        imagePath: 'assets/images/kopi_arabica.jpg',
-        createdAt: now.subtract(const Duration(days: 30)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 2,
-        name: 'Teh Hijau Organik',
-        code: 'THO002',
-        description: 'Teh hijau organik tanpa pestisida',
-        price: 35000,
-        stock: 15,
-        category: 'Minuman',
-        imagePath: 'assets/images/teh_hijau.jpg',
-        createdAt: now.subtract(const Duration(days: 25)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 3,
-        name: 'Croissant Butter',
-        code: 'CB003',
-        description: 'Croissant segar dengan butter berkualitas tinggi',
-        price: 25000,
-        stock: 8,
-        category: 'Pastry',
-        imagePath: 'assets/images/croissant.jpg',
-        createdAt: now.subtract(const Duration(days: 20)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 4,
-        name: 'Donut Glazed',
-        code: 'DG004',
-        description: 'Donut lembut dengan glazed manis',
-        price: 18000,
-        stock: 12,
-        category: 'Pastry',
-        imagePath: 'assets/images/donut.jpg',
-        createdAt: now.subtract(const Duration(days: 15)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 5,
-        name: 'Sandwich Club',
-        code: 'SC005',
-        description: 'Sandwich dengan isian lengkap dan segar',
-        price: 42000,
-        stock: 6,
-        category: 'Makanan',
-        imagePath: 'assets/images/sandwich.jpg',
-        createdAt: now.subtract(const Duration(days: 12)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 6,
-        name: 'Salad Caesar',
-        code: 'SAL006',
-        description: 'Salad segar dengan dressing caesar',
-        price: 38000,
-        stock: 10,
-        category: 'Makanan',
-        imagePath: 'assets/images/salad.jpg',
-        createdAt: now.subtract(const Duration(days: 10)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 7,
-        name: 'Jus Jeruk Segar',
-        code: 'JJS007',
-        description: 'Jus jeruk segar tanpa pengawet',
-        price: 22000,
-        stock: 20,
-        category: 'Minuman',
-        imagePath: 'assets/images/jus_jeruk.jpg',
-        createdAt: now.subtract(const Duration(days: 8)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 8,
-        name: 'Muffin Blueberry',
-        code: 'MB008',
-        description: 'Muffin lembut dengan blueberry segar',
-        price: 28000,
-        stock: 5,
-        category: 'Pastry',
-        imagePath: 'assets/images/muffin.jpg',
-        createdAt: now.subtract(const Duration(days: 5)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 9,
-        name: 'Pasta Carbonara',
-        code: 'PC009',
-        description: 'Pasta carbonara dengan cream sauce',
-        price: 55000,
-        stock: 7,
-        category: 'Makanan',
-        imagePath: 'assets/images/pasta.jpg',
-        createdAt: now.subtract(const Duration(days: 3)),
-        updatedAt: now,
-      ),
-      Product(
-        id: 10,
-        name: 'Cappuccino',
-        code: 'CAP010',
-        description: 'Cappuccino dengan foam art',
-        price: 32000,
-        stock: 18,
-        category: 'Minuman',
-        imagePath: 'assets/images/cappuccino.jpg',
-        createdAt: now.subtract(const Duration(days: 1)),
-        updatedAt: now,
-      ),
-    ];
   }
 
   // Search functionality

@@ -21,6 +21,7 @@ class ApiProductProvider extends ChangeNotifier {
   String _sortBy = 'name';
   String _sortDirection = 'asc';
   int _currentPage = 1;
+  int? _customerId; // Customer ID for pricing
 
   // Getters for API products
   List<api_product.Product> get apiProducts => _apiProducts;
@@ -33,15 +34,15 @@ class ApiProductProvider extends ChangeNotifier {
   String get sortBy => _sortBy;
   String get sortDirection => _sortDirection;
   int get currentPage => _currentPage;
+  int? get customerId => _customerId;
 
   // Get selected category as string for compatibility
   String get selectedCategory {
     if (_selectedCategoryId == null) return 'All';
-    final category =
-        _apiProducts
-            .map((p) => p.category)
-            .where((c) => c.id == _selectedCategoryId)
-            .firstOrNull;
+    final category = _apiProducts
+        .map((p) => p.category)
+        .where((c) => c.id == _selectedCategoryId)
+        .firstOrNull;
     return category?.name ?? 'All';
   }
 
@@ -61,8 +62,27 @@ class ApiProductProvider extends ChangeNotifier {
     return categorySet.toList();
   }
 
+  /// Set customer ID for product pricing
+  void setCustomerId(int? customerId) {
+    if (_customerId != customerId) {
+      _customerId = customerId;
+      if (customerId != null) {
+        loadProducts();
+      } else {
+        _apiProducts.clear();
+        notifyListeners();
+      }
+    }
+  }
+
   /// Load products from API
   Future<void> loadProducts({int page = 1, bool append = false}) async {
+    if (_customerId == null) {
+      _errorMessage = 'Customer ID is required to load products';
+      notifyListeners();
+      return;
+    }
+
     try {
       if (!append) {
         _isLoading = true;
@@ -71,6 +91,7 @@ class ApiProductProvider extends ChangeNotifier {
       }
 
       final response = await _apiService.getProducts(
+        customerId: _customerId!,
         page: page,
         search: _searchQuery.isNotEmpty ? _searchQuery : null,
         categoryId: _selectedCategoryId,
@@ -284,11 +305,10 @@ class ApiProductProvider extends ChangeNotifier {
     }
 
     // Find category ID by name
-    final category =
-        _apiProducts
-            .map((p) => p.category)
-            .where((c) => c.name == categoryName)
-            .firstOrNull;
+    final category = _apiProducts
+        .map((p) => p.category)
+        .where((c) => c.name == categoryName)
+        .firstOrNull;
 
     if (category != null) {
       await filterByCategory(category.id);

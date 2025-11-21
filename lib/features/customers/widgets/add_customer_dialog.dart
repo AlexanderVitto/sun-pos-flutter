@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../providers/customer_provider.dart';
+import '../data/models/customer_group.dart';
 
 class AddCustomerDialog extends StatefulWidget {
   const AddCustomerDialog({super.key});
@@ -15,6 +16,19 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
   bool _isSubmitting = false;
+  CustomerGroup? _selectedCustomerGroup;
+
+  @override
+  void initState() {
+    super.initState();
+    // Load customer groups when dialog opens
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<CustomerProvider>(
+        context,
+        listen: false,
+      ).loadCustomerGroups();
+    });
+  }
 
   @override
   void dispose() {
@@ -133,6 +147,66 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
                       context,
                     ).textTheme.bodySmall?.copyWith(color: Colors.grey[600]),
                   ),
+                  const SizedBox(height: 16),
+
+                  // Customer Group Dropdown
+                  if (customerProvider.isLoadingGroups)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(16),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (customerProvider.customerGroups.isNotEmpty)
+                    DropdownButtonFormField<CustomerGroup>(
+                      value: _selectedCustomerGroup,
+                      decoration: const InputDecoration(
+                        labelText: 'Customer Group (Optional)',
+                        hintText: 'Select customer group',
+                        prefixIcon: Icon(Icons.group),
+                        border: OutlineInputBorder(),
+                      ),
+                      items: customerProvider.customerGroups
+                          .map(
+                            (group) => DropdownMenuItem<CustomerGroup>(
+                              value: group,
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(group.name),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green[50],
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: Colors.green[300]!,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      group.formattedDiscount,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.green[700],
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                          .toList(),
+                      onChanged: (CustomerGroup? value) {
+                        setState(() {
+                          _selectedCustomerGroup = value;
+                        });
+                      },
+                    ),
                   const SizedBox(height: 24),
 
                   // Error message
@@ -168,18 +242,16 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed:
-                            _isSubmitting || customerProvider.isCreating
-                                ? null
-                                : () => Navigator.of(context).pop(),
+                        onPressed: _isSubmitting || customerProvider.isCreating
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton(
-                        onPressed:
-                            _isSubmitting || customerProvider.isCreating
-                                ? null
-                                : _handleSubmit,
+                        onPressed: _isSubmitting || customerProvider.isCreating
+                            ? null
+                            : _handleSubmit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
@@ -188,27 +260,25 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
                             vertical: 12,
                           ),
                         ),
-                        child:
-                            customerProvider.isCreating
-                                ? const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
+                        child: customerProvider.isCreating
+                            ? const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
-                                    Text('Creating...'),
-                                  ],
-                                )
-                                : const Text('Add Customer'),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('Creating...'),
+                                ],
+                              )
+                            : const Text('Add Customer'),
                       ),
                     ],
                   ),
@@ -238,6 +308,7 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
       final customer = await customerProvider.createCustomer(
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
+        customerGroupId: _selectedCustomerGroup?.id,
       );
 
       if (customer != null) {

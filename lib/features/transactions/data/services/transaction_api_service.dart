@@ -1,12 +1,13 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../../core/services/secure_storage_service.dart';
+import '../../../../core/config/app_config.dart';
 import '../models/create_transaction_request.dart';
 import '../models/create_transaction_response.dart';
 import '../models/transaction_list_response.dart';
 
 class TransactionApiService {
-  static const String baseUrl = 'https://sfxsys.com/api/v1';
+  String get baseUrl => AppConfig.baseUrl;
   final SecureStorageService _secureStorage = SecureStorageService();
 
   /// Create a new transaction

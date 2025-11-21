@@ -2,10 +2,11 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/services/secure_storage_service.dart';
+import '../../../../core/config/app_config.dart';
 import '../models/pending_transaction_api_models.dart';
 
 class PendingTransactionApiService {
-  static const String baseUrl = 'https://sfxsys.com/api/v1';
+  String get baseUrl => AppConfig.baseUrl;
   final SecureStorageService _secureStorage = SecureStorageService();
 
   /// Get pending transactions from API

@@ -1,6 +1,7 @@
 import 'category.dart';
 import 'unit.dart';
 import 'product_variant.dart';
+import 'customer_info.dart';
 
 class Product {
   final int id;
@@ -14,6 +15,7 @@ class Product {
   final Unit unit;
   final List<ProductVariant> variants;
   final int variantsCount;
+  final CustomerInfo? customerInfo;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -29,6 +31,7 @@ class Product {
     required this.unit,
     required this.variants,
     required this.variantsCount,
+    this.customerInfo,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -50,6 +53,9 @@ class Product {
               .toList() ??
           [],
       variantsCount: json['variants_count'] ?? 0,
+      customerInfo: json['customer_info'] != null
+          ? CustomerInfo.fromJson(json['customer_info'])
+          : null,
       createdAt: DateTime.parse(
         json['created_at'] ?? DateTime.now().toIso8601String(),
       ),
@@ -72,6 +78,7 @@ class Product {
       'unit': unit.toJson(),
       'variants': variants.map((variant) => variant.toJson()).toList(),
       'variants_count': variantsCount,
+      if (customerInfo != null) 'customer_info': customerInfo!.toJson(),
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };
@@ -79,7 +86,7 @@ class Product {
 
   @override
   String toString() {
-    return 'Product(id: $id, name: $name, sku: $sku, category: ${category.name}, unit: ${unit.name}, variantsCount: $variantsCount)';
+    return 'Product(id: $id, name: $name, sku: $sku, category: ${category.name}, unit: ${unit.name}, variantsCount: $variantsCount, customerInfo: $customerInfo)';
   }
 
   // Helper method to get the first variant (for backward compatibility)
@@ -95,5 +102,10 @@ class Product {
   // Helper method to get stock from first variant (for backward compatibility)
   int get stock {
     return firstVariant?.stock ?? 0;
+  }
+
+  /// Check if this product has customer-specific pricing
+  bool get hasCustomerPricing {
+    return customerInfo?.hasCustomerPricing ?? false;
   }
 }

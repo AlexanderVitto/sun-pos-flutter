@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import '../../sales/providers/cart_provider.dart';
 import '../providers/customer_provider.dart';
 import '../data/models/customer.dart';
-import '../widgets/add_customer_dialog.dart';
+import '../presentation/pages/add_customer_page.dart';
 
 class CustomerSelectionCard extends StatefulWidget {
   const CustomerSelectionCard({super.key});
@@ -136,13 +136,12 @@ class _CustomerSelectionCardState extends State<CustomerSelectionCard> {
                             decoration: InputDecoration(
                               hintText: 'Search customer by name or phone...',
                               prefixIcon: const Icon(Icons.search),
-                              suffixIcon:
-                                  _searchController.text.isNotEmpty
-                                      ? IconButton(
-                                        onPressed: _clearSearch,
-                                        icon: const Icon(Icons.clear),
-                                      )
-                                      : null,
+                              suffixIcon: _searchController.text.isNotEmpty
+                                  ? IconButton(
+                                      onPressed: _clearSearch,
+                                      icon: const Icon(Icons.clear),
+                                    )
+                                  : null,
                               border: const OutlineInputBorder(),
                               filled: true,
                               fillColor: Colors.grey[50],
@@ -318,9 +317,9 @@ class _CustomerSelectionCardState extends State<CustomerSelectionCard> {
     // Hide suggestions
     setState(() => _showSuggestions = false);
 
-    final customer = await showDialog<Customer>(
-      context: context,
-      builder: (context) => const AddCustomerDialog(),
+    final customer = await Navigator.push<Customer>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddCustomerPage()),
     );
 
     if (customer != null) {

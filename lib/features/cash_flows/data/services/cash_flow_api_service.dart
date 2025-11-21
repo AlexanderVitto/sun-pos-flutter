@@ -1,11 +1,12 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../../../../core/services/secure_storage_service.dart';
+import '../../../../core/config/app_config.dart';
 import '../models/create_cash_flow_request.dart';
 import '../models/cash_flow_response.dart';
 
 class CashFlowApiService {
-  static const String baseUrl = 'https://sfxsys.com/api/v1';
+  String get baseUrl => AppConfig.baseUrl;
   final SecureStorageService _secureStorage = SecureStorageService();
 
   /// Create a new cash flow entry

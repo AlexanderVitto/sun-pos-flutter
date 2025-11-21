@@ -1,14 +1,16 @@
 import '../../../../core/network/auth_http_client.dart';
+import '../../../../core/config/app_config.dart';
 import '../models/product_response.dart';
 import '../models/product_detail_response.dart';
 
 class ProductApiService {
-  static const String baseUrl = 'https://sfxsys.com/api/v1';
+  String get baseUrl => AppConfig.baseUrl;
   final AuthHttpClient _httpClient = AuthHttpClient();
 
   /// Get products with pagination and filtering
   /// [page] - Page number (default: 1)
   /// [perPage] - Items per page (default: 15)
+  /// [customerId] - Customer ID for customer-specific pricing (REQUIRED)
   /// [search] - Search query for product name or SKU
   /// [categoryId] - Filter by category ID
   /// [unitId] - Filter by unit ID
@@ -18,6 +20,7 @@ class ProductApiService {
   Future<ProductResponse> getProducts({
     int page = 1,
     int perPage = 15,
+    required int customerId,
     String? search,
     int? categoryId,
     int? unitId,
@@ -30,6 +33,7 @@ class ProductApiService {
       final Map<String, String> queryParams = {
         'page': page.toString(),
         'per_page': perPage.toString(),
+        'customer_id': customerId.toString(),
         'active_only': activeOnly.toString(),
       };
 
@@ -87,6 +91,7 @@ class ProductApiService {
   /// Search products by name or SKU
   Future<ProductResponse> searchProducts(
     String query, {
+    required int customerId,
     int page = 1,
     int perPage = 15,
     int? categoryId,
@@ -95,6 +100,7 @@ class ProductApiService {
     String? sortDirection,
   }) async {
     return await getProducts(
+      customerId: customerId,
       page: page,
       perPage: perPage,
       search: query,
@@ -108,6 +114,7 @@ class ProductApiService {
   /// Get products by category
   Future<ProductResponse> getProductsByCategory(
     int categoryId, {
+    required int customerId,
     int page = 1,
     int perPage = 15,
     String? search,
@@ -116,6 +123,7 @@ class ProductApiService {
     String? sortDirection,
   }) async {
     return await getProducts(
+      customerId: customerId,
       page: page,
       perPage: perPage,
       search: search,
@@ -129,6 +137,7 @@ class ProductApiService {
   /// Get products by unit
   Future<ProductResponse> getProductsByUnit(
     int unitId, {
+    required int customerId,
     int page = 1,
     int perPage = 15,
     String? search,
@@ -137,6 +146,7 @@ class ProductApiService {
     String? sortDirection,
   }) async {
     return await getProducts(
+      customerId: customerId,
       page: page,
       perPage: perPage,
       search: search,
@@ -149,6 +159,7 @@ class ProductApiService {
 
   /// Get active products only (default behavior)
   Future<ProductResponse> getActiveProducts({
+    required int customerId,
     int page = 1,
     int perPage = 15,
     String? search,
@@ -158,6 +169,7 @@ class ProductApiService {
     String? sortDirection,
   }) async {
     return await getProducts(
+      customerId: customerId,
       page: page,
       perPage: perPage,
       search: search,
@@ -171,6 +183,7 @@ class ProductApiService {
 
   /// Get all products including inactive ones
   Future<ProductResponse> getAllProducts({
+    required int customerId,
     int page = 1,
     int perPage = 15,
     String? search,
@@ -180,6 +193,7 @@ class ProductApiService {
     String? sortDirection,
   }) async {
     return await getProducts(
+      customerId: customerId,
       page: page,
       perPage: perPage,
       search: search,

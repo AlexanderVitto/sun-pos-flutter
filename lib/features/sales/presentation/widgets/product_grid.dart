@@ -25,16 +25,14 @@ class ProductGrid extends StatelessWidget {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, child) {
         final allProducts = productProvider.products;
-        final filteredProducts =
-            allProducts.where((product) {
-              final matchesSearch = product.name.toLowerCase().contains(
-                searchQuery.toLowerCase(),
-              );
-              final matchesCategory =
-                  selectedCategory.isEmpty ||
-                  product.category == selectedCategory;
-              return matchesSearch && matchesCategory;
-            }).toList();
+        final filteredProducts = allProducts.where((product) {
+          final matchesSearch = product.name.toLowerCase().contains(
+            searchQuery.toLowerCase(),
+          );
+          final matchesCategory =
+              selectedCategory.isEmpty || product.category == selectedCategory;
+          return matchesSearch && matchesCategory;
+        }).toList();
 
         if (filteredProducts.isEmpty) {
           return const Center(
@@ -52,11 +50,17 @@ class ProductGrid extends StatelessWidget {
           );
         }
 
+        // Calculate dynamic aspect ratio based on screen width
+        final screenWidth = MediaQuery.of(context).size.width;
+        // For Pixel 8 (~412dp) and larger: use 1.0
+        // For smaller screens: use 0.75 for more height
+        final aspectRatio = screenWidth >= 400 ? 1.0 : 0.85;
+
         return GridView.builder(
           padding: const EdgeInsets.all(16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: crossAxisCount,
-            childAspectRatio: 1,
+            childAspectRatio: aspectRatio,
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
           ),
@@ -66,8 +70,8 @@ class ProductGrid extends StatelessWidget {
             return ProductCard(
               product: product,
               onTap: onProductTap != null ? () => onProductTap!(product) : null,
-              onAddToCart:
-                  (product, quantity) => onAddToCart(product, quantity),
+              onAddToCart: (product, quantity) =>
+                  onAddToCart(product, quantity),
             );
           },
         );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/utils/decimal_text_input_formatter.dart';
 import '../../providers/cash_flow_provider.dart';
 import '../../data/models/create_cash_flow_request.dart';
 
@@ -101,13 +102,15 @@ class _AddCashFlowPageState extends State<AddCashFlowPage> {
                       label: 'Jumlah',
                       hint: 'Contoh: 500000',
                       keyboardType: TextInputType.number,
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      inputFormatters: [DecimalTextInputFormatter()],
                       prefixIcon: Icons.attach_money,
                       validator: (value) {
                         if (value == null || value.isEmpty) {
                           return 'Jumlah wajib diisi';
                         }
-                        final amount = double.tryParse(value);
+                        final amount = DecimalTextInputFormatter.parseDecimal(
+                          value,
+                        );
                         if (amount == null || amount <= 0) {
                           return 'Masukkan jumlah yang valid';
                         }
@@ -142,23 +145,22 @@ class _AddCashFlowPageState extends State<AddCashFlowPage> {
                             borderRadius: BorderRadius.circular(8),
                           ),
                         ),
-                        child:
-                            provider.isCreating
-                                ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    color: Colors.white,
-                                    strokeWidth: 2,
-                                  ),
-                                )
-                                : const Text(
-                                  'Buat Arus Kas',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                        child: provider.isCreating
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
                                 ),
+                              )
+                            : const Text(
+                                'Buat Arus Kas',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
                       ),
                     ),
                     // Extra bottom padding for safe area
@@ -206,38 +208,34 @@ class _AddCashFlowPageState extends State<AddCashFlowPage> {
                   horizontal: 12,
                 ),
                 decoration: BoxDecoration(
-                  color:
-                      _selectedType == 'in'
-                          ? Colors.green.shade50
-                          : Colors.transparent,
+                  color: _selectedType == 'in'
+                      ? Colors.green.shade50
+                      : Colors.transparent,
                   borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(8),
                     bottomLeft: Radius.circular(8),
                   ),
-                  border:
-                      _selectedType == 'in'
-                          ? Border.all(color: Colors.green, width: 2)
-                          : null,
+                  border: _selectedType == 'in'
+                      ? Border.all(color: Colors.green, width: 2)
+                      : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.arrow_upward,
-                      color:
-                          _selectedType == 'in'
-                              ? Colors.green
-                              : Colors.grey.shade600,
+                      color: _selectedType == 'in'
+                          ? Colors.green
+                          : Colors.grey.shade600,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Uang Masuk',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
-                        color:
-                            _selectedType == 'in'
-                                ? Colors.green
-                                : Colors.grey.shade600,
+                        color: _selectedType == 'in'
+                            ? Colors.green
+                            : Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -254,38 +252,34 @@ class _AddCashFlowPageState extends State<AddCashFlowPage> {
                   horizontal: 12,
                 ),
                 decoration: BoxDecoration(
-                  color:
-                      _selectedType == 'out'
-                          ? Colors.red.shade50
-                          : Colors.transparent,
+                  color: _selectedType == 'out'
+                      ? Colors.red.shade50
+                      : Colors.transparent,
                   borderRadius: const BorderRadius.only(
                     topRight: Radius.circular(8),
                     bottomRight: Radius.circular(8),
                   ),
-                  border:
-                      _selectedType == 'out'
-                          ? Border.all(color: Colors.red, width: 2)
-                          : null,
+                  border: _selectedType == 'out'
+                      ? Border.all(color: Colors.red, width: 2)
+                      : null,
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Icon(
                       Icons.arrow_downward,
-                      color:
-                          _selectedType == 'out'
-                              ? Colors.red
-                              : Colors.grey.shade600,
+                      color: _selectedType == 'out'
+                          ? Colors.red
+                          : Colors.grey.shade600,
                     ),
                     const SizedBox(width: 8),
                     Text(
                       'Uang Keluar',
                       style: TextStyle(
                         fontWeight: FontWeight.w500,
-                        color:
-                            _selectedType == 'out'
-                                ? Colors.red
-                                : Colors.grey.shade600,
+                        color: _selectedType == 'out'
+                            ? Colors.red
+                            : Colors.grey.shade600,
                       ),
                     ),
                   ],
@@ -355,19 +349,18 @@ class _AddCashFlowPageState extends State<AddCashFlowPage> {
           borderSide: BorderSide(color: Colors.blue.shade600, width: 2),
         ),
       ),
-      items:
-          _categories.map((category) {
-            return DropdownMenuItem<String>(
-              value: category['value'],
-              child: Row(
-                children: [
-                  Icon(category['icon'], size: 20),
-                  const SizedBox(width: 8),
-                  Text(category['label']),
-                ],
-              ),
-            );
-          }).toList(),
+      items: _categories.map((category) {
+        return DropdownMenuItem<String>(
+          value: category['value'],
+          child: Row(
+            children: [
+              Icon(category['icon'], size: 20),
+              const SizedBox(width: 8),
+              Text(category['label']),
+            ],
+          ),
+        );
+      }).toList(),
       onChanged: (value) {
         if (value != null) {
           setState(() => _selectedCategory = value);
@@ -434,14 +427,16 @@ class _AddCashFlowPageState extends State<AddCashFlowPage> {
       storeId: 1,
       title: _titleController.text.trim(),
       description: _descriptionController.text.trim(),
-      amount: int.parse(_amountController.text),
+      amount:
+          (DecimalTextInputFormatter.parseDecimal(_amountController.text) ??
+                  0.0)
+              .round(),
       type: _selectedType,
       category: _selectedCategory,
       transactionDate: DateFormat('yyyy-MM-dd').format(_selectedDate),
-      notes:
-          _notesController.text.trim().isEmpty
-              ? null
-              : _notesController.text.trim(),
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
     );
 
     final success = await context.read<CashFlowProvider>().createCashFlow(

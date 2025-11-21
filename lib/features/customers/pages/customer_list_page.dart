@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/customer_provider.dart';
 import '../data/models/customer.dart';
-import '../widgets/add_customer_dialog.dart';
+import '../presentation/pages/add_customer_page.dart';
 import '../widgets/customer_list_item.dart';
 import 'customer_detail_page.dart';
 
@@ -67,19 +67,18 @@ class _CustomerListPageState extends State<CustomerListPage> {
           ),
           PopupMenuButton<String>(
             onSelected: _handleMenuAction,
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'refresh',
-                    child: Row(
-                      children: [
-                        Icon(Icons.refresh),
-                        SizedBox(width: 8),
-                        Text('Refresh'),
-                      ],
-                    ),
-                  ),
-                ],
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'refresh',
+                child: Row(
+                  children: [
+                    Icon(Icons.refresh),
+                    SizedBox(width: 8),
+                    Text('Refresh'),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -94,13 +93,12 @@ class _CustomerListPageState extends State<CustomerListPage> {
               decoration: InputDecoration(
                 hintText: 'Search customers by name or phone...',
                 prefixIcon: const Icon(Icons.search),
-                suffixIcon:
-                    _searchController.text.isNotEmpty
-                        ? IconButton(
-                          onPressed: _clearSearch,
-                          icon: const Icon(Icons.clear),
-                        )
-                        : null,
+                suffixIcon: _searchController.text.isNotEmpty
+                    ? IconButton(
+                        onPressed: _clearSearch,
+                        icon: const Icon(Icons.clear),
+                      )
+                    : null,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -184,10 +182,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
                 return Container(
                   padding: const EdgeInsets.all(16),
                   alignment: Alignment.center,
-                  child:
-                      provider.isLoadingMore
-                          ? const CircularProgressIndicator()
-                          : const SizedBox.shrink(),
+                  child: provider.isLoadingMore
+                      ? const CircularProgressIndicator()
+                      : const SizedBox.shrink(),
                 );
               }
 
@@ -217,18 +214,16 @@ class _CustomerListPageState extends State<CustomerListPage> {
                 Row(
                   children: [
                     IconButton(
-                      onPressed:
-                          provider.hasPrevPage
-                              ? () => _loadPage(provider.currentPage - 1)
-                              : null,
+                      onPressed: provider.hasPrevPage
+                          ? () => _loadPage(provider.currentPage - 1)
+                          : null,
                       icon: const Icon(Icons.chevron_left),
                       iconSize: 20,
                     ),
                     IconButton(
-                      onPressed:
-                          provider.hasNextPage
-                              ? () => _loadPage(provider.currentPage + 1)
-                              : null,
+                      onPressed: provider.hasNextPage
+                          ? () => _loadPage(provider.currentPage + 1)
+                          : null,
                       icon: const Icon(Icons.chevron_right),
                       iconSize: 20,
                     ),
@@ -358,9 +353,9 @@ class _CustomerListPageState extends State<CustomerListPage> {
   }
 
   Future<void> _showAddCustomerDialog() async {
-    final customer = await showDialog<Customer>(
-      context: context,
-      builder: (context) => const AddCustomerDialog(),
+    final customer = await Navigator.push<Customer>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddCustomerPage()),
     );
 
     if (customer != null && mounted) {
@@ -381,9 +376,8 @@ class _CustomerListPageState extends State<CustomerListPage> {
     // Navigate to customer details page
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) =>
-                CustomerDetailPage(customerId: customer.id, customer: customer),
+        builder: (context) =>
+            CustomerDetailPage(customerId: customer.id, customer: customer),
       ),
     );
   }
@@ -392,9 +386,8 @@ class _CustomerListPageState extends State<CustomerListPage> {
     // Navigate to customer details page and show edit
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) =>
-                CustomerDetailPage(customerId: customer.id, customer: customer),
+        builder: (context) =>
+            CustomerDetailPage(customerId: customer.id, customer: customer),
       ),
     );
   }
@@ -403,32 +396,28 @@ class _CustomerListPageState extends State<CustomerListPage> {
     // Show delete confirmation
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Customer'),
-            content: Text('Are you sure you want to delete ${customer.name}?'),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
-              ),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('${customer.name} deleted'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                },
-                child: const Text(
-                  'Delete',
-                  style: TextStyle(color: Colors.red),
-                ),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Customer'),
+        content: Text('Are you sure you want to delete ${customer.name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
           ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('${customer.name} deleted'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            },
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
     );
   }
 }

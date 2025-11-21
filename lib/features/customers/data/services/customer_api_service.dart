@@ -1,13 +1,15 @@
 import '../../../../core/network/auth_http_client.dart';
+import '../../../../core/config/app_config.dart';
 import '../models/create_customer_request.dart';
 import '../models/create_customer_response.dart';
 import '../models/update_customer_request.dart';
 import '../models/update_customer_response.dart';
 import '../models/customer.dart';
 import '../models/customer_list_response.dart';
+import '../models/customer_group_list_response.dart';
 
 class CustomerApiService {
-  static const String baseUrl = 'https://sfxsys.com/api/v1';
+  String get baseUrl => AppConfig.baseUrl;
   final AuthHttpClient _httpClient = AuthHttpClient();
 
   /// Create a new customer
@@ -167,6 +169,21 @@ class CustomerApiService {
           .toList();
     } catch (e) {
       throw Exception('Failed to search customers: ${e.toString()}');
+    }
+  }
+
+  /// Get customer groups list
+  /// GET {{base_url}}/api/v1/customer-groups
+  Future<CustomerGroupListResponse> getCustomerGroups() async {
+    try {
+      final url = '$baseUrl/customer-groups';
+
+      final response = await _httpClient.get(url, requireAuth: true);
+
+      final responseData = _httpClient.parseJsonResponse(response);
+      return CustomerGroupListResponse.fromJson(responseData);
+    } catch (e) {
+      throw Exception('Failed to get customer groups: ${e.toString()}');
     }
   }
 }

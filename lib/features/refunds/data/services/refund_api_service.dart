@@ -2,9 +2,10 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/services/secure_storage_service.dart';
+import '../../../../core/config/app_config.dart';
 
 class RefundApiService {
-  static const String baseUrl = 'https://sfxsys.com/api/v1';
+  String get baseUrl => AppConfig.baseUrl;
   final SecureStorageService _secureStorage = SecureStorageService();
 
   /// Get list of refunds with pagination and filters

@@ -4,6 +4,7 @@ import '../data/models/customer.dart';
 import '../data/models/create_customer_request.dart';
 import '../data/models/update_customer_request.dart';
 import '../data/models/customer_list_response.dart';
+import '../data/models/customer_group.dart';
 
 class CustomerProvider extends ChangeNotifier {
   final CustomerApiService _apiService = CustomerApiService();
@@ -23,6 +24,11 @@ class CustomerProvider extends ChangeNotifier {
   Customer? _customerDetail;
   bool _isLoadingDetail = false;
   bool _isUpdating = false;
+
+  // Customer groups properties
+  List<CustomerGroup> _customerGroups = [];
+  bool _isLoadingGroups = false;
+  String? _groupsErrorMessage;
 
   // Getters
   List<Customer> get customers => _customers;
@@ -45,10 +51,17 @@ class CustomerProvider extends ChangeNotifier {
   bool get isLoadingDetail => _isLoadingDetail;
   bool get isUpdating => _isUpdating;
 
+  // Customer groups getters
+  List<CustomerGroup> get customerGroups => _customerGroups;
+  bool get isLoadingGroups => _isLoadingGroups;
+  String? get groupsErrorMessage => _groupsErrorMessage;
+
   /// Create new customer
   Future<Customer?> createCustomer({
     required String name,
     required String phone,
+    String? address,
+    int? customerGroupId,
   }) async {
     _isCreating = true;
     _errorMessage = null;
@@ -58,6 +71,8 @@ class CustomerProvider extends ChangeNotifier {
       final request = CreateCustomerRequest(
         name: name.trim(),
         phone: phone.trim(),
+        address: address,
+        customerGroupId: customerGroupId,
       );
 
       final response = await _apiService.createCustomer(request);
@@ -125,10 +140,9 @@ class CustomerProvider extends ChangeNotifier {
 
         _errorMessage = null;
       } else {
-        _errorMessage =
-            response.message.isNotEmpty
-                ? response.message
-                : 'Failed to load customers';
+        _errorMessage = response.message.isNotEmpty
+            ? response.message
+            : 'Failed to load customers';
       }
     } catch (e) {
       _errorMessage = 'Failed to load customers: ${e.toString()}';
@@ -167,10 +181,9 @@ class CustomerProvider extends ChangeNotifier {
 
       final List<dynamic>? customersData = response['data']?['data'];
       if (customersData != null) {
-        _customers =
-            customersData
-                .map((customerJson) => Customer.fromJson(customerJson))
-                .toList();
+        _customers = customersData
+            .map((customerJson) => Customer.fromJson(customerJson))
+            .toList();
       }
 
       _errorMessage = null;
@@ -258,6 +271,8 @@ class CustomerProvider extends ChangeNotifier {
     required int customerId,
     required String name,
     required String phone,
+    String? address,
+    int? customerGroupId,
   }) async {
     _isUpdating = true;
     _errorMessage = null;
@@ -267,6 +282,8 @@ class CustomerProvider extends ChangeNotifier {
       final request = UpdateCustomerRequest(
         name: name.trim(),
         phone: phone.trim(),
+        address: address,
+        customerGroupId: customerGroupId,
       );
 
       final response = await _apiService.updateCustomer(customerId, request);
@@ -285,13 +302,7 @@ class CustomerProvider extends ChangeNotifier {
 
         // Update selected customer if it's the same customer
         if (_selectedCustomer?.id.toString() == customerId.toString()) {
-          _selectedCustomer = Customer(
-            id: response.data!.id,
-            name: response.data!.name,
-            phone: response.data!.phone,
-            createdAt: response.data!.createdAt,
-            updatedAt: response.data!.updatedAt,
-          );
+          _selectedCustomer = response.data!;
         }
 
         _errorMessage = null;
@@ -345,6 +356,29 @@ class CustomerProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
+    }
+  }
+
+  /// Load customer groups
+  Future<void> loadCustomerGroups() async {
+    _isLoadingGroups = true;
+    _groupsErrorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.getCustomerGroups();
+
+      if (response.isSuccess) {
+        _customerGroups = response.data;
+        _groupsErrorMessage = null;
+      } else {
+        _groupsErrorMessage = response.message;
+      }
+    } catch (e) {
+      _groupsErrorMessage = 'Failed to load customer groups: ${e.toString()}';
+    } finally {
+      _isLoadingGroups = false;
+      notifyListeners();
     }
   }
 

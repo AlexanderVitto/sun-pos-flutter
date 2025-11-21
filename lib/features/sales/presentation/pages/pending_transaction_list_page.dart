@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:sun_pos/data/models/product.dart';
 import 'package:sun_pos/features/products/providers/product_provider.dart';
+import '../../../customers/presentation/pages/update_customer_page.dart';
 import '../../providers/pending_transaction_provider.dart';
 import '../../data/models/pending_transaction_api_models.dart';
 import 'customer_selection_page.dart';
@@ -47,10 +48,7 @@ class _PendingTransactionListPageState
       context,
       listen: false,
     );
-    final productProvider = Provider.of<ProductProvider>(
-      context,
-      listen: false,
-    );
+    var productProvider = Provider.of<ProductProvider>(context, listen: false);
 
     try {
       // Clear current cart
@@ -62,21 +60,104 @@ class _PendingTransactionListPageState
           transaction.id,
         );
 
+        // Check if customer has customer group ID
+        if (detail.customer != null &&
+            detail.customer!.customerGroupId == null) {
+          // Show dialog to update customer
+          final shouldUpdate = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(LucideIcons.alertCircle, color: Colors.orange),
+                  SizedBox(width: 12),
+                  Text('Customer Group Belum Diisi'),
+                ],
+              ),
+              content: Text(
+                'Customer "${detail.customerName}" belum memiliki customer group. '
+                'Customer group diperlukan untuk mendapatkan harga produk yang sesuai.\n\n'
+                'Apakah Anda ingin mengisi customer group sekarang?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Isi Customer Group'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldUpdate == true && mounted) {
+            // Navigate to update customer page
+            final updatedCustomer = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UpdateCustomerPage(
+                  customer: detail.customer!,
+                  requiresCustomerGroup: true,
+                ),
+              ),
+            );
+
+            // If customer was updated, retry loading the transaction
+            if (updatedCustomer != null && mounted) {
+              _resumeTransaction(transaction);
+            }
+          }
+          return;
+        }
+
         // Set draft transaction ID for future updates
         cartProvider.setDraftTransactionId(transaction.id);
         debugPrint('🔄 Setting draft transaction ID: ${transaction.id}');
+
+        // Set customer group ID to product provider for pricing BEFORE loading cart items
+        if (detail.customer != null &&
+            detail.customer!.customerGroupId != null) {
+          debugPrint(
+            '💰 Setting customer group ID for pricing: ${detail.customer!.customerGroupId}',
+          );
+
+          // Set customer ID without triggering auto-load, then explicitly load
+          final customerId = detail.customer!.customerGroupId!;
+          if (productProvider.customerId != customerId) {
+            // Only update if different - this will trigger one load from setCustomerId
+            productProvider.setCustomerId(customerId);
+
+            // Wait for the load triggered by setCustomerId to complete
+            debugPrint('🔄 Loading products with customer pricing...');
+            // Wait for isLoading to become true, then wait for it to complete
+            await Future.delayed(const Duration(milliseconds: 100));
+            while (productProvider.isLoading) {
+              await Future.delayed(const Duration(milliseconds: 50));
+            }
+            debugPrint('✅ Products loaded successfully with customer pricing');
+          }
+        }
 
         // Convert API detail items to cart items
         for (final item in detail.details) {
           // find product in productProvider, return null if not found
           Product? product =
               productProvider.products
-                      .where((p) => p.productVariantId == item.productVariantId)
-                      .isNotEmpty
-                  ? productProvider.products.firstWhere(
-                    (p) => p.productVariantId == item.productVariantId,
-                  )
-                  : null;
+                  .where((p) => p.productVariantId == item.productVariantId)
+                  .isNotEmpty
+              ? productProvider.products.firstWhere(
+                  (p) => p.productVariantId == item.productVariantId,
+                )
+              : null;
 
           if (product != null) {
             cartProvider.addItem(product, quantity: item.quantity);
@@ -106,14 +187,95 @@ class _PendingTransactionListPageState
           '🔄 Resuming local pending transaction (no API transaction ID)',
         );
 
+        // Set customer group ID to product provider for pricing BEFORE loading cart items
+        final localApiCustomer = transaction.customer;
+        if (localApiCustomer.customerGroupId != null) {
+          debugPrint(
+            '💰 Setting customer group ID for pricing: ${localApiCustomer.customerGroupId}',
+          );
+
+          // Set customer ID without triggering duplicate load
+          final customerId = localApiCustomer.customerGroupId!;
+          if (productProvider.customerId != customerId) {
+            // Only update if different - this will trigger one load from setCustomerId
+            productProvider.setCustomerId(customerId);
+
+            // Wait for the load triggered by setCustomerId to complete
+            debugPrint('🔄 Loading products with customer pricing...');
+            // Wait for isLoading to become true, then wait for it to complete
+            await Future.delayed(const Duration(milliseconds: 100));
+            while (productProvider.isLoading) {
+              await Future.delayed(const Duration(milliseconds: 50));
+            }
+            debugPrint('✅ Products loaded successfully with customer pricing');
+          }
+        }
+
+        // Check if customer has customer group ID
+        if (localApiCustomer.customerGroupId == null) {
+          // Show dialog to update customer
+          final shouldUpdate = await showDialog<bool>(
+            context: context,
+            builder: (context) => AlertDialog(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              title: const Row(
+                children: [
+                  Icon(LucideIcons.alertCircle, color: Colors.orange),
+                  SizedBox(width: 12),
+                  Text('Customer Group Belum Diisi'),
+                ],
+              ),
+              content: Text(
+                'Customer "${transaction.customerName}" belum memiliki customer group. '
+                'Customer group diperlukan untuk mendapatkan harga produk yang sesuai.\n\n'
+                'Apakah Anda ingin mengisi customer group sekarang?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Batal'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF3B82F6),
+                    foregroundColor: Colors.white,
+                  ),
+                  child: const Text('Isi Customer Group'),
+                ),
+              ],
+            ),
+          );
+
+          if (shouldUpdate == true && mounted) {
+            // Navigate to update customer page
+            final updatedCustomer = await Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => UpdateCustomerPage(
+                  customer: localApiCustomer,
+                  requiresCustomerGroup: true,
+                ),
+              ),
+            );
+
+            // If customer was updated, retry loading the transaction
+            if (updatedCustomer != null && mounted) {
+              _resumeTransaction(transaction);
+            }
+          }
+          return;
+        }
+
         // Load cart items
         for (final item in transaction.cartItems) {
           cartProvider.addItem(item.product, quantity: item.quantity);
         }
 
         // Set customer from API customer format
-        final apiCustomer = transaction.customer;
-        cartProvider.setCustomerFromApi(apiCustomer);
+        cartProvider.setCustomerFromApi(localApiCustomer);
 
         // Show confirmation
         ScaffoldMessenger.of(context).showSnackBar(
@@ -168,27 +330,26 @@ class _PendingTransactionListPageState
 
     final confirm = await showDialog<bool>(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Hapus Transaksi Pending'),
-            content: Text(
-              'Apakah Anda yakin ingin menghapus transaksi pending untuk $customerName?',
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: const Text('Batal'),
-              ),
-              ElevatedButton(
-                onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                ),
-                child: const Text('Hapus'),
-              ),
-            ],
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Transaksi Pending'),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus transaksi pending untuk $customerName?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Batal'),
           ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Hapus'),
+          ),
+        ],
+      ),
     );
 
     if (confirm == true) {

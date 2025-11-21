@@ -104,17 +104,16 @@ class TransactionProvider extends ChangeNotifier {
     final transactionDate = now.toIso8601String();
 
     // Convert cart items to transaction details
-    final details =
-        cartItems?.map((cartItem) {
-          return TransactionDetail(
-            productVariantId: cartItem.product.productVariantId ?? 0,
-            quantity: cartItem.quantity,
-            // unitPrice already contains discounted price per item
-            // The cartItems received should have already been processed
-            // with discount applied at the item level
-            unitPrice: cartItem.product.price,
-          );
-        }).toList();
+    final details = cartItems?.map((cartItem) {
+      return TransactionDetail(
+        productVariantId: cartItem.product.productVariantId ?? 0,
+        quantity: cartItem.quantity,
+        // unitPrice already contains discounted price per item
+        // The cartItems received should have already been processed
+        // with discount applied at the item level
+        unitPrice: cartItem.product.price,
+      );
+    }).toList();
 
     // Create payments array based on payment method and amounts
     final payments = <PaymentHistory>[];
@@ -132,7 +131,7 @@ class TransactionProvider extends ChangeNotifier {
     if (transferAmount > 0) {
       payments.add(
         PaymentHistory(
-          paymentMethod: 'transfer',
+          paymentMethod: 'bank_transfer',
           amount: transferAmount,
           paymentDate: transactionDate,
         ),

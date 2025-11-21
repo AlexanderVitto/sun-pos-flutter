@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/utils/decimal_text_input_formatter.dart';
 import '../../data/models/create_refund_request.dart';
 import '../../../transactions/data/models/create_transaction_response.dart';
 import '../../providers/refund_list_provider.dart';
+import '../../../sales/providers/transaction_provider.dart';
+import '../../../../data/models/cart_item.dart';
+import '../../../../data/models/product.dart';
 
 class CreateRefundPage extends StatefulWidget {
   final TransactionData transaction;
@@ -72,6 +76,78 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
     return true;
   }
 
+  // Helper getters for outstanding transaction logic
+  bool get _isOutstandingTransaction =>
+      widget.transaction.status.toLowerCase() == 'outstanding';
+
+  double get _remainingDebt {
+    if (!_isOutstandingTransaction) return 0;
+    return widget.transaction.outstandingAmount;
+  }
+
+  String get _predictedStatus {
+    if (!_isOutstandingTransaction) return widget.transaction.status;
+
+    final remainingDebt = _remainingDebt;
+    final refundAmount = _calculateTotalRefund();
+
+    if (refundAmount >= remainingDebt) {
+      return 'completed';
+    }
+    return 'outstanding';
+  }
+
+  double get _newRemainingDebt {
+    if (!_isOutstandingTransaction) return 0;
+
+    final remainingDebt = _remainingDebt;
+    final refundAmount = _calculateTotalRefund();
+
+    final newDebt = remainingDebt - refundAmount;
+    return newDebt > 0 ? newDebt : 0;
+  }
+
+  /// Calculate new reminder date by adding 10 days
+  String _calculateNewReminderDate() {
+    DateTime newReminderDate;
+
+    if (widget.transaction.outstandingReminderDate != null) {
+      // Jika sudah ada reminder date, tambahkan 10 hari dari tanggal tersebut
+      newReminderDate = widget.transaction.outstandingReminderDate!.add(
+        const Duration(days: 10),
+      );
+    } else {
+      // Jika belum ada, gunakan 10 hari dari sekarang
+      newReminderDate = DateTime.now().add(const Duration(days: 10));
+    }
+
+    return newReminderDate.toIso8601String();
+  }
+
+  Widget _buildDebtInfoRow(String label, String value, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.black87,
+          ),
+        ),
+        Text(
+          value,
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
   void _onRefundMethodChanged(String? value) {
     setState(() {
       _refundMethod = value ?? 'cash';
@@ -97,8 +173,13 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
     );
 
     final totalRefund = _calculateTotalRefund();
-    final cashAmount = double.tryParse(_cashAmountController.text) ?? 0;
-    final transferAmount = double.tryParse(_transferAmountController.text) ?? 0;
+    final cashAmount =
+        DecimalTextInputFormatter.parseDecimal(_cashAmountController.text) ?? 0;
+    final transferAmount =
+        DecimalTextInputFormatter.parseDecimal(
+          _transferAmountController.text,
+        ) ??
+        0;
 
     String refundMethodText = '';
     switch (_refundMethod) {
@@ -135,20 +216,29 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.green.shade100,
+                  color: _isOutstandingTransaction
+                      ? Colors.orange.shade100
+                      : Colors.green.shade100,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(
-                  Icons.help_outline,
-                  color: Colors.green.shade600,
+                  _isOutstandingTransaction ? Icons.edit : Icons.help_outline,
+                  color: _isOutstandingTransaction
+                      ? Colors.orange.shade600
+                      : Colors.green.shade600,
                   size: 24,
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  'Konfirmasi Refund',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  _isOutstandingTransaction
+                      ? 'Konfirmasi Edit Transaksi'
+                      : 'Konfirmasi Refund',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
             ],
@@ -157,9 +247,11 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Apakah Anda yakin ingin memproses refund ini?',
-                style: TextStyle(fontSize: 16),
+              Text(
+                _isOutstandingTransaction
+                    ? 'Transaksi ini belum dibayar. Item yang dipilih akan dihapus dari transaksi.'
+                    : 'Apakah Anda yakin ingin memproses refund ini?',
+                style: const TextStyle(fontSize: 16),
               ),
               const SizedBox(height: 16),
               Container(
@@ -205,82 +297,184 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                       ],
                     ),
                     const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Metode Refund:',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        Text(
-                          refundMethodText,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (_refundMethod == 'cash' ||
-                        _refundMethod == 'cash_and_transfer') ...[
-                      const SizedBox(height: 8),
+                    // Untuk Outstanding Transaction: tampilkan info debt reduction
+                    if (_isOutstandingTransaction) ...[
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('Cash:', style: TextStyle(fontSize: 14)),
+                          const Text(
+                            'Sisa Hutang Saat Ini:',
+                            style: TextStyle(fontSize: 14),
+                          ),
                           Text(
-                            currencyFormat.format(cashAmount),
+                            currencyFormat.format(_remainingDebt),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700,
+                              color: Colors.orange.shade700,
                             ),
                           ),
                         ],
                       ),
-                    ],
-                    if (_refundMethod == 'transfer' ||
-                        _refundMethod == 'cash_and_transfer') ...[
                       const SizedBox(height: 8),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           const Text(
-                            'Transfer:',
+                            'Total Refund:',
                             style: TextStyle(fontSize: 14),
                           ),
                           Text(
-                            currencyFormat.format(transferAmount),
+                            currencyFormat.format(totalRefund),
                             style: TextStyle(
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey.shade700,
+                              color: Colors.green.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Sisa Hutang Setelah Refund:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            currencyFormat.format(_newRemainingDebt),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: _predictedStatus == 'completed'
+                                  ? Colors.green.shade700
+                                  : Colors.orange.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Status Setelah Refund:',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: _predictedStatus == 'completed'
+                                  ? Colors.green.shade100
+                                  : Colors.orange.shade100,
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(
+                                color: _predictedStatus == 'completed'
+                                    ? Colors.green.shade300
+                                    : Colors.orange.shade300,
+                              ),
+                            ),
+                            child: Text(
+                              _predictedStatus == 'completed'
+                                  ? 'Lunas'
+                                  : 'Masih Hutang',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: _predictedStatus == 'completed'
+                                    ? Colors.green.shade700
+                                    : Colors.orange.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ] else ...[
+                      // Untuk Completed Transaction: tampilkan info metode refund
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Metode Refund:',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          Text(
+                            refundMethodText,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                      if (_refundMethod == 'cash' ||
+                          _refundMethod == 'cash_and_transfer') ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text('Cash:', style: TextStyle(fontSize: 14)),
+                            Text(
+                              currencyFormat.format(cashAmount),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      if (_refundMethod == 'transfer' ||
+                          _refundMethod == 'cash_and_transfer') ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            const Text(
+                              'Transfer:',
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            Text(
+                              currencyFormat.format(transferAmount),
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      const Divider(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'Total Refund:',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          Text(
+                            currencyFormat.format(totalRefund),
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.green.shade700,
                             ),
                           ),
                         ],
                       ),
                     ],
-                    const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Total Refund:',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          currencyFormat.format(totalRefund),
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.green.shade700,
-                          ),
-                        ),
-                      ],
-                    ),
                   ],
                 ),
               ),
@@ -288,23 +482,31 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
               Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
+                  color: _isOutstandingTransaction
+                      ? Colors.orange.shade50
+                      : Colors.blue.shade50,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       Icons.info_outline,
-                      color: Colors.blue.shade700,
+                      color: _isOutstandingTransaction
+                          ? Colors.orange.shade700
+                          : Colors.blue.shade700,
                       size: 20,
                     ),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        'Refund akan diproses dan tidak dapat dibatalkan',
+                        _isOutstandingTransaction
+                            ? 'Item akan dihapus dari transaksi dan tidak dapat dikembalikan'
+                            : 'Refund akan diproses dan tidak dapat dibatalkan',
                         style: TextStyle(
                           fontSize: 13,
-                          color: Colors.blue.shade700,
+                          color: _isOutstandingTransaction
+                              ? Colors.orange.shade700
+                              : Colors.blue.shade700,
                         ),
                       ),
                     ),
@@ -380,47 +582,184 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
       return;
     }
 
+    setState(() => _isLoading = true);
+
+    try {
+      if (_isOutstandingTransaction) {
+        // OUTSTANDING TRANSACTION: Edit transaksi langsung
+        await _updateOutstandingTransaction();
+      } else {
+        // COMPLETED TRANSACTION: Create refund record
+        await _createRefundForCompletedTransaction();
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isOutstandingTransaction
+                  ? 'Transaksi berhasil diperbarui'
+                  : 'Refund berhasil dibuat',
+            ),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.of(context).pop(true); // Return true to indicate success
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _isOutstandingTransaction
+                  ? 'Gagal memperbarui transaksi: $e'
+                  : 'Gagal membuat refund: $e',
+            ),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  /// Update outstanding transaction (edit transaksi, bukan create refund)
+  Future<void> _updateOutstandingTransaction() async {
+    // Build CartItems from remaining items (items yang TIDAK di-refund)
+    final List<CartItem> updatedCartItems = [];
+
+    for (var detail in widget.transaction.details) {
+      final refundQty = _selectedItems[detail.id] == true
+          ? (int.tryParse(_quantityControllers[detail.id]?.text ?? '0') ?? 0)
+          : 0;
+
+      // Calculate remaining quantity after refund
+      final remainingQty = detail.quantity - detail.returnedQty - refundQty;
+
+      // Hanya tambahkan item yang masih ada qty-nya
+      if (remainingQty > 0) {
+        // Get data from product variant if available, otherwise from transaction detail
+        final productId = detail.productVariantId ?? detail.productId ?? 0;
+        final productName = detail.productName;
+        final productCode = detail.productSku;
+        final productPrice = detail.unitPrice;
+
+        // Get variant data if available
+        final variantName = detail.productVariant?.name;
+        final variantStock = detail.productVariant?.stock ?? 0;
+        final variantImage = detail.productVariant?.image;
+        final variantCreatedAt =
+            detail.productVariant?.createdAt ?? detail.createdAt;
+        final variantUpdatedAt =
+            detail.productVariant?.updatedAt ?? detail.updatedAt;
+
+        // Create Product from real transaction detail data
+        final product = Product(
+          id: productId,
+          name: productName,
+          code: productCode,
+          description: variantName ?? productName,
+          price: productPrice,
+          stock: variantStock,
+          category:
+              'Transaction Item', // Category tidak ada di transaction detail
+          imagePath: variantImage,
+          createdAt: variantCreatedAt,
+          updatedAt: variantUpdatedAt,
+          productVariantId: detail.productVariantId,
+        );
+
+        updatedCartItems.add(
+          CartItem(
+            id: detail.id,
+            product: product,
+            quantity: remainingQty,
+            addedAt: detail.createdAt,
+          ),
+        );
+      }
+    }
+
+    // Calculate new total amount
+    final newTotalAmount = updatedCartItems.fold<double>(
+      0,
+      (sum, item) => sum + (item.product.price * item.quantity),
+    );
+
+    // Calculate actual remaining debt manually
+    // Formula: newOutstandingAmount = newTotalAmount - totalPaid
+    final totalPaid = widget.transaction.totalPaid;
+    final newOutstandingAmount = newTotalAmount - totalPaid;
+
+    // Determine new status: completed if debt becomes 0 or negative
+    final newStatus = newOutstandingAmount <= 0 ? 'completed' : 'outstanding';
+
+    // Get TransactionProvider
+    final transactionProvider = Provider.of<TransactionProvider>(
+      context,
+      listen: false,
+    );
+
+    // Call updateTransaction API
+    final response = await transactionProvider.updateTransaction(
+      transactionId: widget.transaction.id,
+      cartItems: updatedCartItems,
+      totalAmount: newTotalAmount,
+      notes: _notesController.text.trim().isEmpty
+          ? widget.transaction.notes
+          : '${widget.transaction.notes ?? ''}\n[Refund: ${_notesController.text.trim()}]',
+      paymentMethod: 'cash', // Default, not important for outstanding
+      storeId: widget.transaction.store.id,
+      customerName: widget.transaction.customer?.name,
+      customerPhone: widget.transaction.customer?.phoneNumber,
+      status: newStatus,
+      cashAmount: 0,
+      transferAmount: 0,
+      outstandingReminderDate: newStatus == 'outstanding'
+          ? _calculateNewReminderDate()
+          : null,
+    );
+
+    if (response == null) {
+      throw Exception('Failed to update transaction');
+    }
+  }
+
+  /// Create refund for completed transaction
+  Future<void> _createRefundForCompletedTransaction() async {
     // Validate refund amounts
     double totalRefund = _calculateTotalRefund();
-    double cashAmount = double.tryParse(_cashAmountController.text) ?? 0;
-    double transferAmount =
-        double.tryParse(_transferAmountController.text) ?? 0;
+    double cashAmount = 0;
+    double transferAmount = 0;
+
+    cashAmount =
+        DecimalTextInputFormatter.parseDecimal(_cashAmountController.text) ?? 0;
+    transferAmount =
+        DecimalTextInputFormatter.parseDecimal(
+          _transferAmountController.text,
+        ) ??
+        0;
 
     if (_refundMethod == 'cash' && cashAmount != totalRefund) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Jumlah cash harus ${NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(totalRefund)}',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      throw Exception(
+        'Jumlah cash harus ${NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(totalRefund)}',
       );
-      return;
     }
 
     if (_refundMethod == 'transfer' && transferAmount != totalRefund) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Jumlah transfer harus ${NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(totalRefund)}',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      throw Exception(
+        'Jumlah transfer harus ${NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(totalRefund)}',
       );
-      return;
     }
 
     if (_refundMethod == 'cash_and_transfer' &&
         (cashAmount + transferAmount) != totalRefund) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Total cash + transfer harus ${NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(totalRefund)}',
-          ),
-          backgroundColor: Colors.red,
-        ),
+      throw Exception(
+        'Total cash + transfer harus ${NumberFormat.currency(locale: 'id', symbol: 'Rp ', decimalDigits: 0).format(totalRefund)}',
       );
-      return;
     }
 
     // Build refund details
@@ -440,7 +779,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
       }
     }
 
-    // Create request
+    // Create refund request
     final request = CreateRefundRequest(
       transactionId: widget.transaction.id,
       storeId: widget.transaction.store.id,
@@ -448,43 +787,16 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
       cashRefundAmount: cashAmount,
       transferRefundAmount: transferAmount,
       status: 'completed',
-      notes:
-          _notesController.text.trim().isEmpty
-              ? null
-              : _notesController.text.trim(),
+      notes: _notesController.text.trim().isEmpty
+          ? null
+          : _notesController.text.trim(),
       refundDate: DateFormat('yyyy-MM-dd').format(_refundDate),
       details: details,
     );
 
-    setState(() => _isLoading = true);
-
-    try {
-      final provider = Provider.of<RefundListProvider>(context, listen: false);
-      await provider.createRefund(request);
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Refund berhasil dibuat'),
-            backgroundColor: Colors.green,
-          ),
-        );
-        Navigator.of(context).pop(true); // Return true to indicate success
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal membuat refund: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    }
+    // Call RefundListProvider
+    final provider = Provider.of<RefundListProvider>(context, listen: false);
+    await provider.createRefund(request);
   }
 
   @override
@@ -616,10 +928,9 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                           side: BorderSide(
-                            color:
-                                _selectedItems[detail.id] == true
-                                    ? Colors.green.shade300
-                                    : Colors.grey.shade200,
+                            color: _selectedItems[detail.id] == true
+                                ? Colors.green.shade300
+                                : Colors.grey.shade200,
                             width: _selectedItems[detail.id] == true ? 2 : 1,
                           ),
                         ),
@@ -647,27 +958,24 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                                   width: 24,
                                   height: 24,
                                   decoration: BoxDecoration(
-                                    color:
-                                        _selectedItems[detail.id] == true
-                                            ? Colors.green.shade600
-                                            : Colors.white,
+                                    color: _selectedItems[detail.id] == true
+                                        ? Colors.green.shade600
+                                        : Colors.white,
                                     border: Border.all(
-                                      color:
-                                          _selectedItems[detail.id] == true
-                                              ? Colors.green.shade600
-                                              : Colors.grey.shade400,
+                                      color: _selectedItems[detail.id] == true
+                                          ? Colors.green.shade600
+                                          : Colors.grey.shade400,
                                       width: 2,
                                     ),
                                     borderRadius: BorderRadius.circular(6),
                                   ),
-                                  child:
-                                      _selectedItems[detail.id] == true
-                                          ? const Icon(
-                                            Icons.check,
-                                            size: 16,
-                                            color: Colors.white,
-                                          )
-                                          : null,
+                                  child: _selectedItems[detail.id] == true
+                                      ? const Icon(
+                                          Icons.check,
+                                          size: 16,
+                                          color: Colors.white,
+                                        )
+                                      : null,
                                 ),
                                 const SizedBox(width: 16),
 
@@ -781,10 +1089,9 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                                                             8,
                                                           ),
                                                       borderSide: BorderSide(
-                                                        color:
-                                                            Colors
-                                                                .green
-                                                                .shade300,
+                                                        color: Colors
+                                                            .green
+                                                            .shade300,
                                                       ),
                                                     ),
                                                     enabledBorder:
@@ -793,12 +1100,12 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                                                               BorderRadius.circular(
                                                                 8,
                                                               ),
-                                                          borderSide: BorderSide(
-                                                            color:
-                                                                Colors
+                                                          borderSide:
+                                                              BorderSide(
+                                                                color: Colors
                                                                     .green
                                                                     .shade300,
-                                                          ),
+                                                              ),
                                                         ),
                                                     focusedBorder:
                                                         OutlineInputBorder(
@@ -806,13 +1113,13 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                                                               BorderRadius.circular(
                                                                 8,
                                                               ),
-                                                          borderSide: BorderSide(
-                                                            color:
-                                                                Colors
+                                                          borderSide:
+                                                              BorderSide(
+                                                                color: Colors
                                                                     .green
                                                                     .shade600,
-                                                            width: 2,
-                                                          ),
+                                                                width: 2,
+                                                              ),
                                                         ),
                                                     errorBorder: OutlineInputBorder(
                                                       borderRadius:
@@ -874,235 +1181,372 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                     }).toList(),
                     const SizedBox(height: 20),
 
-                    // Total Refund Card
-                    Card(
-                      elevation: 2,
-                      color: Colors.green.shade50,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: BorderSide(
-                          color: Colors.green.shade200,
-                          width: 2,
-                        ),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.green.shade600,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: const Icon(
-                                    Icons.calculate,
-                                    color: Colors.white,
-                                    size: 16,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  'Total Refund',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 16,
-                                    color: Colors.green.shade900,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            Text(
-                              currencyFormat.format(_calculateTotalRefund()),
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 20,
-                                color: Colors.green.shade800,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Refund Method Section
-                    const Text(
-                      'Metode Refund',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    DropdownButtonFormField<String>(
-                      value: _refundMethod,
-                      decoration: InputDecoration(
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
+                    // Outstanding Debt Info Card (untuk transaksi outstanding)
+                    if (_isOutstandingTransaction) ...[
+                      Card(
+                        elevation: 2,
+                        color: Colors.orange.shade50,
+                        shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: Colors.grey.shade300),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.green.shade600,
+                          side: BorderSide(
+                            color: Colors.orange.shade200,
                             width: 2,
                           ),
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 16,
-                        ),
-                        prefixIcon: Icon(
-                          Icons.payment,
-                          color: Colors.green.shade600,
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.orange.shade600,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(
+                                      Icons.account_balance_wallet,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Informasi Hutang',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.orange.shade900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _buildDebtInfoRow(
+                                'Sisa Hutang Saat Ini',
+                                currencyFormat.format(_remainingDebt),
+                                Colors.orange.shade800,
+                              ),
+                              const Divider(height: 20),
+                              _buildDebtInfoRow(
+                                'Total Refund',
+                                currencyFormat.format(_calculateTotalRefund()),
+                                Colors.green.shade700,
+                              ),
+                              const Divider(height: 20),
+                              _buildDebtInfoRow(
+                                'Sisa Hutang Setelah Refund',
+                                currencyFormat.format(_newRemainingDebt),
+                                _predictedStatus == 'completed'
+                                    ? Colors.green.shade800
+                                    : Colors.orange.shade800,
+                              ),
+                              if (_predictedStatus == 'completed') ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.green.shade300,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.check_circle,
+                                        color: Colors.green.shade700,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Hutang akan lunas! Status transaksi akan berubah menjadi Completed.',
+                                          style: TextStyle(
+                                            color: Colors.green.shade900,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ] else ...[
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.shade100,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.orange.shade300,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.info,
+                                        color: Colors.orange.shade700,
+                                        size: 20,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          'Hutang akan berkurang. Status transaksi tetap Outstanding.',
+                                          style: TextStyle(
+                                            color: Colors.orange.shade900,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
                       ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'cash',
-                          child: Text('Cash', style: TextStyle(fontSize: 16)),
-                        ),
-                        DropdownMenuItem(
-                          value: 'transfer',
-                          child: Text(
-                            'Transfer',
-                            style: TextStyle(fontSize: 16),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // Total Refund Card (hanya untuk completed transaction)
+                    if (!_isOutstandingTransaction) ...[
+                      Card(
+                        elevation: 2,
+                        color: Colors.green.shade50,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Colors.green.shade200,
+                            width: 2,
                           ),
                         ),
-                        DropdownMenuItem(
-                          value: 'cash_and_transfer',
-                          child: Text(
-                            'Cash & Transfer',
-                            style: TextStyle(fontSize: 16),
+                        child: Padding(
+                          padding: const EdgeInsets.all(16),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(6),
+                                    decoration: BoxDecoration(
+                                      color: Colors.green.shade600,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: const Icon(
+                                      Icons.calculate,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    'Total Refund',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 16,
+                                      color: Colors.green.shade900,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              Text(
+                                currencyFormat.format(_calculateTotalRefund()),
+                                style: TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 20,
+                                  color: Colors.green.shade800,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+
+                    // Refund Method Section (hanya untuk completed transaction)
+                    if (!_isOutstandingTransaction) ...[
+                      const Text(
+                        'Metode Refund',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                          color: Colors.black87,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        value: _refundMethod,
+                        decoration: InputDecoration(
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(color: Colors.grey.shade300),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Colors.green.shade600,
+                              width: 2,
+                            ),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 16,
+                          ),
+                          prefixIcon: Icon(
+                            Icons.payment,
+                            color: Colors.green.shade600,
+                          ),
+                        ),
+                        items: const [
+                          DropdownMenuItem(
+                            value: 'cash',
+                            child: Text('Cash', style: TextStyle(fontSize: 16)),
+                          ),
+                          DropdownMenuItem(
+                            value: 'transfer',
+                            child: Text(
+                              'Transfer',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                          DropdownMenuItem(
+                            value: 'cash_and_transfer',
+                            child: Text(
+                              'Cash & Transfer',
+                              style: TextStyle(fontSize: 16),
+                            ),
+                          ),
+                        ],
+                        onChanged: _onRefundMethodChanged,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Amount Fields
+                      if (_refundMethod == 'cash' ||
+                          _refundMethod == 'cash_and_transfer') ...[
+                        TextFormField(
+                          controller: _cashAmountController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          decoration: InputDecoration(
+                            labelText: 'Jumlah Cash',
+                            labelStyle: TextStyle(color: Colors.grey.shade700),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.green.shade600,
+                                width: 2,
+                              ),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.attach_money,
+                              color: Colors.green.shade600,
+                            ),
+                            prefixText: 'Rp ',
+                            prefixStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          validator: (value) {
+                            if (_refundMethod == 'cash' ||
+                                _refundMethod == 'cash_and_transfer') {
+                              if (value == null || value.isEmpty) {
+                                return 'Jumlah cash harus diisi';
+                              }
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
                       ],
-                      onChanged: _onRefundMethodChanged,
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Amount Fields
-                    if (_refundMethod == 'cash' ||
-                        _refundMethod == 'cash_and_transfer') ...[
-                      TextFormField(
-                        controller: _cashAmountController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Jumlah Cash',
-                          labelStyle: TextStyle(color: Colors.grey.shade700),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.green.shade600,
-                              width: 2,
-                            ),
-                          ),
-                          prefixIcon: Icon(
-                            Icons.attach_money,
-                            color: Colors.green.shade600,
-                          ),
-                          prefixText: 'Rp ',
-                          prefixStyle: const TextStyle(
+                      if (_refundMethod == 'transfer' ||
+                          _refundMethod == 'cash_and_transfer') ...[
+                        TextFormField(
+                          controller: _transferAmountController,
+                          keyboardType: TextInputType.number,
+                          inputFormatters: [DecimalTextInputFormatter()],
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.black87,
                           ),
-                        ),
-                        validator: (value) {
-                          if (_refundMethod == 'cash' ||
-                              _refundMethod == 'cash_and_transfer') {
-                            if (value == null || value.isEmpty) {
-                              return 'Jumlah cash harus diisi';
-                            }
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    if (_refundMethod == 'transfer' ||
-                        _refundMethod == 'cash_and_transfer') ...[
-                      TextFormField(
-                        controller: _transferAmountController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [
-                          FilteringTextInputFormatter.digitsOnly,
-                        ],
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                        decoration: InputDecoration(
-                          labelText: 'Jumlah Transfer',
-                          labelStyle: TextStyle(color: Colors.grey.shade700),
-                          filled: true,
-                          fillColor: Colors.white,
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
+                          decoration: InputDecoration(
+                            labelText: 'Jumlah Transfer',
+                            labelStyle: TextStyle(color: Colors.grey.shade700),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                color: Colors.green.shade600,
+                                width: 2,
+                              ),
+                            ),
+                            prefixIcon: Icon(
+                              Icons.account_balance,
                               color: Colors.green.shade600,
-                              width: 2,
+                            ),
+                            prefixText: 'Rp ',
+                            prefixStyle: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
                             ),
                           ),
-                          prefixIcon: Icon(
-                            Icons.account_balance,
-                            color: Colors.green.shade600,
-                          ),
-                          prefixText: 'Rp ',
-                          prefixStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (_refundMethod == 'transfer' ||
-                              _refundMethod == 'cash_and_transfer') {
-                            if (value == null || value.isEmpty) {
-                              return 'Jumlah transfer harus diisi';
+                          validator: (value) {
+                            if (_refundMethod == 'transfer' ||
+                                _refundMethod == 'cash_and_transfer') {
+                              if (value == null || value.isEmpty) {
+                                return 'Jumlah transfer harus diisi';
+                              }
                             }
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-
-                    // Refund Date
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                    ], // End of if (!_isOutstandingTransaction)
+                    // Refund Date (untuk semua jenis transaksi)
                     InkWell(
                       onTap: () async {
                         final date = await showDatePicker(
@@ -1214,10 +1658,9 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed:
-                      (_isLoading || !_canSubmit)
-                          ? null
-                          : _showConfirmationDialog,
+                  onPressed: (_isLoading || !_canSubmit)
+                      ? null
+                      : _showConfirmationDialog,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green.shade600,
                     foregroundColor: Colors.white,
@@ -1227,33 +1670,32 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                   ),
-                  child:
-                      _isLoading
-                          ? const SizedBox(
-                            height: 24,
-                            width: 24,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.5,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        )
+                      : Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: const [
+                            Icon(Icons.check_circle_outline, size: 22),
+                            SizedBox(width: 8),
+                            Text(
+                              'Konfirmasi Refund',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
                               ),
                             ),
-                          )
-                          : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
-                              Icon(Icons.check_circle_outline, size: 22),
-                              SizedBox(width: 8),
-                              Text(
-                                'Konfirmasi Refund',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 0.5,
-                                ),
-                              ),
-                            ],
-                          ),
+                          ],
+                        ),
                 ),
               ),
             ),

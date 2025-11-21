@@ -301,6 +301,7 @@ class CartProvider extends ChangeNotifier {
         phone: apiCustomer.phone,
         createdAt: apiCustomer.createdAt,
         updatedAt: apiCustomer.updatedAt,
+        address: apiCustomer.address,
       );
       debugPrint(
         '🛒 Customer set: ${_selectedCustomer?.name}, ${_selectedCustomer?.phone}',

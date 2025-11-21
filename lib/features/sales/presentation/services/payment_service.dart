@@ -27,6 +27,7 @@ class PaymentService {
       name: cartCustomer.name,
       phone: cartCustomer.phone,
       createdAt: cartCustomer.createdAt,
+      address: cartCustomer.address,
       updatedAt: cartCustomer.updatedAt,
     );
   }
@@ -243,18 +244,18 @@ class PaymentService {
   ) {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) => PaymentConfirmationPage(
-              cartItems: cartProvider.items,
-              totalAmount: cartProvider.total,
-              itemCount: cartProvider.itemCount,
-              notesController: notesController,
-              selectedCustomer: _convertCustomer(
-                cartProvider.selectedCustomer,
-              ), // Convert and pass selected customer
-              initialCustomerName: cartProvider.customerName,
-              initialCustomerPhone: cartProvider.customerPhone,
-              onConfirm: (
+        builder: (context) => PaymentConfirmationPage(
+          cartItems: cartProvider.items,
+          totalAmount: cartProvider.total,
+          itemCount: cartProvider.itemCount,
+          notesController: notesController,
+          selectedCustomer: _convertCustomer(
+            cartProvider.selectedCustomer,
+          ), // Convert and pass selected customer
+          initialCustomerName: cartProvider.customerName,
+          initialCustomerPhone: cartProvider.customerPhone,
+          onConfirm:
+              (
                 customerName,
                 customerPhone,
                 paymentMethod,
@@ -283,7 +284,7 @@ class PaymentService {
                   );
                 }
               },
-            ),
+        ),
       ),
     );
   }
@@ -406,21 +407,18 @@ class PaymentService {
         if (context.mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder:
-                  (context) => PaymentSuccessPage(
-                    paymentMethod: 'cash',
-                    amountPaid: totalAmount,
-                    totalAmount: totalAmount,
-                    transactionNumber:
-                        transactionResponse.data?.transactionNumber,
-                    store: transactionResponse.data?.store ?? store,
-                    cartItems: cartItems,
-                    notes: notesController.text.trim(),
-                    user:
-                        Provider.of<AuthProvider>(context, listen: false).user,
-                    status: 'completed', // Cash transactions are completed
-                    dueDate: null, // No due date for completed transactions
-                  ),
+              builder: (context) => PaymentSuccessPage(
+                paymentMethod: 'cash',
+                amountPaid: totalAmount,
+                totalAmount: totalAmount,
+                transactionNumber: transactionResponse.data?.transactionNumber,
+                store: transactionResponse.data?.store ?? store,
+                cartItems: cartItems,
+                notes: notesController.text.trim(),
+                user: Provider.of<AuthProvider>(context, listen: false).user,
+                status: 'completed', // Cash transactions are completed
+                dueDate: null, // No due date for completed transactions
+              ),
             ),
           );
         }
@@ -461,19 +459,19 @@ class PaymentService {
 
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) => OrderConfirmationPage(
-              cartItems: cartProvider.items,
-              totalAmount: cartProvider.total,
-              itemCount: cartProvider.itemCount,
-              notesController: notesController,
-              selectedCustomer: _convertCustomer(
-                cartProvider.selectedCustomer,
-              ), // Convert and pass selected customer
-              initialCustomerName: cartProvider.customerName,
-              initialCustomerPhone: cartProvider.customerPhone,
-              store: store,
-              onConfirm: (
+        builder: (context) => OrderConfirmationPage(
+          cartItems: cartProvider.items,
+          totalAmount: cartProvider.total,
+          itemCount: cartProvider.itemCount,
+          notesController: notesController,
+          selectedCustomer: _convertCustomer(
+            cartProvider.selectedCustomer,
+          ), // Convert and pass selected customer
+          initialCustomerName: cartProvider.customerName,
+          initialCustomerPhone: cartProvider.customerPhone,
+          store: store,
+          onConfirm:
+              (
                 customerName,
                 customerPhone,
                 updatedCartItems,
@@ -494,7 +492,7 @@ class PaymentService {
                   );
                 }
               },
-            ),
+        ),
       ),
     );
   }
@@ -608,20 +606,20 @@ class PaymentService {
         if (context.mounted) {
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
-              builder:
-                  (context) => OrderSuccessPage(
-                    customerName:
-                        customerName.isNotEmpty ? customerName : 'Customer',
-                    customerPhone: customerPhone,
-                    totalAmount: totalAmount,
-                    transactionNumber: transactionNumber,
-                    store: transactionResponse.data?.store ?? store,
-                    cartItems: cartItemsCopy,
-                    notes: notes,
-                    itemCount: itemCount,
-                    status: 'pending', // Orders are typically pending
-                    dueDate: null, // Orders don't have due dates by default
-                  ),
+              builder: (context) => OrderSuccessPage(
+                customerName: customerName.isNotEmpty
+                    ? customerName
+                    : 'Customer',
+                customerPhone: customerPhone,
+                totalAmount: totalAmount,
+                transactionNumber: transactionNumber,
+                store: transactionResponse.data?.store ?? store,
+                cartItems: cartItemsCopy,
+                notes: notes,
+                itemCount: itemCount,
+                status: 'pending', // Orders are typically pending
+                dueDate: null, // Orders don't have due dates by default
+              ),
             ),
           );
         }

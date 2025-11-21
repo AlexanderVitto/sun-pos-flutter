@@ -76,16 +76,16 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 
   String get customerName => _selectedCustomer?.name ?? '';
   String get customerPhone => _selectedCustomer?.phone ?? '';
+  String get customerAddress => _selectedCustomer?.address ?? '';
 
-  List<CartItem> get updatedCartItems =>
-      _cartItems.map((item) {
-        // Apply discount percentage to each item's price
-        final discountedPrice =
-            item.product.price * (1 - (_discountPercentage / 100));
-        return item.copyWith(
-          product: item.product.copyWith(price: discountedPrice),
-        );
-      }).toList();
+  List<CartItem> get updatedCartItems => _cartItems.map((item) {
+    // Apply discount percentage to each item's price
+    final discountedPrice =
+        item.product.price * (1 - (_discountPercentage / 100));
+    return item.copyWith(
+      product: item.product.copyWith(price: discountedPrice),
+    );
+  }).toList();
 
   double get subtotal => _cartItems.fold(
     0.0,
@@ -99,225 +99,6 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 
   double get discountAmount => subtotal - subtotalAfterDiscount;
   double get updatedTotalAmount => subtotalAfterDiscount;
-
-  void _recalculateTotal() {
-    setState(() {
-      // Total akan dihitung ulang melalui getter yang sudah ada
-      // subtotal akan update otomatis karena _cartItems berubah
-      // updatedTotalAmount akan update otomatis karena menggunakan subtotal dan discount
-    });
-  }
-
-  void _updateDiscount() {
-    setState(() {
-      final discount = double.tryParse(_discountController.text) ?? 0.0;
-      _discountPercentage = discount.clamp(0.0, 100.0);
-      if (_discountPercentage != discount) {
-        _discountController.text = _discountPercentage.toString();
-      }
-    });
-  }
-
-  void _showEditPriceModal(int index) {
-    final item = _cartItems[index];
-    final TextEditingController priceController = TextEditingController(
-      text: item.product.price.toString(),
-    );
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder:
-          (context) => Container(
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Handle bar
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-
-                    // Title
-                    Text(
-                      'Edit Harga Item',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey.shade800,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-
-                    // Product info
-                    Row(
-                      children: [
-                        Container(
-                          width: 50,
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: Colors.grey.shade200,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child:
-                              item.product.imagePath?.isNotEmpty == true
-                                  ? ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child: Image.network(
-                                      item.product.imagePath!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder:
-                                          (context, error, stackTrace) => Icon(
-                                            Icons.image_not_supported,
-                                            color: Colors.grey.shade400,
-                                          ),
-                                    ),
-                                  )
-                                  : Icon(
-                                    Icons.shopping_bag,
-                                    color: Colors.grey.shade400,
-                                  ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.product.name,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                'Qty: ${item.quantity}',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey.shade600,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Price input
-                    Text(
-                      'Harga per Item',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: priceController,
-                      keyboardType: TextInputType.number,
-                      decoration: InputDecoration(
-                        prefixText: 'Rp ',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(
-                            color: Colors.orange.shade600,
-                            width: 2,
-                          ),
-                        ),
-                        contentPadding: const EdgeInsets.all(16),
-                      ),
-                      autofocus: true,
-                    ),
-                    const SizedBox(height: 24),
-
-                    // Action buttons
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Batal'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              final newPrice = double.tryParse(
-                                priceController.text,
-                              );
-                              if (newPrice != null && newPrice > 0) {
-                                setState(() {
-                                  _cartItems[index] = _cartItems[index]
-                                      .copyWith(
-                                        product: item.product.copyWith(
-                                          price: newPrice,
-                                        ),
-                                      );
-                                });
-                                _recalculateTotal();
-                                Navigator.pop(context);
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text(
-                                      'Harga harus berupa angka yang valid',
-                                    ),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange.shade600,
-                              foregroundColor: Colors.white,
-                              padding: const EdgeInsets.symmetric(vertical: 16),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Text('Simpan'),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-    );
-  }
 
   void _showConfirmationDialog() {
     showDialog(
@@ -633,8 +414,8 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                       shrinkWrap: true,
                       physics: const NeverScrollableScrollPhysics(),
                       itemCount: _cartItems.length,
-                      separatorBuilder:
-                          (context, index) => const Divider(height: 20),
+                      separatorBuilder: (context, index) =>
+                          const Divider(height: 20),
                       itemBuilder: (context, index) {
                         final item = _cartItems[index];
                         return Row(
@@ -652,22 +433,22 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                 borderRadius: BorderRadius.circular(12),
                                 child:
                                     item.product.imagePath?.isNotEmpty == true
-                                        ? Image.network(
-                                          item.product.imagePath!,
-                                          fit: BoxFit.cover,
-                                          errorBuilder:
-                                              (context, error, stackTrace) =>
-                                                  Icon(
-                                                    Icons.image_not_supported,
-                                                    color: Colors.grey.shade400,
-                                                    size: 24,
-                                                  ),
-                                        )
-                                        : Icon(
-                                          Icons.shopping_bag,
-                                          color: Colors.grey.shade400,
-                                          size: 24,
-                                        ),
+                                    ? Image.network(
+                                        item.product.imagePath!,
+                                        fit: BoxFit.cover,
+                                        errorBuilder:
+                                            (context, error, stackTrace) =>
+                                                Icon(
+                                                  Icons.image_not_supported,
+                                                  color: Colors.grey.shade400,
+                                                  size: 24,
+                                                ),
+                                      )
+                                    : Icon(
+                                        Icons.shopping_bag,
+                                        color: Colors.grey.shade400,
+                                        size: 24,
+                                      ),
                               ),
                             ),
                             const SizedBox(width: 16),
@@ -712,75 +493,26 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      GestureDetector(
-                                        onTap: () => _showEditPriceModal(index),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 8,
+                                          vertical: 4,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.green.shade50,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.green.shade50,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                            border: Border.all(
-                                              color: Colors.green.shade200,
-                                            ),
+                                          border: Border.all(
+                                            color: Colors.green.shade200,
                                           ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  if (_discountPercentage >
-                                                      0) ...[
-                                                    Text(
-                                                      'Rp ${item.product.price.toStringAsFixed(0)}',
-                                                      style: TextStyle(
-                                                        fontSize: 10,
-                                                        color:
-                                                            Colors
-                                                                .grey
-                                                                .shade600,
-                                                        decoration:
-                                                            TextDecoration
-                                                                .lineThrough,
-                                                      ),
-                                                    ),
-                                                    const SizedBox(width: 4),
-                                                  ],
-                                                  Text(
-                                                    'Rp ${updatedCartItems[index].product.price.toStringAsFixed(0)}',
-                                                    style: TextStyle(
-                                                      fontSize: 12,
-                                                      color:
-                                                          Colors.green.shade700,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Icon(
-                                                    Icons.edit,
-                                                    size: 14,
-                                                    color:
-                                                        Colors.green.shade700,
-                                                  ),
-                                                ],
-                                              ),
-                                              if (_discountPercentage > 0)
-                                                Text(
-                                                  '-${_discountPercentage.toStringAsFixed(1)}%',
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    color: Colors.red.shade600,
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                            ],
+                                        ),
+                                        child: Text(
+                                          'Rp ${item.product.price.toStringAsFixed(0)}',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.green.shade700,
+                                            fontWeight: FontWeight.w600,
                                           ),
                                         ),
                                       ),
@@ -980,6 +712,25 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                             Text(
                               'Telepon: $customerPhone',
                               style: const TextStyle(fontSize: 16),
+                            ),
+                          ],
+                        ),
+                      if (customerAddress.isNotEmpty) const SizedBox(height: 8),
+                      if (customerAddress.isNotEmpty)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Icon(
+                              Icons.location_on_outlined,
+                              color: Colors.grey.shade600,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Alamat: $customerAddress',
+                                style: const TextStyle(fontSize: 16),
+                              ),
                             ),
                           ],
                         ),
@@ -1324,10 +1075,9 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                     Expanded(
                       flex: 2,
                       child: OutlinedButton(
-                        onPressed:
-                            _isProcessing
-                                ? null
-                                : () => Navigator.of(context).pop(),
+                        onPressed: _isProcessing
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           side: BorderSide(
@@ -1365,8 +1115,9 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                     Expanded(
                       flex: 3,
                       child: ElevatedButton(
-                        onPressed:
-                            _isProcessing ? null : _showConfirmationDialog,
+                        onPressed: _isProcessing
+                            ? null
+                            : _showConfirmationDialog,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.orange.shade600,
                           foregroundColor: Colors.white,
@@ -1376,36 +1127,35 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        child:
-                            _isProcessing
-                                ? const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        color: Colors.white,
-                                        strokeWidth: 2,
-                                      ),
+                        child: _isProcessing
+                            ? const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      color: Colors.white,
+                                      strokeWidth: 2,
                                     ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Memproses...',
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                                : Text(
-                                  'Konfirmasi Pesanan',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
                                   ),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Memproses...',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
+                              )
+                            : Text(
+                                'Konfirmasi Pesanan',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
                                 ),
+                              ),
                       ),
                     ),
                   ],

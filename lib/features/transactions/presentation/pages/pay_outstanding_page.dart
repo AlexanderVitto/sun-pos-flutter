@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
+import '../../../../core/utils/decimal_text_input_formatter.dart';
 import '../../../transactions/data/models/create_transaction_response.dart';
 import '../../../transactions/data/models/payment_history.dart';
 import '../../../transactions/data/services/transaction_api_service.dart';
@@ -60,8 +61,8 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
   }
 
   double get _inputAmount {
-    final text = _amountController.text.replaceAll(RegExp(r'[^0-9.]'), '');
-    return double.tryParse(text) ?? 0.0;
+    return DecimalTextInputFormatter.parseDecimal(_amountController.text) ??
+        0.0;
   }
 
   bool get _isPaymentValid {
@@ -73,7 +74,7 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
       return 'Nominal pembayaran harus diisi';
     }
 
-    final amount = double.tryParse(value.replaceAll(RegExp(r'[^0-9.]'), ''));
+    final amount = DecimalTextInputFormatter.parseDecimal(value);
     if (amount == null || amount <= 0) {
       return 'Nominal harus lebih dari 0';
     }
@@ -883,7 +884,7 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
           TextFormField(
             controller: _amountController,
             keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            inputFormatters: [DecimalTextInputFormatter()],
             decoration: InputDecoration(
               prefixText: 'Rp ',
               hintText: 'Masukkan nominal',

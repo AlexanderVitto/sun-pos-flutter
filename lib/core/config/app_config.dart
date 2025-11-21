@@ -1,7 +1,41 @@
+enum Environment { staging, production }
+
 class AppConfig {
-  // API Configuration
-  static const String baseUrl = 'https://sfxsys.com/api/v1';
-  static const String appName = 'Sun POS';
+  // Get environment from --dart-define
+  static const String _envString = String.fromEnvironment(
+    'ENV',
+    defaultValue: 'staging',
+  );
+
+  static Environment get environment {
+    switch (_envString) {
+      case 'production':
+        return Environment.production;
+      case 'staging':
+      default:
+        return Environment.staging;
+    }
+  }
+
+  // API Configuration based on environment
+  static String get baseUrl {
+    switch (environment) {
+      case Environment.production:
+        return 'https://sfxsys.com/api/v1';
+      case Environment.staging:
+        return 'https://stg.sfxsys.com/api/v1';
+    }
+  }
+
+  static String get appName {
+    switch (environment) {
+      case Environment.production:
+        return 'Sun POS';
+      case Environment.staging:
+        return 'Sun POS (Staging)';
+    }
+  }
+
   static const String appVersion = '1.0.0';
 
   // Network Configuration
@@ -9,13 +43,13 @@ class AppConfig {
   static const int retryAttempts = 3;
 
   // Debug Configuration
-  static const bool isDebugMode = false; // Set to false for release
-  static const bool enableLogging = false; // Set to false for release
+  static bool get isDebugMode => environment == Environment.staging;
+  static bool get enableLogging => environment == Environment.staging;
 
   // Storage Keys
-  static const String accessTokenKey = 'access_token';
-  static const String refreshTokenKey = 'refresh_token';
-  static const String userProfileKey = 'user_profile';
+  static String get accessTokenKey => '${_envString}_access_token';
+  static String get refreshTokenKey => '${_envString}_refresh_token';
+  static String get userProfileKey => '${_envString}_user_profile';
 
   // API Headers
   static Map<String, String> get defaultHeaders => {

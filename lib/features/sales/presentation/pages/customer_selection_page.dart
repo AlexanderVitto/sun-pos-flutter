@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../customers/providers/customer_provider.dart';
 import '../../../customers/data/models/customer.dart' as ApiCustomer;
+import '../../../customers/presentation/pages/add_customer_page.dart';
+import '../../../customers/presentation/pages/update_customer_page.dart';
+import '../../../products/providers/product_provider.dart';
 import 'pos_transaction_page.dart';
 import '../../providers/pending_transaction_provider.dart';
 import '../../providers/cart_provider.dart';
@@ -108,6 +111,73 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
       listen: false,
     );
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
+    final productProvider = Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    );
+
+    // Check if customer has customer group ID
+    if (customer.customerGroupId == null) {
+      // Show dialog to update customer
+      final shouldUpdate = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: const Row(
+            children: [
+              Icon(LucideIcons.alertCircle, color: Colors.orange),
+              SizedBox(width: 12),
+              Text('Customer Group Belum Diisi'),
+            ],
+          ),
+          content: Text(
+            'Customer "${customer.name}" belum memiliki customer group. '
+            'Customer group diperlukan untuk mendapatkan harga produk yang sesuai.\n\n'
+            'Apakah Anda ingin mengisi customer group sekarang?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Batal'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF3B82F6),
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Isi Customer Group'),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldUpdate == true && mounted) {
+        // Navigate to update customer page
+        final updatedCustomer = await Navigator.push<ApiCustomer.Customer>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => UpdateCustomerPage(
+              customer: customer,
+              requiresCustomerGroup: true,
+            ),
+          ),
+        );
+
+        // If customer was updated, use the updated data
+        if (updatedCustomer != null && mounted) {
+          _selectCustomer(updatedCustomer);
+        }
+      }
+      return;
+    }
+
+    // Set customer group ID to product provider for pricing
+    if (customer.customerGroupId != null) {
+      productProvider.setCustomerId(customer.customerGroupId!);
+    }
 
     // Check if there's already a pending transaction for this customer
     final existingTransaction = pendingProvider.getPendingTransaction(
@@ -155,247 +225,31 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
     }
   }
 
-  Future<void> _createNewCustomer() async {
-    if (_searchQuery.trim().isEmpty) {
+  Future<void> _showCreateCustomerDialog() async {
+    final customer = await Navigator.push<ApiCustomer.Customer>(
+      context,
+      MaterialPageRoute(builder: (context) => const AddCustomerPage()),
+    );
+
+    if (customer != null && mounted) {
+      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Row(
             children: [
-              Icon(LucideIcons.alertCircle, color: Colors.white),
-              SizedBox(width: 8),
-              Text('Masukkan nama customer terlebih dahulu'),
+              const Icon(LucideIcons.checkCircle, color: Colors.white),
+              const SizedBox(width: 8),
+              Text('Customer "${customer.name}" berhasil dibuat'),
             ],
           ),
-          backgroundColor: Colors.orange,
+          backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         ),
       );
-      return;
-    }
 
-    final phone = await _showPhoneInputDialog(_searchQuery.trim());
-    if (phone == null || phone.trim().isEmpty) return;
-
-    await _createCustomerFromDialog(
-      name: _searchQuery.trim(),
-      phone: phone.trim(),
-    );
-  }
-
-  Future<String?> _showPhoneInputDialog(String customerName) async {
-    final phoneController = TextEditingController();
-
-    return showDialog<String>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Nomor Telepon Customer'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Customer: $customerName'),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: const InputDecoration(
-                    labelText: 'Nomor Telepon',
-                    hintText: 'Contoh: 081234567890',
-                    prefixIcon: Icon(Icons.phone),
-                    border: OutlineInputBorder(),
-                  ),
-                  autofocus: true,
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Batal'),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final phone = phoneController.text.trim();
-                  if (phone.isNotEmpty) {
-                    Navigator.of(context).pop(phone);
-                  }
-                },
-                child: const Text('Simpan'),
-              ),
-            ],
-          ),
-    );
-  }
-
-  Future<void> _showCreateCustomerDialog() async {
-    final nameController = TextEditingController();
-    final phoneController = TextEditingController();
-
-    final result = await showDialog<Map<String, String>>(
-      context: context,
-      builder:
-          (context) => AlertDialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            title: Row(
-              children: [
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF3B82F6), Color(0xFF1E40AF)],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(
-                    LucideIcons.userPlus,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Tambah Customer Baru',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.w600),
-                ),
-              ],
-            ),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nama Customer',
-                    hintText: 'Masukkan nama lengkap',
-                    prefixIcon: const Icon(LucideIcons.user),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                  ),
-                  autofocus: true,
-                  textCapitalization: TextCapitalization.words,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: phoneController,
-                  keyboardType: TextInputType.phone,
-                  decoration: InputDecoration(
-                    labelText: 'Nomor Telepon',
-                    hintText: 'Contoh: 081234567890',
-                    prefixIcon: const Icon(LucideIcons.phone),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text(
-                  'Batal',
-                  style: TextStyle(color: Color(0xFF64748B)),
-                ),
-              ),
-              ElevatedButton(
-                onPressed: () {
-                  final name = nameController.text.trim();
-                  final phone = phoneController.text.trim();
-                  if (name.isNotEmpty && phone.isNotEmpty) {
-                    Navigator.of(context).pop({'name': name, 'phone': phone});
-                  }
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF3B82F6),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 12,
-                  ),
-                ),
-                child: const Text(
-                  'Simpan',
-                  style: TextStyle(fontWeight: FontWeight.w600),
-                ),
-              ),
-            ],
-          ),
-    );
-
-    if (result != null) {
-      await _createCustomerFromDialog(
-        name: result['name']!,
-        phone: result['phone']!,
-      );
-    }
-  }
-
-  Future<void> _createCustomerFromDialog({
-    required String name,
-    required String phone,
-  }) async {
-    try {
-      final customerProvider = Provider.of<CustomerProvider>(
-        context,
-        listen: false,
-      );
-      final newCustomer = await customerProvider.createCustomer(
-        name: name,
-        phone: phone,
-      );
-
-      if (newCustomer != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(LucideIcons.checkCircle, color: Colors.white),
-                const SizedBox(width: 8),
-                Text('Customer "${newCustomer.name}" berhasil dibuat'),
-              ],
-            ),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-
-        // Auto-select the newly created customer
-        await _selectCustomer(newCustomer);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(LucideIcons.alertCircle, color: Colors.white),
-                const SizedBox(width: 8),
-                Expanded(child: Text('Gagal membuat customer: $e')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        );
-      }
+      // Auto-select the newly created customer
+      await _selectCustomer(customer);
     }
   }
 
@@ -495,20 +349,19 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
                                 LucideIcons.search,
                                 color: Color(0xFF6B7280),
                               ),
-                              suffixIcon:
-                                  _isSearching
-                                      ? const Padding(
-                                        padding: EdgeInsets.all(12),
-                                        child: SizedBox(
-                                          width: 20,
-                                          height: 20,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
+                              suffixIcon: _isSearching
+                                  ? const Padding(
+                                      padding: EdgeInsets.all(12),
+                                      child: SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
                                         ),
-                                      )
-                                      : (_searchController.text.isNotEmpty
-                                          ? IconButton(
+                                      ),
+                                    )
+                                  : (_searchController.text.isNotEmpty
+                                        ? IconButton(
                                             icon: const Icon(
                                               LucideIcons.x,
                                               color: Color(0xFF6B7280),
@@ -518,7 +371,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
                                               _onSearchChanged('');
                                             },
                                           )
-                                          : null),
+                                        : null),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide.none,
@@ -788,7 +641,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12),
-                  onTap: _createNewCustomer,
+                  onTap: _showCreateCustomerDialog,
                   child: Padding(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
@@ -836,10 +689,9 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color:
-                  hasPendingTransaction
-                      ? const Color(0xFFFB923C)
-                      : const Color(0xFFE2E8F0),
+              color: hasPendingTransaction
+                  ? const Color(0xFFFB923C)
+                  : const Color(0xFFE2E8F0),
               width: hasPendingTransaction ? 2 : 1,
             ),
             boxShadow: [
@@ -865,26 +717,26 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
                       height: 56,
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
-                          colors:
-                              hasPendingTransaction
-                                  ? [
-                                    const Color(0xFFFB923C),
-                                    const Color(0xFFF97316),
-                                  ]
-                                  : [
-                                    const Color(0xFF3B82F6),
-                                    const Color(0xFF1E40AF),
-                                  ],
+                          colors: hasPendingTransaction
+                              ? [
+                                  const Color(0xFFFB923C),
+                                  const Color(0xFFF97316),
+                                ]
+                              : [
+                                  const Color(0xFF3B82F6),
+                                  const Color(0xFF1E40AF),
+                                ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
-                            color: (hasPendingTransaction
-                                    ? const Color(0xFFFB923C)
-                                    : const Color(0xFF3B82F6))
-                                .withValues(alpha: 0.3),
+                            color:
+                                (hasPendingTransaction
+                                        ? const Color(0xFFFB923C)
+                                        : const Color(0xFF3B82F6))
+                                    .withValues(alpha: 0.3),
                             blurRadius: 8,
                             offset: const Offset(0, 4),
                           ),

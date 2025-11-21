@@ -116,6 +116,11 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         // Store full transaction data for refund
         _transactionData = transactionData;
 
+        // Count only items with remaining quantity > 0
+        final activeItemsCount = transactionData.details
+            .where((detail) => detail.remainingQty > 0)
+            .length;
+
         // Store detailed transaction for later use (convert to list item format)
         _detailedTransaction = TransactionListItem(
           id: transactionData.id,
@@ -133,7 +138,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           user: transactionData.user,
           store: transactionData.store,
           customer: transactionData.customer,
-          detailsCount: transactionData.details.length,
+          detailsCount: activeItemsCount, // Use active items count
           createdAt: transactionData.createdAt,
           updatedAt: transactionData.updatedAt,
         );
@@ -206,7 +211,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     }
   }
 
-  TransactionListItem get transaction => widget.transaction;
+  // Use updated transaction data if available, otherwise use initial data
+  TransactionListItem get transaction =>
+      _detailedTransaction ?? widget.transaction;
 
   @override
   Widget build(BuildContext context) {
@@ -1778,7 +1785,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       // Force reload transaction details
       await _loadTransactionDetails();
 
-      // Show success message
+      // Show success message and pop back to transaction list
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -1793,8 +1800,12 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
             ),
             backgroundColor: Colors.green,
             behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
           ),
         );
+
+        // Pop back to transaction list page to trigger refresh
+        Navigator.of(context).pop(true); // Return true to trigger list refresh
       }
     }
   }

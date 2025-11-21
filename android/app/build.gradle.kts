@@ -30,6 +30,20 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "environment"
+    productFlavors {
+        create("staging") {
+            dimension = "environment"
+            applicationIdSuffix = ".staging"
+            versionNameSuffix = "-staging"
+            resValue("string", "app_name", "Sun POS (Staging)")
+        }
+        create("production") {
+            dimension = "environment"
+            resValue("string", "app_name", "Sun POS")
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
