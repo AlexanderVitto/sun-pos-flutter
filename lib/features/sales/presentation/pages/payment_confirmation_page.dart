@@ -314,6 +314,67 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                         ),
                       ],
                     ),
+                    // Show change for cash payment
+                    if (_selectedPaymentMethod == 'cash' &&
+                        _paymentStatus != 'utang')
+                      Builder(
+                        builder: (context) {
+                          final totalRequired =
+                              _calculateTotalWithEditedPrices();
+                          final change = totalPayment - totalRequired;
+
+                          if (change > 0) {
+                            return Column(
+                              children: [
+                                const SizedBox(height: 8),
+                                Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.shade50,
+                                    borderRadius: BorderRadius.circular(6),
+                                    border: Border.all(
+                                      color: Colors.orange.shade300,
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.payments_outlined,
+                                            color: Colors.orange.shade700,
+                                            size: 18,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          const Text(
+                                            'Kembalian:',
+                                            style: TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      Text(
+                                        'Rp ${change.toStringAsFixed(0)}',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.orange.shade700,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                     const Divider(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -2104,6 +2165,93 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           ],
                         ),
                       ),
+
+                      // Change Display (only show for cash payment when amount paid > total)
+                      if (_selectedPaymentMethod == 'cash' &&
+                          _paymentStatus != 'utang')
+                        Builder(
+                          builder: (context) {
+                            final amountPaid =
+                                DecimalTextInputFormatter.parseDecimal(
+                                  _amountPaidController.text,
+                                ) ??
+                                0.0;
+                            final totalRequired =
+                                _calculateTotalWithEditedPrices();
+                            final change = amountPaid - totalRequired;
+
+                            if (change > 0) {
+                              return Column(
+                                children: [
+                                  const SizedBox(height: 12),
+                                  Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.orange.shade600,
+                                          Colors.orange.shade500,
+                                        ],
+                                        begin: Alignment.centerLeft,
+                                        end: Alignment.centerRight,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            const Icon(
+                                              Icons.payments_outlined,
+                                              color: Colors.white,
+                                              size: 24,
+                                            ),
+                                            const SizedBox(width: 12),
+                                            Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                const Text(
+                                                  'Kembalian',
+                                                  style: TextStyle(
+                                                    fontSize: 16,
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w500,
+                                                  ),
+                                                ),
+                                                Text(
+                                                  'Dibayar: Rp ${amountPaid.toStringAsFixed(0)}',
+                                                  style: TextStyle(
+                                                    fontSize: 13,
+                                                    color: Colors.white
+                                                        .withValues(
+                                                          alpha: 0.85,
+                                                        ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        Text(
+                                          'Rp ${change.toStringAsFixed(0)}',
+                                          style: const TextStyle(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              );
+                            }
+                            return const SizedBox.shrink();
+                          },
+                        ),
 
                       const SizedBox(height: 12),
 
