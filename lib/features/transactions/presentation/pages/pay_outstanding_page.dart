@@ -61,8 +61,24 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
   }
 
   double get _inputAmount {
-    return DecimalTextInputFormatter.parseDecimal(_amountController.text) ??
-        0.0;
+    return _parseAmount(_amountController.text);
+  }
+
+  // Format price to thousands separator
+  String _formatPrice(double price) {
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+  }
+
+  // Parse amount from text (handles thousand separators)
+  double _parseAmount(String text) {
+    // Remove thousand separators (dots) and parse
+    final cleanText = text.replaceAll('.', '');
+    return DecimalTextInputFormatter.parseDecimal(cleanText) ?? 0.0;
   }
 
   bool get _isPaymentValid {
@@ -74,8 +90,8 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
       return 'Nominal pembayaran harus diisi';
     }
 
-    final amount = DecimalTextInputFormatter.parseDecimal(value);
-    if (amount == null || amount <= 0) {
+    final amount = _parseAmount(value);
+    if (amount <= 0) {
       return 'Nominal harus lebih dari 0';
     }
 
@@ -884,7 +900,47 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
           TextFormField(
             controller: _amountController,
             keyboardType: TextInputType.number,
-            inputFormatters: [DecimalTextInputFormatter()],
+            onChanged: (value) {
+              // Format input with thousand separators
+              String cleanText = value.replaceAll(RegExp(r'[^\d]'), '');
+
+              if (cleanText.isEmpty) {
+                return;
+              }
+
+              // Parse and format
+              double? parsedValue = double.tryParse(cleanText);
+              if (parsedValue != null) {
+                String formattedText = _formatPrice(parsedValue);
+
+                // Calculate cursor position
+                int cursorPosition = _amountController.selection.baseOffset;
+                int originalDotsBeforeCursor =
+                    value.substring(0, cursorPosition).split('.').length - 1;
+
+                // Calculate new cursor position
+                int tempCursorPos = (cursorPosition - originalDotsBeforeCursor)
+                    .clamp(0, formattedText.length);
+                int newDotsBeforeCursor =
+                    formattedText
+                        .substring(0, tempCursorPos)
+                        .split('.')
+                        .length -
+                    1;
+                int newCursorPosition =
+                    cursorPosition -
+                    originalDotsBeforeCursor +
+                    newDotsBeforeCursor;
+
+                _amountController.value = TextEditingValue(
+                  text: formattedText,
+                  selection: TextSelection.collapsed(
+                    offset: newCursorPosition.clamp(0, formattedText.length),
+                  ),
+                );
+              }
+              setState(() {}); // Update UI for validation
+            },
             decoration: InputDecoration(
               prefixText: 'Rp ',
               hintText: 'Masukkan nominal',
@@ -909,9 +965,6 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
               contentPadding: const EdgeInsets.all(16),
             ),
             validator: _validateAmount,
-            onChanged: (value) {
-              setState(() {}); // Update UI for validation
-            },
           ),
           const SizedBox(height: 24),
 

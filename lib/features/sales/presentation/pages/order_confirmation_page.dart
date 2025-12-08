@@ -2,20 +2,35 @@ import 'package:flutter/material.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../customers/data/models/customer.dart';
 import '../../../transactions/data/models/store.dart';
+import 'payment_confirmation_page.dart';
 
 class OrderConfirmationPage extends StatefulWidget {
   final List<CartItem> cartItems;
   final double totalAmount;
   final int itemCount;
   final TextEditingController notesController;
+  // Callback for order (toggle OFF)
   final Function(
     String customerName,
     String customerPhone,
     List<CartItem> updatedCartItems,
     double updatedTotalAmount,
     double discountPercentage,
-  )
-  onConfirm;
+  )?
+  onConfirmOrder;
+  // Callback for payment (toggle ON)
+  final Function(
+    String customerName,
+    String customerPhone,
+    String paymentMethod,
+    double? cashAmount,
+    double? transferAmount,
+    String paymentStatus,
+    String? outstandingReminderDate,
+    List<CartItem> updatedCartItems,
+    double updatedTotalAmount,
+  )?
+  onConfirmPayment;
   final Customer? selectedCustomer;
   final String? initialCustomerName;
   final String? initialCustomerPhone;
@@ -27,8 +42,9 @@ class OrderConfirmationPage extends StatefulWidget {
     required this.totalAmount,
     required this.itemCount,
     required this.notesController,
-    required this.onConfirm,
     required this.store,
+    this.onConfirmOrder,
+    this.onConfirmPayment,
     this.selectedCustomer,
     this.initialCustomerName,
     this.initialCustomerPhone,
@@ -44,6 +60,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   late List<CartItem> _cartItems;
   double _discountPercentage = 0.0;
   late TextEditingController _discountController;
+  bool _payWithCash = false; // Toggle untuk bayar tunai
 
   @override
   void initState() {
@@ -100,7 +117,63 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   double get discountAmount => subtotal - subtotalAfterDiscount;
   double get updatedTotalAmount => subtotalAfterDiscount;
 
+  void _navigateToPaymentPage() {
+    // Navigasi ke halaman konfirmasi pembayaran
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => PaymentConfirmationPage(
+          cartItems: updatedCartItems,
+          totalAmount: updatedTotalAmount,
+          itemCount: widget.itemCount,
+          notesController: widget.notesController,
+          selectedCustomer: _selectedCustomer,
+          initialCustomerName: customerName,
+          initialCustomerPhone: customerPhone,
+          onConfirm:
+              (
+                String customerName,
+                String customerPhone,
+                String paymentMethod,
+                double? cashAmount,
+                double? transferAmount,
+                String paymentStatus,
+                String? outstandingReminderDate,
+                List<CartItem> updatedCartItems,
+                double updatedTotalAmount,
+              ) {
+                // Close payment page
+                Navigator.of(context).pop();
+                // Close order confirmation page
+                Navigator.of(context).pop();
+
+                // Call the payment callback with all payment details
+                if (widget.onConfirmPayment != null) {
+                  widget.onConfirmPayment!(
+                    customerName,
+                    customerPhone,
+                    paymentMethod,
+                    cashAmount,
+                    transferAmount,
+                    paymentStatus,
+                    outstandingReminderDate,
+                    updatedCartItems,
+                    updatedTotalAmount,
+                  );
+                }
+              },
+        ),
+      ),
+    );
+  }
+
   void _showConfirmationDialog() {
+    // Jika toggle bayar tunai aktif, navigasi ke halaman pembayaran
+    if (_payWithCash) {
+      _navigateToPaymentPage();
+      return;
+    }
+
+    // Jika tidak, tampilkan dialog konfirmasi pesanan seperti biasa
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -275,14 +348,16 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
     });
 
     try {
-      // Pass the updated cart items and total to the callback
-      widget.onConfirm(
-        customerName,
-        customerPhone,
-        updatedCartItems,
-        updatedTotalAmount,
-        _discountPercentage,
-      );
+      // Pass the updated cart items and total to the order callback
+      if (widget.onConfirmOrder != null) {
+        widget.onConfirmOrder!(
+          customerName,
+          customerPhone,
+          updatedCartItems,
+          updatedTotalAmount,
+          _discountPercentage,
+        );
+      }
       // Navigation will be handled by the calling page
       // if (mounted) {
       //   Navigator.of(context).pop();
@@ -891,6 +966,135 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
             // ),
             const SizedBox(height: 16),
 
+            // Payment Option Card
+            Card(
+              elevation: 2,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade600,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.payments,
+                            color: Colors.white,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        const Text(
+                          'Opsi Pembayaran',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _payWithCash
+                            ? Colors.green.shade50
+                            : Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: _payWithCash
+                              ? Colors.green.shade300
+                              : Colors.grey.shade300,
+                          width: 2,
+                        ),
+                      ),
+                      child: SwitchListTile(
+                        value: _payWithCash,
+                        onChanged: (bool value) {
+                          setState(() {
+                            _payWithCash = value;
+                          });
+                        },
+                        title: const Text(
+                          'Bayar Secara Tunai',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: Text(
+                          _payWithCash
+                              ? 'Aktif - Akan langsung ke halaman pembayaran'
+                              : 'Nonaktif - Pesanan akan disimpan sebagai pending',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: _payWithCash
+                                ? Colors.green.shade700
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                        activeColor: Colors.green.shade600,
+                        secondary: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: _payWithCash
+                                ? Colors.green.shade100
+                                : Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Icon(
+                            _payWithCash ? Icons.money : Icons.schedule,
+                            color: _payWithCash
+                                ? Colors.green.shade700
+                                : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_payWithCash) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.blue.shade700,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Anda akan diarahkan ke halaman konfirmasi pembayaran',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.blue.shade700,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 16),
+
             // Notes Card
             Card(
               elevation: 2,
@@ -1111,7 +1315,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 
                     const SizedBox(width: 12),
 
-                    // Confirm Button
+                    // Confirm/Pay Button
                     Expanded(
                       flex: 3,
                       child: ElevatedButton(
@@ -1119,7 +1323,9 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                             ? null
                             : _showConfirmationDialog,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.orange.shade600,
+                          backgroundColor: _payWithCash
+                              ? Colors.green.shade600
+                              : Colors.orange.shade600,
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           elevation: 4,
@@ -1149,12 +1355,26 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                   ),
                                 ],
                               )
-                            : Text(
-                                'Konfirmasi Pesanan',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                ),
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    _payWithCash
+                                        ? Icons.payment
+                                        : Icons.check_circle_outline,
+                                    size: 20,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _payWithCash
+                                        ? 'Bayar Sekarang'
+                                        : 'Konfirmasi Pesanan',
+                                    style: const TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ],
                               ),
                       ),
                     ),

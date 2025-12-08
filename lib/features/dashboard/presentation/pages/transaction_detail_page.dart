@@ -1446,7 +1446,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                 updatedTotalAmount,
               ) {
                 Navigator.pop(context); // Close page
-                _completeTransaction(
+                completeTransaction(
                   context,
                   paymentMethod: paymentMethod,
                   cashAmount: cashAmount,
@@ -1463,7 +1463,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     );
   }
 
-  void _completeTransaction(
+  void completeTransaction(
     BuildContext context, {
     String? paymentMethod,
     double? cashAmount,

@@ -449,6 +449,210 @@ class PaymentService {
     PosUIHelpers.showErrorSnackbar(context, message);
   }
 
+  // Complete transaction with payment details (similar to TransactionDetailPage.completeTransaction)
+  static Future<void> completeTransaction(
+    BuildContext context,
+    CartProvider cartProvider,
+    TextEditingController notesController, {
+    required String customerName,
+    required String customerPhone,
+    required String paymentMethod,
+    required double? cashAmount,
+    required double? transferAmount,
+    required String paymentStatus,
+    required String? outstandingReminderDate,
+    required List<CartItem> updatedCartItems,
+    required double updatedTotalAmount,
+  }) async {
+    // Cache all provider and navigator references BEFORE any async operations
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+    final transactionProvider = Provider.of<TransactionProvider>(
+      context,
+      listen: false,
+    );
+    final pendingProvider = Provider.of<PendingTransactionProvider>(
+      context,
+      listen: false,
+    );
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final storeId = _getStoreIdFromUser(context);
+    final store = _getStoreFromUser(context);
+    final notesText = notesController.text.trim();
+
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return const AlertDialog(
+          content: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(width: 16),
+              Text('Memproses pembayaran...'),
+            ],
+          ),
+        );
+      },
+    );
+
+    try {
+      // Set customer information in cart provider
+      if (customerName.isNotEmpty) {
+        cartProvider.setCustomerName(customerName);
+      }
+      if (customerPhone.isNotEmpty) {
+        cartProvider.setCustomerPhone(customerPhone);
+      }
+
+      dynamic transactionResponse;
+
+      // Check if this is an existing draft transaction that needs update
+      if (cartProvider.hasExistingDraftTransaction) {
+        debugPrint(
+          '🔄 Updating existing draft transaction to completed status. ID: ${cartProvider.draftTransactionId}',
+        );
+
+        // Use updateTransaction method for existing draft transactions
+        transactionResponse = await transactionProvider.updateTransaction(
+          transactionId: cartProvider.draftTransactionId!,
+          cartItems: updatedCartItems,
+          totalAmount: updatedTotalAmount,
+          notes: notesText,
+          paymentMethod: paymentMethod,
+          storeId: storeId,
+          customerName: customerName.isNotEmpty ? customerName : 'Customer',
+          customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
+          status: paymentStatus == 'utang' ? 'outstanding' : 'completed',
+          cashAmount: cashAmount ?? 0,
+          transferAmount: transferAmount ?? 0.0,
+          outstandingReminderDate: outstandingReminderDate,
+        );
+
+        debugPrint('✅ Draft transaction updated to completed successfully');
+      } else {
+        debugPrint('✨ Creating new completed transaction');
+
+        // Process payment using the correct method
+        transactionResponse = await transactionProvider.processPayment(
+          cartItems: updatedCartItems,
+          totalAmount: updatedTotalAmount,
+          notes: notesText,
+          paymentMethod: paymentMethod,
+          storeId: storeId,
+          customerName: customerName.isNotEmpty ? customerName : 'Customer',
+          customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
+          status: paymentStatus == 'utang' ? 'outstanding' : 'completed',
+          cashAmount: cashAmount,
+          transferAmount: transferAmount ?? 0.0,
+          outstandingReminderDate: outstandingReminderDate,
+        );
+
+        debugPrint('✅ New completed transaction created successfully');
+      }
+
+      // Close loading dialog using cached navigator
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+
+      // Check if update was successful
+      if (transactionResponse != null) {
+        // Store cart items before clearing for receipt
+        final cartItems = List<CartItem>.from(updatedCartItems);
+        final totalAmount = updatedTotalAmount;
+
+        // Check if this is from a pending transaction by customer name
+        if (customerName.isNotEmpty) {
+          // Find and delete pending transaction for this customer
+          final pendingTransactions = pendingProvider.pendingTransactionsList;
+          try {
+            final matchingTransaction = pendingTransactions.firstWhere(
+              (transaction) => transaction.customerName == customerName,
+            );
+
+            await pendingProvider.deletePendingTransaction(
+              matchingTransaction.customerId,
+            );
+          } catch (e) {
+            // No matching pending transaction found, continue normally
+            debugPrint(
+              'No pending transaction found for customer: $customerName',
+            );
+          }
+        }
+
+        // Clear cart
+        cartProvider.clearCart();
+        notesController.clear();
+
+        // Navigate to success page (use cached navigator, don't check context.mounted)
+        navigator.pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => PaymentSuccessPage(
+              paymentMethod: paymentMethod,
+              amountPaid: totalAmount,
+              totalAmount: totalAmount,
+              transactionNumber: transactionResponse.data?.transactionNumber,
+              store: transactionResponse.data?.store ?? store,
+              cartItems: cartItems,
+              notes: notesText,
+              user: authProvider.user,
+              status: paymentStatus == 'utang' ? 'outstanding' : 'completed',
+              dueDate: outstandingReminderDate != null
+                  ? DateTime.tryParse(outstandingReminderDate)
+                  : null,
+            ),
+          ),
+        );
+
+        scaffoldMessenger.showSnackBar(
+          const SnackBar(
+            content: Text('Transaksi berhasil diselesaikan'),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
+          ),
+        );
+      } else {
+        scaffoldMessenger.showSnackBar(
+          SnackBar(
+            content: Text(
+              transactionProvider.errorMessage ??
+                  'Gagal menyelesaikan transaksi. Silakan coba lagi.',
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.all(Radius.circular(8)),
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      // Close loading dialog if still open using cached navigator
+      if (navigator.canPop()) {
+        navigator.pop();
+      }
+
+      // Show error message
+      scaffoldMessenger.showSnackBar(
+        SnackBar(
+          content: Text('Terjadi kesalahan: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(8)),
+          ),
+        ),
+      );
+    }
+  }
+
   static void _showOrderConfirmationDialog(
     BuildContext context,
     CartProvider cartProvider,
@@ -470,7 +674,8 @@ class PaymentService {
           initialCustomerName: cartProvider.customerName,
           initialCustomerPhone: cartProvider.customerPhone,
           store: store,
-          onConfirm:
+          // Callback untuk toggle OFF (order/pending)
+          onConfirmOrder:
               (
                 customerName,
                 customerPhone,
@@ -489,6 +694,37 @@ class PaymentService {
                     updatedCartItems,
                     updatedTotalAmount,
                     discountPercentage,
+                  );
+                }
+              },
+          // Callback untuk toggle ON (payment/direct)
+          onConfirmPayment:
+              (
+                customerName,
+                customerPhone,
+                paymentMethod,
+                cashAmount,
+                transferAmount,
+                paymentStatus,
+                outstandingReminderDate,
+                updatedCartItems,
+                updatedTotalAmount,
+              ) {
+                // Check if context is still valid before operations
+                if (context.mounted) {
+                  completeTransaction(
+                    context,
+                    cartProvider,
+                    notesController,
+                    customerName: customerName,
+                    customerPhone: customerPhone,
+                    paymentMethod: paymentMethod,
+                    cashAmount: cashAmount,
+                    transferAmount: transferAmount,
+                    paymentStatus: paymentStatus,
+                    outstandingReminderDate: outstandingReminderDate,
+                    updatedCartItems: updatedCartItems,
+                    updatedTotalAmount: updatedTotalAmount,
                   );
                 }
               },

@@ -127,9 +127,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
     // For cash payment, check if amount paid is filled and sufficient
     if (_selectedPaymentMethod == 'cash') {
-      final amountPaid =
-          DecimalTextInputFormatter.parseDecimal(_amountPaidController.text) ??
-          0.0;
+      final amountPaid = _parseAmount(_amountPaidController.text);
       return amountPaid > 0 && amountPaid >= _calculateTotalWithEditedPrices();
     }
 
@@ -137,14 +135,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     if (_bankTransferType == 'full') return true;
 
     // For partial payment, check if total payment is sufficient
-    final cashAmount =
-        DecimalTextInputFormatter.parseDecimal(_cashAmountController.text) ??
-        0.0;
-    final transferAmount =
-        DecimalTextInputFormatter.parseDecimal(
-          _transferAmountController.text,
-        ) ??
-        0.0;
+    final cashAmount = _parseAmount(_cashAmountController.text);
+    final transferAmount = _parseAmount(_transferAmountController.text);
     final totalPaid = cashAmount + transferAmount;
 
     return totalPaid >= _calculateTotalWithEditedPrices();
@@ -167,21 +159,11 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         PaymentConstants.paymentMethods[_selectedPaymentMethod] ?? '';
 
     if (_selectedPaymentMethod == 'cash') {
-      totalPayment =
-          DecimalTextInputFormatter.parseDecimal(_amountPaidController.text) ??
-          0.0;
+      totalPayment = _parseAmount(_amountPaidController.text);
     } else if (_selectedPaymentMethod == 'bank_transfer') {
       if (_bankTransferType == 'partial') {
-        final cash =
-            DecimalTextInputFormatter.parseDecimal(
-              _cashAmountController.text,
-            ) ??
-            0.0;
-        final transfer =
-            DecimalTextInputFormatter.parseDecimal(
-              _transferAmountController.text,
-            ) ??
-            0.0;
+        final cash = _parseAmount(_cashAmountController.text);
+        final transfer = _parseAmount(_transferAmountController.text);
         totalPayment = cash + transfer;
         paymentMethodText = '$paymentMethodText (Sebagian)';
       } else {
@@ -270,7 +252,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           style: TextStyle(fontSize: 14),
                         ),
                         Text(
-                          'Rp ${_calculateTotalWithEditedPrices().toStringAsFixed(0)}',
+                          'Rp ${_formatPrice(_calculateTotalWithEditedPrices())}',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -305,7 +287,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           style: TextStyle(fontSize: 14),
                         ),
                         Text(
-                          'Rp ${totalPayment.toStringAsFixed(0)}',
+                          'Rp ${_formatPrice(totalPayment)}',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -359,7 +341,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                         ],
                                       ),
                                       Text(
-                                        'Rp ${change.toStringAsFixed(0)}',
+                                        'Rp ${_formatPrice(change)}',
                                         style: TextStyle(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -502,11 +484,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
 
       if (_selectedPaymentMethod == 'cash') {
         // For cash payment, cap the amount to total price
-        final amountPaid =
-            DecimalTextInputFormatter.parseDecimal(
-              _amountPaidController.text,
-            ) ??
-            0.0;
+        final amountPaid = _parseAmount(_amountPaidController.text);
 
         // Cash amount should not exceed total amount
         cashAmount = amountPaid > calculatedTotal
@@ -516,16 +494,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
       } else if (_selectedPaymentMethod == 'bank_transfer') {
         if (_bankTransferType == 'partial') {
           // For partial payment, get values from input fields
-          final cash =
-              DecimalTextInputFormatter.parseDecimal(
-                _cashAmountController.text,
-              ) ??
-              0.0;
-          final transfer =
-              DecimalTextInputFormatter.parseDecimal(
-                _transferAmountController.text,
-              ) ??
-              0.0;
+          final cash = _parseAmount(_cashAmountController.text);
+          final transfer = _parseAmount(_transferAmountController.text);
 
           // Cap total payment to not exceed total amount
           final totalPayment = cash + transfer;
@@ -776,7 +746,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                                           item.id,
                                                         )) ...[
                                                       Text(
-                                                        'Rp ${item.product.price.toStringAsFixed(0)}',
+                                                        'Rp ${_formatPrice(item.product.price)}',
                                                         style: TextStyle(
                                                           fontSize: 12,
                                                           color: Colors
@@ -788,7 +758,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                                         ),
                                                       ),
                                                       Text(
-                                                        'Rp ${_getEffectivePrice(item).toStringAsFixed(0)}',
+                                                        'Rp ${_formatPrice(_getEffectivePrice(item))}',
                                                         style: TextStyle(
                                                           fontSize: 14,
                                                           color: Colors
@@ -800,7 +770,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                                       ),
                                                     ] else
                                                       Text(
-                                                        'Rp ${item.product.price.toStringAsFixed(0)}',
+                                                        'Rp ${_formatPrice(item.product.price)}',
                                                         style: TextStyle(
                                                           fontSize: 14,
                                                           color: Colors
@@ -838,7 +808,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                             ),
                                           ),
                                           child: Text(
-                                            'Rp ${(_getEffectivePrice(item) * item.quantity).toStringAsFixed(0)}',
+                                            'Rp ${_formatPrice(_getEffectivePrice(item) * item.quantity)}',
                                             style: TextStyle(
                                               fontSize: 16,
                                               fontWeight: FontWeight.bold,
@@ -1669,9 +1639,69 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                   TextField(
                                     controller: _amountPaidController,
                                     keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      DecimalTextInputFormatter(),
-                                    ],
+                                    onChanged: (value) {
+                                      // Format input with thousand separators
+                                      // Remove all non-digit characters
+                                      String cleanText = value.replaceAll(
+                                        RegExp(r'[^\d]'),
+                                        '',
+                                      );
+
+                                      print('Cleaned Text: $cleanText');
+
+                                      if (cleanText.isEmpty) {
+                                        return;
+                                      }
+
+                                      // Parse and format
+                                      double? parsedValue = double.tryParse(
+                                        cleanText,
+                                      );
+                                      if (parsedValue != null) {
+                                        String formattedText = _formatPrice(
+                                          parsedValue,
+                                        );
+
+                                        // Calculate cursor position
+                                        int cursorPosition =
+                                            _amountPaidController
+                                                .selection
+                                                .baseOffset;
+                                        int originalDotsBeforeCursor =
+                                            value
+                                                .substring(0, cursorPosition)
+                                                .split('.')
+                                                .length -
+                                            1;
+                                        int newDotsBeforeCursor =
+                                            formattedText
+                                                .substring(
+                                                  0,
+                                                  formattedText.length.clamp(
+                                                    0,
+                                                    cursorPosition,
+                                                  ),
+                                                )
+                                                .split('.')
+                                                .length -
+                                            1;
+                                        int newCursorPosition =
+                                            cursorPosition +
+                                            (newDotsBeforeCursor -
+                                                originalDotsBeforeCursor);
+
+                                        _amountPaidController
+                                            .value = TextEditingValue(
+                                          text: formattedText,
+                                          selection: TextSelection.collapsed(
+                                            offset: newCursorPosition.clamp(
+                                              0,
+                                              formattedText.length,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
                                     decoration: InputDecoration(
                                       hintText: 'Masukkan jumlah pembayaran',
                                       prefixText: 'Rp ',
@@ -1730,7 +1760,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                           ),
                                         ),
                                         Text(
-                                          'Rp ${_calculateTotalWithEditedPrices().toStringAsFixed(0)}',
+                                          'Rp ${_formatPrice(_calculateTotalWithEditedPrices())}',
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
@@ -1753,11 +1783,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                         ),
                                         Builder(
                                           builder: (context) {
-                                            final amountPaid =
-                                                DecimalTextInputFormatter.parseDecimal(
-                                                  _amountPaidController.text,
-                                                ) ??
-                                                0.0;
+                                            final amountPaid = _parseAmount(
+                                              _amountPaidController.text,
+                                            );
 
                                             final totalRequired =
                                                 _calculateTotalWithEditedPrices();
@@ -1765,7 +1793,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                                 amountPaid >= totalRequired;
 
                                             return Text(
-                                              'Rp ${amountPaid.toStringAsFixed(0)}',
+                                              'Rp ${_formatPrice(amountPaid)}',
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold,
@@ -1781,11 +1809,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                     const SizedBox(height: 8),
                                     Builder(
                                       builder: (context) {
-                                        final amountPaid =
-                                            DecimalTextInputFormatter.parseDecimal(
-                                              _amountPaidController.text,
-                                            ) ??
-                                            0.0;
+                                        final amountPaid = _parseAmount(
+                                          _amountPaidController.text,
+                                        );
 
                                         final totalRequired =
                                             _calculateTotalWithEditedPrices();
@@ -1805,7 +1831,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                                 ),
                                               ),
                                               Text(
-                                                'Rp ${change.toStringAsFixed(0)}',
+                                                'Rp ${_formatPrice(change)}',
                                                 style: TextStyle(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
@@ -1893,9 +1919,66 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                   TextField(
                                     controller: _cashAmountController,
                                     keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      DecimalTextInputFormatter(),
-                                    ],
+                                    onChanged: (value) {
+                                      // Format input with thousand separators
+                                      String cleanText = value.replaceAll(
+                                        RegExp(r'[^\d]'),
+                                        '',
+                                      );
+
+                                      if (cleanText.isEmpty) {
+                                        return;
+                                      }
+
+                                      // Parse and format
+                                      double? parsedValue = double.tryParse(
+                                        cleanText,
+                                      );
+                                      if (parsedValue != null) {
+                                        String formattedText = _formatPrice(
+                                          parsedValue,
+                                        );
+
+                                        // Calculate cursor position
+                                        int cursorPosition =
+                                            _cashAmountController
+                                                .selection
+                                                .baseOffset;
+                                        int originalDotsBeforeCursor =
+                                            value
+                                                .substring(0, cursorPosition)
+                                                .split('.')
+                                                .length -
+                                            1;
+
+                                        // Calculate new cursor position
+                                        int tempCursorPos =
+                                            (cursorPosition -
+                                                    originalDotsBeforeCursor)
+                                                .clamp(0, formattedText.length);
+                                        int newDotsBeforeCursor =
+                                            formattedText
+                                                .substring(0, tempCursorPos)
+                                                .split('.')
+                                                .length -
+                                            1;
+                                        int newCursorPosition =
+                                            cursorPosition -
+                                            originalDotsBeforeCursor +
+                                            newDotsBeforeCursor;
+
+                                        _cashAmountController
+                                            .value = TextEditingValue(
+                                          text: formattedText,
+                                          selection: TextSelection.collapsed(
+                                            offset: newCursorPosition.clamp(
+                                              0,
+                                              formattedText.length,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
                                     decoration: InputDecoration(
                                       hintText:
                                           'Masukkan jumlah tunai (opsional)',
@@ -1950,9 +2033,66 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                   TextField(
                                     controller: _transferAmountController,
                                     keyboardType: TextInputType.number,
-                                    inputFormatters: [
-                                      DecimalTextInputFormatter(),
-                                    ],
+                                    onChanged: (value) {
+                                      // Format input with thousand separators
+                                      String cleanText = value.replaceAll(
+                                        RegExp(r'[^\d]'),
+                                        '',
+                                      );
+
+                                      if (cleanText.isEmpty) {
+                                        return;
+                                      }
+
+                                      // Parse and format
+                                      double? parsedValue = double.tryParse(
+                                        cleanText,
+                                      );
+                                      if (parsedValue != null) {
+                                        String formattedText = _formatPrice(
+                                          parsedValue,
+                                        );
+
+                                        // Calculate cursor position
+                                        int cursorPosition =
+                                            _transferAmountController
+                                                .selection
+                                                .baseOffset;
+                                        int originalDotsBeforeCursor =
+                                            value
+                                                .substring(0, cursorPosition)
+                                                .split('.')
+                                                .length -
+                                            1;
+
+                                        // Calculate new cursor position
+                                        int tempCursorPos =
+                                            (cursorPosition -
+                                                    originalDotsBeforeCursor)
+                                                .clamp(0, formattedText.length);
+                                        int newDotsBeforeCursor =
+                                            formattedText
+                                                .substring(0, tempCursorPos)
+                                                .split('.')
+                                                .length -
+                                            1;
+                                        int newCursorPosition =
+                                            cursorPosition -
+                                            originalDotsBeforeCursor +
+                                            newDotsBeforeCursor;
+
+                                        _transferAmountController
+                                            .value = TextEditingValue(
+                                          text: formattedText,
+                                          selection: TextSelection.collapsed(
+                                            offset: newCursorPosition.clamp(
+                                              0,
+                                              formattedText.length,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
                                     decoration: InputDecoration(
                                       hintText:
                                           'Masukkan jumlah transfer (opsional)',
@@ -2006,7 +2146,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                           ),
                                         ),
                                         Text(
-                                          'Rp ${_calculateTotalWithEditedPrices().toStringAsFixed(0)}',
+                                          'Rp ${_formatPrice(_calculateTotalWithEditedPrices())}',
                                           style: TextStyle(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
@@ -2029,21 +2169,16 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                         ),
                                         Builder(
                                           builder: (context) {
-                                            final cashAmount =
-                                                DecimalTextInputFormatter.parseDecimal(
-                                                  _cashAmountController.text,
-                                                ) ??
-                                                0.0;
-                                            final transferAmount =
-                                                DecimalTextInputFormatter.parseDecimal(
-                                                  _transferAmountController
-                                                      .text,
-                                                ) ??
-                                                0.0;
+                                            final cashAmount = _parseAmount(
+                                              _cashAmountController.text,
+                                            );
+                                            final transferAmount = _parseAmount(
+                                              _transferAmountController.text,
+                                            );
                                             final totalPaid =
                                                 cashAmount + transferAmount;
                                             return Text(
-                                              'Rp ${totalPaid.toStringAsFixed(0)}',
+                                              'Rp ${_formatPrice(totalPaid)}',
                                               style: TextStyle(
                                                 fontSize: 14,
                                                 fontWeight: FontWeight.bold,
@@ -2155,7 +2290,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                               ],
                             ),
                             Text(
-                              'Rp ${_calculateTotalWithEditedPrices().toStringAsFixed(0)}',
+                              'Rp ${_formatPrice(_calculateTotalWithEditedPrices())}',
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -2171,11 +2306,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                           _paymentStatus != 'utang')
                         Builder(
                           builder: (context) {
-                            final amountPaid =
-                                DecimalTextInputFormatter.parseDecimal(
-                                  _amountPaidController.text,
-                                ) ??
-                                0.0;
+                            final amountPaid = _parseAmount(
+                              _amountPaidController.text,
+                            );
                             final totalRequired =
                                 _calculateTotalWithEditedPrices();
                             final change = amountPaid - totalRequired;
@@ -2222,7 +2355,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                                   ),
                                                 ),
                                                 Text(
-                                                  'Dibayar: Rp ${amountPaid.toStringAsFixed(0)}',
+                                                  'Dibayar: Rp ${_formatPrice(amountPaid)}',
                                                   style: TextStyle(
                                                     fontSize: 13,
                                                     color: Colors.white
@@ -2236,7 +2369,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                           ],
                                         ),
                                         Text(
-                                          'Rp ${change.toStringAsFixed(0)}',
+                                          'Rp ${_formatPrice(change)}',
                                           style: const TextStyle(
                                             fontSize: 24,
                                             fontWeight: FontWeight.bold,
@@ -2388,11 +2521,28 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     return _editedPrices[item.id] ?? item.product.price;
   }
 
+  // Format price to thousands separator
+  String _formatPrice(double price) {
+    return price
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+  }
+
+  // Parse amount from text (handles thousand separators)
+  double _parseAmount(String text) {
+    // Remove thousand separators (dots) and parse
+    final cleanText = text.replaceAll('.', '');
+    return DecimalTextInputFormatter.parseDecimal(cleanText) ?? 0.0;
+  }
+
   // Show dialog to edit item price
   void _showEditPriceDialog(BuildContext context, CartItem item, int index) {
     final TextEditingController priceController = TextEditingController();
     final currentPrice = _getEffectivePrice(item);
-    priceController.text = currentPrice.toStringAsFixed(0);
+    priceController.text = _formatPrice(currentPrice);
 
     // Helper function to update price
     void updatePrice(double newPrice) {
@@ -2404,7 +2554,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Harga berhasil diubah menjadi Rp ${newPrice.toStringAsFixed(0)}',
+            'Harga berhasil diubah menjadi Rp ${_formatPrice(newPrice)}',
           ),
           backgroundColor: Colors.green,
           duration: const Duration(seconds: 2),
@@ -2502,6 +2652,49 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                 controller: priceController,
                 keyboardType: TextInputType.number,
                 autofocus: true,
+                onChanged: (value) {
+                  // Format input with thousand separators
+                  // Remove all non-digit characters
+                  String cleanText = value.replaceAll(RegExp(r'[^\d]'), '');
+
+                  if (cleanText.isEmpty) {
+                    return;
+                  }
+
+                  // Parse and format
+                  double? parsedValue = double.tryParse(cleanText);
+                  if (parsedValue != null) {
+                    String formattedText = _formatPrice(parsedValue);
+
+                    // Calculate cursor position
+                    int cursorPosition = priceController.selection.baseOffset;
+                    int originalDotsBeforeCursor =
+                        value.substring(0, cursorPosition).split('.').length -
+                        1;
+                    int newDotsBeforeCursor =
+                        formattedText
+                            .substring(
+                              0,
+                              formattedText.length.clamp(0, cursorPosition),
+                            )
+                            .split('.')
+                            .length -
+                        1;
+                    int newCursorPosition =
+                        cursorPosition +
+                        (newDotsBeforeCursor - originalDotsBeforeCursor);
+
+                    priceController.value = TextEditingValue(
+                      text: formattedText,
+                      selection: TextSelection.collapsed(
+                        offset: newCursorPosition.clamp(
+                          0,
+                          formattedText.length,
+                        ),
+                      ),
+                    );
+                  }
+                },
                 decoration: InputDecoration(
                   prefixText: 'Rp ',
                   hintText: 'Masukkan harga baru',
@@ -2526,8 +2719,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                 ),
                 onSubmitted: (value) {
                   // Allow Enter key to submit
+                  // Remove thousand separators (.) before parsing
                   final newPrice = double.tryParse(
-                    value.replaceAll(RegExp(r'[^0-9.]'), ''),
+                    value.replaceAll('.', '').replaceAll(',', '.'),
                   );
                   if (newPrice != null && newPrice > 0) {
                     updatePrice(newPrice);
@@ -2559,7 +2753,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                       children: [
                         const Text('Subtotal saat ini:'),
                         Text(
-                          'Rp ${(currentPrice * item.quantity).toStringAsFixed(0)}',
+                          'Rp ${_formatPrice(currentPrice * item.quantity)}',
                           style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
                       ],
@@ -2572,13 +2766,16 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                         ValueListenableBuilder<TextEditingValue>(
                           valueListenable: priceController,
                           builder: (context, value, child) {
+                            // Remove thousand separators (.) before parsing
                             final newPrice =
                                 double.tryParse(
-                                  value.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+                                  value.text
+                                      .replaceAll('.', '')
+                                      .replaceAll(',', '.'),
                                 ) ??
                                 currentPrice;
                             return Text(
-                              'Rp ${(newPrice * item.quantity).toStringAsFixed(0)}',
+                              'Rp ${_formatPrice(newPrice * item.quantity)}',
                               style: TextStyle(
                                 fontWeight: FontWeight.bold,
                                 color: Colors.blue.shade700,
@@ -2603,8 +2800,9 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
             ),
             ElevatedButton(
               onPressed: () {
+                // Remove thousand separators (.) before parsing
                 final newPrice = double.tryParse(
-                  priceController.text.replaceAll(RegExp(r'[^0-9.]'), ''),
+                  priceController.text.replaceAll('.', '').replaceAll(',', '.'),
                 );
 
                 if (newPrice != null && newPrice > 0) {
