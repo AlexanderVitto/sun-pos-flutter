@@ -7,6 +7,10 @@ class Customer {
   final bool hasCustomerGroup;
   final String? customerGroupName;
   final String? formattedDiscount;
+  final int? transactionsCount;
+  final double? totalTransactionAmount;
+  final double? totalOutstandingAmount;
+  final bool? hasOutstandingTransactions;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -19,6 +23,10 @@ class Customer {
     this.hasCustomerGroup = false,
     this.customerGroupName,
     this.formattedDiscount,
+    this.transactionsCount,
+    this.totalTransactionAmount,
+    this.totalOutstandingAmount,
+    this.hasOutstandingTransactions,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -33,6 +41,10 @@ class Customer {
       hasCustomerGroup: json['has_customer_group'] ?? false,
       customerGroupName: json['customer_group_name'],
       formattedDiscount: json['formatted_discount'],
+      transactionsCount: json['transactions_count'],
+      totalTransactionAmount: json['total_transaction_amount']?.toDouble(),
+      totalOutstandingAmount: json['total_outstanding_amount']?.toDouble(),
+      hasOutstandingTransactions: json['has_outstanding_transactions'],
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
     );
@@ -48,6 +60,10 @@ class Customer {
       'has_customer_group': hasCustomerGroup,
       'customer_group_name': customerGroupName,
       'formatted_discount': formattedDiscount,
+      'transactions_count': transactionsCount,
+      'total_transaction_amount': totalTransactionAmount,
+      'total_outstanding_amount': totalOutstandingAmount,
+      'has_outstanding_transactions': hasOutstandingTransactions,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
     };

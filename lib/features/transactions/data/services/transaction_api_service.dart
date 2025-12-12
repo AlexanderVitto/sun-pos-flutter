@@ -142,6 +142,7 @@ class TransactionApiService {
     String? search,
     int? storeId,
     int? userId,
+    int? customerId,
     String? dateFrom,
     String? dateTo,
     double? minAmount,
@@ -172,6 +173,9 @@ class TransactionApiService {
       // if (userId != null) {
       //   queryParameters['user_id'] = userId.toString();
       // }
+      if (customerId != null) {
+        queryParameters['customer_id'] = customerId.toString();
+      }
       if (dateFrom != null && dateFrom.isNotEmpty) {
         queryParameters['date_from'] = dateFrom;
       }

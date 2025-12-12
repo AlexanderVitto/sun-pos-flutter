@@ -387,4 +387,47 @@ class CustomerProvider extends ChangeNotifier {
     _customerDetail = null;
     notifyListeners();
   }
+
+  /// Load customers with outstanding debts
+  Future<void> loadCustomersWithOutstanding({
+    int page = 1,
+    bool loadMore = false,
+    String sortDirection = 'asc',
+  }) async {
+    if (loadMore) {
+      _isLoadingMore = true;
+    } else {
+      _isLoading = true;
+      _customers = [];
+    }
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final response = await _apiService.getCustomersWithOutstanding(
+        page: page,
+        perPage: 15,
+        sortDirection: sortDirection,
+      );
+
+      if (response.isSuccess && response.data != null) {
+        if (loadMore) {
+          _customers.addAll(response.data!.data);
+        } else {
+          _customers = response.data!.data;
+        }
+        _paginationMeta = response.data!.meta;
+        _errorMessage = null;
+      } else {
+        _errorMessage = response.message;
+      }
+    } catch (e) {
+      _errorMessage =
+          'Failed to load customers with outstanding: ${e.toString()}';
+    } finally {
+      _isLoading = false;
+      _isLoadingMore = false;
+      notifyListeners();
+    }
+  }
 }

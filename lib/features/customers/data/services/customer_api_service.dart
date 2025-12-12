@@ -186,4 +186,36 @@ class CustomerApiService {
       throw Exception('Failed to get customer groups: ${e.toString()}');
     }
   }
+
+  /// Get customers with outstanding debts
+  /// GET {{base_url}}/api/v1/customers?outstanding_only=true
+  Future<CustomerListResponse> getCustomersWithOutstanding({
+    int page = 1,
+    int perPage = 15,
+    String sortDirection = 'asc',
+  }) async {
+    try {
+      final Map<String, String> queryParams = {
+        'page': page.toString(),
+        'per_page': perPage.toString(),
+        'sort_direction': sortDirection,
+        'outstanding_only': 'true',
+      };
+
+      final uri = Uri.parse('$baseUrl/customers');
+      final finalUri = uri.replace(queryParameters: queryParams);
+
+      final response = await _httpClient.get(
+        finalUri.toString(),
+        requireAuth: true,
+      );
+
+      final responseData = _httpClient.parseJsonResponse(response);
+      return CustomerListResponse.fromJson(responseData);
+    } catch (e) {
+      throw Exception(
+        'Failed to get customers with outstanding: ${e.toString()}',
+      );
+    }
+  }
 }

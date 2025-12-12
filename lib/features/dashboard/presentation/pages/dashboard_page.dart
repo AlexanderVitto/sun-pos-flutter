@@ -13,12 +13,12 @@ import '../../../products/providers/product_provider.dart';
 // import '../../../reports/presentation/pages/reports_page.dart'; // Hidden per user request
 import '../../../profile/user_profile_page.dart';
 import '../../../../core/events/transaction_events.dart';
-import '../../../customers/pages/customer_list_page.dart';
 // import '../../../cash_flows/presentation/pages/cash_flows_page.dart'; // Hidden per user request
 // import '../../../cash_flows/presentation/pages/add_cash_flow_page.dart'; // Hidden per user request
 import '../../../sales/presentation/pages/pending_transaction_list_page.dart';
 import '../widgets/transaction_tab_page.dart';
 import '../../providers/store_provider.dart';
+import '../../../customers/pages/outstanding_customers_page.dart';
 
 class DashboardPage extends StatefulWidget {
   final int initialIndex;
@@ -475,6 +475,11 @@ class _DashboardPageState extends State<DashboardPage>
       pages.add(const PendingTransactionListPage());
     }
 
+    // Only full access users can access outstanding customers
+    if (RolePermissions.canAccessOutstandingCustomersByUser(user)) {
+      pages.add(const OutstandingCustomersPage());
+    }
+
     // All users can access profile
     if (RolePermissions.canAccessProfileByUser(user)) {
       pages.add(const UserProfilePage());
@@ -518,10 +523,6 @@ class _DashboardPageState extends State<DashboardPage>
                           // Store information card
                           _buildStoreInfoCard(),
 
-                          const SizedBox(height: 32),
-
-                          // // Quick actions with modern design
-                          // _buildModernQuickActions(context),
                           const SizedBox(height: 32),
 
                           // Recent activity with modern design
@@ -1329,193 +1330,6 @@ class _DashboardPageState extends State<DashboardPage>
     );
   }
 
-  Widget _buildModernQuickActions(BuildContext context) {
-    return Consumer<AuthProvider>(
-      builder: (context, authProvider, child) {
-        final user = authProvider.user;
-        final hasFullAccess = RolePermissions.hasFullAccess(user);
-
-        final quickActions = <Map<String, dynamic>>[];
-
-        // Only full access users (role ID <= 2) can access POS
-        if (hasFullAccess && RolePermissions.canAccessPOSByUser(user)) {
-          quickActions.add({
-            'title': 'Transaksi Baru',
-            'subtitle': 'Buat penjualan baru',
-            'icon': LucideIcons.plus,
-            'color': const Color(0xFF10b981),
-            'onTap': () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const PendingTransactionListPage(),
-                ),
-              );
-            },
-          });
-        }
-
-        // Customer management for all roles
-        quickActions.add({
-          'title': 'Kelola Pelanggan',
-          'subtitle': 'Manajemen customer',
-          'icon': LucideIcons.users,
-          'color': const Color(0xFFf97316),
-          'onTap': () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => const CustomerListPage()),
-            );
-          },
-        });
-
-        // Settings for all roles
-        quickActions.add({
-          'title': 'Pengaturan',
-          'subtitle': 'Kelola akun & profil',
-          'icon': LucideIcons.settings,
-          'color': const Color(0xFFf59e0b),
-          'onTap': () {
-            // Navigate to profile tab
-            final availablePages = _getAvailablePages(user);
-            final profileIndex = availablePages.length - 1; // Profile is last
-            setState(() => _selectedIndex = profileIndex);
-          },
-        });
-
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Aksi Cepat',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1f2937),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            GridView.count(
-              crossAxisCount: 2,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisSpacing: 16,
-              mainAxisSpacing: 16,
-              childAspectRatio: 1.1,
-              children: quickActions
-                  .map((action) => _buildActionCard(action))
-                  .toList(),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildActionCard(Map<String, dynamic> action) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.white.withValues(alpha: 0.9),
-            Colors.white.withValues(alpha: 0.6),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: Colors.white.withValues(alpha: 0.4),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: action['color'].withValues(alpha: 0.1),
-            blurRadius: 15,
-            offset: const Offset(0, 6),
-          ),
-          BoxShadow(
-            color: Colors.white.withValues(alpha: 0.6),
-            blurRadius: 0,
-            offset: const Offset(0, 0),
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(20),
-          onTap: action['onTap'],
-          splashColor: action['color'].withValues(alpha: 0.1),
-          highlightColor: action['color'].withValues(alpha: 0.05),
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                // Icon with glassmorphism effect
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        action['color'],
-                        action['color'].withValues(alpha: 0.8),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: action['color'].withValues(alpha: 0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Icon(action['icon'], color: Colors.white, size: 26),
-                ),
-
-                const SizedBox(height: 16),
-
-                // Title with modern typography
-                Text(
-                  action['title'],
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF1a1a1a),
-                    letterSpacing: -0.2,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-
-                const SizedBox(height: 4),
-
-                // Subtitle with accent color
-                Text(
-                  action['subtitle'],
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: action['color'].withValues(alpha: 0.7),
-                    letterSpacing: 0.1,
-                  ),
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   Widget _buildModernRecentActivity() {
     return Consumer<TransactionListProvider>(
       builder: (context, transactionProvider, child) {
@@ -1877,6 +1691,16 @@ class _DashboardPageState extends State<DashboardPage>
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.clipboard),
           label: 'Pesan',
+        ),
+      );
+    }
+
+    // Only full access users can access outstanding customers
+    if (RolePermissions.canAccessOutstandingCustomersByUser(user)) {
+      items.add(
+        const BottomNavigationBarItem(
+          icon: Icon(LucideIcons.alertCircle),
+          label: 'Hutang',
         ),
       );
     }

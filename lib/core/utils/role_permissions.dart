@@ -217,6 +217,13 @@ class RolePermissions {
     return user != null;
   }
 
+  // NEW: Check if user can access outstanding customers
+  static bool canAccessOutstandingCustomersByUser(User? user) {
+    if (user == null) return false;
+    // Only users with full access (role ID <= 2) can access outstanding customers
+    return hasFullAccess(user);
+  }
+
   // NEW: Check if user should see full dashboard or limited dashboard
   static bool shouldShowFullDashboard(User? user) {
     if (user == null) return false;
