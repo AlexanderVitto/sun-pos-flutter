@@ -393,6 +393,7 @@ class CustomerProvider extends ChangeNotifier {
     int page = 1,
     bool loadMore = false,
     String sortDirection = 'asc',
+    String? search,
   }) async {
     if (loadMore) {
       _isLoadingMore = true;
@@ -408,6 +409,7 @@ class CustomerProvider extends ChangeNotifier {
         page: page,
         perPage: 15,
         sortDirection: sortDirection,
+        search: search,
       );
 
       if (response.isSuccess && response.data != null) {

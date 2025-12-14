@@ -70,7 +70,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     super.dispose();
   }
 
-  void _onSearchChanged(String query) {
+  void _onSearchChanged(String query, TransactionListProvider provider) {
     setState(() {
       _searchQuery = query;
       _isSearching = true;
@@ -81,16 +81,15 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
 
     // Set up new timer for debouncing
     _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _performSearch(query);
+      if (_selectedStatus == 'refund') {
+        _performRefundSearch(query);
+      } else {
+        _performSearch(query, provider);
+      }
     });
   }
 
-  void _performSearch(String query) {
-    final provider = Provider.of<TransactionListProvider>(
-      context,
-      listen: false,
-    );
-
+  void _performSearch(String query, TransactionListProvider provider) {
     // Set search query in provider
     provider.setSearch(query.trim().isEmpty ? null : query.trim());
 
@@ -104,14 +103,43 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     });
   }
 
-  void _clearSearch() {
+  void _performRefundSearch(String query) {
+    final refundProvider = Provider.of<RefundListProvider>(
+      context,
+      listen: false,
+    );
+
+    // Set search query in refund provider
+    refundProvider.setSearch(query.trim().isEmpty ? null : query.trim());
+
+    // Reload refunds with search
+    refundProvider.loadRefunds(refresh: true).then((_) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+        });
+      }
+    });
+  }
+
+  void _clearSearch(TransactionListProvider provider) {
     _debounceTimer?.cancel();
     _searchController.clear();
     setState(() {
       _searchQuery = '';
       _isSearching = false;
     });
-    _onSearchChanged('');
+
+    if (_selectedStatus == 'refund') {
+      final refundProvider = Provider.of<RefundListProvider>(
+        context,
+        listen: false,
+      );
+      refundProvider.setSearch(null);
+      refundProvider.loadRefunds(refresh: true);
+    } else {
+      _onSearchChanged('', provider);
+    }
   }
 
   @override
@@ -124,7 +152,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
             return Column(
               children: [
                 _buildHeader(),
-                _buildSearchBar(),
+                _buildSearchBar(provider),
                 _buildStatusFilter(provider),
                 const SizedBox(height: 8), // Spacing sebelum list
                 Expanded(child: _buildTransactionsList(provider)),
@@ -205,7 +233,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     );
   }
 
-  Widget _buildSearchBar() {
+  Widget _buildSearchBar(TransactionListProvider provider) {
     return Container(
       padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
       child: Container(
@@ -224,7 +252,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
         child: TextField(
           controller: _searchController,
           textInputAction: TextInputAction.search,
-          onSubmitted: (_) => _performSearch(_searchQuery),
+          onSubmitted: (_) => _performSearch(_searchQuery, provider),
           style: const TextStyle(fontSize: 16, color: Color(0xFF1F2937)),
           decoration: InputDecoration(
             hintText: 'Cari berdasarkan nama customer atau nomor transaksi...',
@@ -260,7 +288,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
                         color: Color(0xFF6B7280),
                         size: 18,
                       ),
-                      onPressed: _clearSearch,
+                      onPressed: () => _clearSearch(provider),
                       style: IconButton.styleFrom(
                         backgroundColor: const Color(0xFFF3F4F6),
                         shape: RoundedRectangleBorder(
@@ -287,7 +315,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
               vertical: 18,
             ),
           ),
-          onChanged: _onSearchChanged,
+          onChanged: (query) => _onSearchChanged(query, provider),
         ),
       ),
     );
@@ -327,7 +355,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: _clearSearch,
+                    onTap: () => _clearSearch(provider),
                     child: Container(
                       padding: const EdgeInsets.all(4),
                       decoration: BoxDecoration(
@@ -351,8 +379,8 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
               children: [
                 _buildStatusChip('pending', 'Pending', provider),
                 const SizedBox(width: 12),
-                _buildStatusChip('outstanding', 'Outstanding', provider),
-                const SizedBox(width: 12),
+                // _buildStatusChip('outstanding', 'Outstanding', provider),
+                // const SizedBox(width: 12),
                 _buildStatusChip('completed', 'Success', provider),
                 const SizedBox(width: 12),
                 _buildStatusChip('refund', 'Refund', provider),
@@ -555,7 +583,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
             if (_searchQuery.isNotEmpty) ...[
               const SizedBox(height: 24),
               ElevatedButton.icon(
-                onPressed: _clearSearch,
+                onPressed: () => _clearSearch(provider),
                 icon: const Icon(LucideIcons.x),
                 label: const Text('Hapus Pencarian'),
                 style: ElevatedButton.styleFrom(

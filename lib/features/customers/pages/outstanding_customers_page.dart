@@ -17,6 +17,9 @@ class OutstandingCustomersPage extends StatefulWidget {
 
 class _OutstandingCustomersPageState extends State<OutstandingCustomersPage> {
   final ScrollController _scrollController = ScrollController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  bool _isSearching = false;
 
   @override
   void initState() {
@@ -28,13 +31,16 @@ class _OutstandingCustomersPageState extends State<OutstandingCustomersPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _searchController.dispose();
     super.dispose();
   }
 
   void _loadData() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<CustomerProvider>();
-      provider.loadCustomersWithOutstanding();
+      provider.loadCustomersWithOutstanding(
+        search: _searchQuery.isEmpty ? null : _searchQuery,
+      );
     });
   }
 
@@ -47,6 +53,7 @@ class _OutstandingCustomersPageState extends State<OutstandingCustomersPage> {
         provider.loadCustomersWithOutstanding(
           page: provider.currentPage + 1,
           loadMore: true,
+          search: _searchQuery.isEmpty ? null : _searchQuery,
         );
       }
     }
@@ -54,7 +61,31 @@ class _OutstandingCustomersPageState extends State<OutstandingCustomersPage> {
 
   Future<void> _refreshData() async {
     final provider = context.read<CustomerProvider>();
-    await provider.loadCustomersWithOutstanding();
+    await provider.loadCustomersWithOutstanding(
+      search: _searchQuery.isEmpty ? null : _searchQuery,
+    );
+  }
+
+  void _onSearchChanged(String value) {
+    setState(() {
+      _searchQuery = value;
+    });
+
+    // Debounce search
+    Future.delayed(const Duration(milliseconds: 500), () {
+      if (_searchQuery == value) {
+        _loadData();
+      }
+    });
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+      _isSearching = false;
+    });
+    _loadData();
   }
 
   String _formatCurrency(double? amount) {
@@ -163,16 +194,44 @@ class _OutstandingCustomersPageState extends State<OutstandingCustomersPage> {
         return Scaffold(
           backgroundColor: const Color(0xFFf8fafc),
           appBar: AppBar(
-            title: const Text(
-              'Pelanggan Berhutang',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            ),
+            title: _isSearching
+                ? TextField(
+                    controller: _searchController,
+                    autofocus: true,
+                    style: const TextStyle(color: Colors.black),
+                    decoration: const InputDecoration(
+                      hintText: 'Cari nama pelanggan...',
+                      hintStyle: TextStyle(color: Colors.black),
+                      border: InputBorder.none,
+                    ),
+                    onChanged: _onSearchChanged,
+                  )
+                : const Text(
+                    'Pelanggan Berhutang',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
             backgroundColor: const Color(0xFF6366f1),
             elevation: 0,
             iconTheme: const IconThemeData(color: Colors.white),
+            actions: [
+              if (_isSearching)
+                IconButton(
+                  icon: const Icon(LucideIcons.x, color: Colors.white),
+                  onPressed: _clearSearch,
+                )
+              else
+                IconButton(
+                  icon: const Icon(LucideIcons.search, color: Colors.white),
+                  onPressed: () {
+                    setState(() {
+                      _isSearching = true;
+                    });
+                  },
+                ),
+            ],
           ),
           body: Consumer<CustomerProvider>(
             builder: (context, provider, child) {

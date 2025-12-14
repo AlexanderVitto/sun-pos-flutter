@@ -193,6 +193,7 @@ class CustomerApiService {
     int page = 1,
     int perPage = 15,
     String sortDirection = 'asc',
+    String? search,
   }) async {
     try {
       final Map<String, String> queryParams = {
@@ -201,6 +202,10 @@ class CustomerApiService {
         'sort_direction': sortDirection,
         'outstanding_only': 'true',
       };
+
+      if (search != null && search.isNotEmpty) {
+        queryParams['search'] = search;
+      }
 
       final uri = Uri.parse('$baseUrl/customers');
       final finalUri = uri.replace(queryParameters: queryParams);
