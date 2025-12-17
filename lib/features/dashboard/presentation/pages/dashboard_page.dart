@@ -1768,6 +1768,9 @@ class _DashboardPageState extends State<DashboardPage>
                         WidgetsBinding.instance.addPostFrameCallback((_) {
                           final transactionProvider = context
                               .read<TransactionListProvider>();
+                          // Reset status filter to null
+                          transactionProvider.setStatus(null);
+                          // Refresh transaction list
                           transactionProvider.loadTransactions(refresh: true);
                         });
                       }

@@ -80,33 +80,91 @@ class MyApp extends StatelessWidget {
           POSTransactionViewModel
         >(
           create: (_) => POSTransactionViewModel(),
-          update: (
-            _,
-            cartProvider,
-            transactionProvider,
-            pendingTransactionProvider,
-            viewModel,
-          ) {
-            // CartProvider sudah auto-sync dengan AuthProvider melalui proxy
-            // Sesuai dokumentasi: reuse instance dan update properties
-            if (viewModel != null) {
-              viewModel.updateCartProvider(cartProvider);
-              viewModel.updateTransactionProvider(transactionProvider);
-              viewModel.updatePendingTransactionProvider(
+          update:
+              (
+                _,
+                cartProvider,
+                transactionProvider,
                 pendingTransactionProvider,
-              );
-              return viewModel;
-            }
+                viewModel,
+              ) {
+                // CartProvider sudah auto-sync dengan AuthProvider melalui proxy
+                // Sesuai dokumentasi: reuse instance dan update properties
+                if (viewModel != null) {
+                  viewModel.updateCartProvider(cartProvider);
+                  viewModel.updateTransactionProvider(transactionProvider);
+                  viewModel.updatePendingTransactionProvider(
+                    pendingTransactionProvider,
+                  );
+                  return viewModel;
+                }
 
-            // Fallback jika viewModel null (seharusnya tidak terjadi)
-            return POSTransactionViewModel()
-              ..updateCartProvider(cartProvider)
-              ..updateTransactionProvider(transactionProvider)
-              ..updatePendingTransactionProvider(pendingTransactionProvider);
+                // Fallback jika viewModel null (seharusnya tidak terjadi)
+                return POSTransactionViewModel()
+                  ..updateCartProvider(cartProvider)
+                  ..updateTransactionProvider(transactionProvider)
+                  ..updatePendingTransactionProvider(
+                    pendingTransactionProvider,
+                  );
+              },
+        ),
+        ChangeNotifierProxyProvider2<
+          StoreProvider,
+          AuthProvider,
+          TransactionListProvider
+        >(
+          create: (context) => TransactionListProvider(
+            storeProvider: context.read<StoreProvider>(),
+            authProvider: context.read<AuthProvider>(),
+          ),
+          update: (_, storeProvider, authProvider, transactionListProvider) {
+            if (transactionListProvider != null) {
+              transactionListProvider.updateUserId(authProvider.user?.id);
+              // Register callback to reload transactions when store changes
+              storeProvider.addOnStoreChangedCallback(() {
+                transactionListProvider.loadTransactions(refresh: true);
+              });
+              return transactionListProvider;
+            }
+            final newProvider = TransactionListProvider(
+              storeProvider: storeProvider,
+              authProvider: authProvider,
+            );
+            newProvider.updateUserId(authProvider.user?.id);
+            // Register callback to reload transactions when store changes
+            storeProvider.addOnStoreChangedCallback(() {
+              newProvider.loadTransactions(refresh: true);
+            });
+            return newProvider;
           },
         ),
-        ChangeNotifierProvider(create: (_) => TransactionListProvider()),
-        ChangeNotifierProvider(create: (_) => RefundListProvider()),
+        ChangeNotifierProxyProvider2<
+          StoreProvider,
+          AuthProvider,
+          RefundListProvider
+        >(
+          create: (context) =>
+              RefundListProvider(storeProvider: context.read<StoreProvider>()),
+          update: (_, storeProvider, authProvider, refundListProvider) {
+            if (refundListProvider != null) {
+              refundListProvider.updateUserId(authProvider.user?.id);
+              // Register callback to reload refunds when store changes
+              storeProvider.addOnStoreChangedCallback(() {
+                refundListProvider.loadRefunds(refresh: true);
+              });
+              return refundListProvider;
+            }
+            final newProvider = RefundListProvider(
+              storeProvider: storeProvider,
+            );
+            newProvider.updateUserId(authProvider.user?.id);
+            // Register callback to reload refunds when store changes
+            storeProvider.addOnStoreChangedCallback(() {
+              newProvider.loadRefunds(refresh: true);
+            });
+            return newProvider;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => CustomerProvider()),
         ChangeNotifierProvider(create: (_) => CashFlowProvider()),
         ChangeNotifierProvider(create: (_) => ReportsProvider()),

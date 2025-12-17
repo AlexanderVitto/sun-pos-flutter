@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import '../data/models/refund_list_response.dart';
 import '../data/models/create_refund_request.dart';
 import '../data/services/refund_api_service.dart';
+import '../../dashboard/providers/store_provider.dart';
 
 class RefundListProvider with ChangeNotifier {
   final RefundApiService _apiService = RefundApiService();
+  final StoreProvider storeProvider;
+
+  RefundListProvider({required this.storeProvider});
 
   // State variables
   List<RefundItem> _refunds = [];
@@ -17,7 +21,6 @@ class RefundListProvider with ChangeNotifier {
   int _currentPage = 1;
   int _perPage = 10;
   String? _search;
-  int _storeId = 1; // Default store ID
   int? _userId;
   int? _customerId;
   String? _dateFrom;
@@ -40,7 +43,8 @@ class RefundListProvider with ChangeNotifier {
   int get currentPage => _currentPage;
   int get perPage => _perPage;
   String? get search => _search;
-  int get storeId => _storeId;
+  int get storeId =>
+      storeProvider.selectedStore?.id ?? 1; // Real-time from StoreProvider
   int? get userId => _userId;
   int? get customerId => _customerId;
   String? get dateFrom => _dateFrom;
@@ -81,7 +85,7 @@ class RefundListProvider with ChangeNotifier {
         page: _currentPage,
         perPage: _perPage,
         search: _search,
-        storeId: _storeId,
+        storeId: storeId,
         userId: _userId,
         customerId: _customerId,
         dateFrom: _dateFrom,
@@ -140,10 +144,13 @@ class RefundListProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Set store filter
-  void setStore(int storeId) {
-    _storeId = storeId;
-    notifyListeners();
+  /// Update user ID from AuthProvider (for integration)
+  void updateUserId(int? userId) {
+    final newUserId = userId ?? 1;
+    if (_userId != newUserId) {
+      _userId = newUserId;
+      // Don't notify here, will be handled by setUser or loadRefunds
+    }
   }
 
   /// Set user filter

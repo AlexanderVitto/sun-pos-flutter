@@ -117,6 +117,15 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   double get discountAmount => subtotal - subtotalAfterDiscount;
   double get updatedTotalAmount => subtotalAfterDiscount;
 
+  String _formatCurrency(double amount) {
+    return amount
+        .toStringAsFixed(0)
+        .replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
+  }
+
   void _navigateToPaymentPage() {
     // Navigasi ke halaman konfirmasi pembayaran
     Navigator.of(context).push(
@@ -1240,7 +1249,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         children: [
                           if (_discountPercentage > 0) ...[
                             Text(
-                              'Rp ${subtotal.toStringAsFixed(0)}',
+                              'Rp ${_formatCurrency(subtotal)}',
                               style: TextStyle(
                                 fontSize: 14,
                                 color: Colors.white.withValues(alpha: 0.8),
@@ -1248,7 +1257,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                               ),
                             ),
                             Text(
-                              'Rp ${updatedTotalAmount.toStringAsFixed(0)}',
+                              'Rp ${_formatCurrency(updatedTotalAmount)}',
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -1257,7 +1266,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                             ),
                           ] else
                             Text(
-                              'Rp ${updatedTotalAmount.toStringAsFixed(0)}',
+                              'Rp ${_formatCurrency(updatedTotalAmount)}',
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,

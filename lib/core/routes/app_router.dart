@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'app_routes.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/auth/presentation/pages/change_password_page.dart';
@@ -16,7 +15,6 @@ import '../../features/customers/pages/customer_detail_page.dart';
 import '../../features/reports/presentation/pages/reports_page.dart';
 import '../../features/transactions/data/models/store.dart';
 import '../../features/transactions/presentation/pages/transaction_list_page.dart';
-import '../../features/transactions/providers/transaction_list_provider.dart';
 import '../../features/cash_flows/presentation/pages/cash_flows_page.dart';
 import '../../features/cash_flows/presentation/pages/add_cash_flow_page.dart';
 
@@ -62,20 +60,17 @@ class AppRouter {
         final args = settings.arguments as Map<String, dynamic>?;
         if (args != null) {
           return MaterialPageRoute(
-            builder:
-                (context) => PaymentSuccessPage(
-                  paymentMethod: args['paymentMethod'] ?? 'Tunai',
-                  amountPaid: args['amountPaid'] ?? 0.0,
-                  totalAmount: args['totalAmount'] ?? 0.0,
-                  transactionNumber: args['transactionNumber'],
-                  store:
-                      args['store'] ??
-                      _getDefaultStore(), // Add store parameter
-                  cartItems: args['cartItems'],
-                  user: args['user'],
-                  status: args['status'],
-                  dueDate: args['dueDate'],
-                ),
+            builder: (context) => PaymentSuccessPage(
+              paymentMethod: args['paymentMethod'] ?? 'Tunai',
+              amountPaid: args['amountPaid'] ?? 0.0,
+              totalAmount: args['totalAmount'] ?? 0.0,
+              transactionNumber: args['transactionNumber'],
+              store: args['store'] ?? _getDefaultStore(), // Add store parameter
+              cartItems: args['cartItems'],
+              user: args['user'],
+              status: args['status'],
+              dueDate: args['dueDate'],
+            ),
           );
         }
         return MaterialPageRoute(builder: (_) => const NewSalePage());
@@ -84,33 +79,25 @@ class AppRouter {
         final args = settings.arguments as Map<String, dynamic>?;
         if (args != null) {
           return MaterialPageRoute(
-            builder:
-                (_) => ReceiptPage(
-                  receiptId: args['receiptId'] ?? '',
-                  transactionDate: args['transactionDate'] ?? DateTime.now(),
-                  items: args['items'] ?? [],
-                  store:
-                      args['store'] ?? _getDefaultStore(), // Add default store
-                  user: args['user'], // Add user parameter
-                  subtotal: args['subtotal'] ?? 0.0,
-                  discount: args['discount'] ?? 0.0,
-                  total: args['total'] ?? 0.0,
-                  paymentMethod: args['paymentMethod'] ?? 'Tunai',
-                  status: args['status'], // Add status parameter
-                  dueDate: args['dueDate'], // Add dueDate parameter
-                ),
+            builder: (_) => ReceiptPage(
+              receiptId: args['receiptId'] ?? '',
+              transactionDate: args['transactionDate'] ?? DateTime.now(),
+              items: args['items'] ?? [],
+              store: args['store'] ?? _getDefaultStore(), // Add default store
+              user: args['user'], // Add user parameter
+              subtotal: args['subtotal'] ?? 0.0,
+              discount: args['discount'] ?? 0.0,
+              total: args['total'] ?? 0.0,
+              paymentMethod: args['paymentMethod'] ?? 'Tunai',
+              status: args['status'], // Add status parameter
+              dueDate: args['dueDate'], // Add dueDate parameter
+            ),
           );
         }
         return MaterialPageRoute(builder: (_) => const NewSalePage());
 
       case AppRoutes.transactionList:
-        return MaterialPageRoute(
-          builder:
-              (_) => ChangeNotifierProvider(
-                create: (context) => TransactionListProvider(),
-                child: const TransactionListPage(),
-              ),
-        );
+        return MaterialPageRoute(builder: (_) => const TransactionListPage());
 
       case AppRoutes.customers:
         return MaterialPageRoute(builder: (_) => const CustomersPage());
@@ -122,11 +109,10 @@ class AppRouter {
         final args = settings.arguments as Map<String, dynamic>?;
         if (args != null) {
           return MaterialPageRoute(
-            builder:
-                (_) => CustomerDetailPage(
-                  customerId: args['customerId'] ?? 0,
-                  customer: args['customer'],
-                ),
+            builder: (_) => CustomerDetailPage(
+              customerId: args['customerId'] ?? 0,
+              customer: args['customer'],
+            ),
           );
         }
         return MaterialPageRoute(builder: (_) => const CustomersPage());
@@ -142,12 +128,9 @@ class AppRouter {
 
       default:
         return MaterialPageRoute(
-          builder:
-              (_) => Scaffold(
-                body: Center(
-                  child: Text('No route defined for ${settings.name}'),
-                ),
-              ),
+          builder: (_) => Scaffold(
+            body: Center(child: Text('No route defined for ${settings.name}')),
+          ),
         );
     }
   }

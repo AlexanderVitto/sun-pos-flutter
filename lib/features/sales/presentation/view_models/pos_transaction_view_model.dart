@@ -116,6 +116,7 @@ class POSTransactionViewModel extends ChangeNotifier {
   Future<void> processPayment({
     required BuildContext context,
     required double receivedAmount,
+    required int storeId,
     String? customerName,
     String? customerPhone,
     String? notes,
@@ -132,6 +133,7 @@ class POSTransactionViewModel extends ChangeNotifier {
         notes: notes ?? _notesController.text.trim(),
         customerName: customerName,
         customerPhone: customerPhone,
+        storeId: storeId,
       );
 
       // Clear the cart and notes after successful payment

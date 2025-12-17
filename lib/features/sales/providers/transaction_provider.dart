@@ -24,7 +24,7 @@ class TransactionProvider extends ChangeNotifier {
     required double totalAmount,
     String? notes,
     String paymentMethod = '',
-    int storeId = 1,
+    required int storeId,
     String? customerName,
     String? customerPhone,
     String? status,

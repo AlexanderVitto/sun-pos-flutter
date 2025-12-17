@@ -91,6 +91,7 @@ class POSTransactionViewModel extends ChangeNotifier {
     required String customerName,
     required String customerPhone,
     String paymentMethod = 'cash',
+    required int storeId,
   }) async {
     if (_cartProvider.items.isEmpty) {
       return false;
@@ -110,6 +111,7 @@ class POSTransactionViewModel extends ChangeNotifier {
         paymentMethod: paymentMethod,
         customerName: customerName.isNotEmpty ? customerName : 'Customer',
         customerPhone: customerPhone,
+        storeId: storeId,
       );
 
       _setProcessingPayment(false);

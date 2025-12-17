@@ -3,14 +3,30 @@ import '../../transactions/data/models/store.dart';
 
 class StoreProvider extends ChangeNotifier {
   Store? _selectedStore;
+  final List<VoidCallback> _onStoreChangedCallbacks = [];
 
   Store? get selectedStore => _selectedStore;
+
+  /// Add callback to be triggered when store changes
+  void addOnStoreChangedCallback(VoidCallback callback) {
+    _onStoreChangedCallbacks.add(callback);
+  }
+
+  /// Remove callback
+  void removeOnStoreChangedCallback(VoidCallback callback) {
+    _onStoreChangedCallbacks.remove(callback);
+  }
 
   /// Set the currently selected store
   void setSelectedStore(Store store) {
     _selectedStore = store;
     notifyListeners();
     debugPrint('🏪 Store selected: ${store.name} (ID: ${store.id})');
+
+    // Trigger all callbacks to reload data
+    for (final callback in _onStoreChangedCallbacks) {
+      callback.call();
+    }
   }
 
   /// Initialize with first store from user's stores list

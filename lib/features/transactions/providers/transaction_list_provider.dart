@@ -1,9 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:sun_pos/features/auth/providers/auth_provider.dart';
 import '../data/models/transaction_list_response.dart';
 import '../data/services/transaction_api_service.dart';
+import '../../dashboard/providers/store_provider.dart';
 
 class TransactionListProvider with ChangeNotifier {
   final TransactionApiService _apiService = TransactionApiService();
+  final StoreProvider storeProvider;
+  final AuthProvider authProvider;
+
+  TransactionListProvider({
+    required this.storeProvider,
+    required this.authProvider,
+  });
 
   // State variables
   List<TransactionListItem> _transactions = [];
@@ -16,7 +25,6 @@ class TransactionListProvider with ChangeNotifier {
   int _currentPage = 1;
   int _perPage = 10;
   String? _search;
-  int _storeId = 1; // Default store ID
   int _userId = 1; // Default user ID
   String? _dateFrom;
   String? _dateTo;
@@ -38,7 +46,10 @@ class TransactionListProvider with ChangeNotifier {
   int get currentPage => _currentPage;
   int get perPage => _perPage;
   String? get search => _search;
-  int get storeId => _storeId;
+  int get storeId =>
+      storeProvider.selectedStore?.id ??
+      authProvider.user?.stores.first.id ??
+      1; // Real-time from StoreProvider
   int get userId => _userId;
   String? get dateFrom => _dateFrom;
   String? get dateTo => _dateTo;
@@ -73,7 +84,7 @@ class TransactionListProvider with ChangeNotifier {
         page: _currentPage,
         perPage: _perPage,
         search: _search,
-        storeId: _storeId,
+        storeId: storeId,
         userId: _userId,
         dateFrom: _dateFrom,
         dateTo: _dateTo,
@@ -142,11 +153,13 @@ class TransactionListProvider with ChangeNotifier {
     }
   }
 
-  void setStoreId(int storeId) {
-    if (_storeId != storeId) {
-      _storeId = storeId;
+  /// Update user ID from AuthProvider (for integration)
+  void updateUserId(int? userId) {
+    final newUserId = userId ?? 1;
+    if (_userId != newUserId) {
+      _userId = newUserId;
       _currentPage = 1;
-      notifyListeners();
+      // Don't notify here, will be handled by setUserId or loadTransactions
     }
   }
 
@@ -212,7 +225,6 @@ class TransactionListProvider with ChangeNotifier {
   /// Clear all filters
   void clearFilters() {
     _search = null;
-    _storeId = 1;
     _userId = 1;
     _dateFrom = null;
     _dateTo = null;
