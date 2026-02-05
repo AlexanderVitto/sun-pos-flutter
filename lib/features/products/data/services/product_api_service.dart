@@ -2,6 +2,7 @@ import '../../../../core/network/auth_http_client.dart';
 import '../../../../core/config/app_config.dart';
 import '../models/product_response.dart';
 import '../models/product_detail_response.dart';
+import '../models/category_response.dart';
 
 class ProductApiService {
   String get baseUrl => AppConfig.baseUrl;
@@ -203,5 +204,20 @@ class ProductApiService {
       sortBy: sortBy,
       sortDirection: sortDirection,
     );
+  }
+
+  /// Get all categories
+  /// Returns list of all categories available in the system
+  Future<CategoryResponse> getCategories() async {
+    try {
+      final url = '$baseUrl/categories';
+
+      final response = await _httpClient.get(url, requireAuth: true);
+
+      final responseData = _httpClient.parseJsonResponse(response);
+      return CategoryResponse.fromJson(responseData);
+    } catch (e) {
+      throw Exception('Failed to get categories: ${e.toString()}');
+    }
   }
 }

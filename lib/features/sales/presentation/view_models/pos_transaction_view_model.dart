@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/pending_transaction_provider.dart';
+import '../../../products/providers/product_provider.dart';
 
 class POSTransactionViewModel extends ChangeNotifier {
   CartProvider? _cartProvider;
   TransactionProvider? _transactionProvider;
   PendingTransactionProvider? _pendingTransactionProvider;
+  ProductProvider? _productProvider;
 
   // Controllers
   final TextEditingController _notesController = TextEditingController();
@@ -85,26 +87,59 @@ class POSTransactionViewModel extends ChangeNotifier {
     }
   }
 
+  /// Update ProductProvider sesuai pattern dokumentasi
+  void updateProductProvider(ProductProvider productProvider) {
+    if (_productProvider != productProvider) {
+      _productProvider = productProvider;
+      debugPrint(
+        '🔄 POSTransactionViewModel: ProductProvider instance updated ${productProvider.hashCode}',
+      );
+      // Tidak perlu notifyListeners() karena ProductProvider changes tidak mempengaruhi UI langsung
+    }
+  }
+
   // Search and filter methods
   void updateSearchQuery(String query) {
     _searchQuery = query;
     notifyListeners();
   }
 
-  void updateSelectedCategory(String category) {
-    // Jika kategori yang dipilih sama dengan yang sudah terpilih, unselect (kosongkan filter)
+  void updateSelectedCategory(String category) async {
+    // Update UI state immediately
+    final previousCategory = _selectedCategory;
+
+    // Toggle behavior: Jika kategori yang sama diklik lagi, unselect (kosongkan filter)
     if (_selectedCategory == category) {
       _selectedCategory = '';
     } else {
       _selectedCategory = category;
     }
     notifyListeners();
+
+    // Trigger server-side filtering via ProductProvider
+    if (_productProvider != null) {
+      try {
+        await _productProvider!.filterByCategory(category);
+      } catch (e) {
+        // Revert on error
+        _selectedCategory = previousCategory;
+        notifyListeners();
+        debugPrint('❌ Error filtering by category: $e');
+      }
+    } else {
+      debugPrint('⚠️ ProductProvider not available for filtering');
+    }
   }
 
   void clearSearch() {
     _searchQuery = '';
     _selectedCategory = '';
     notifyListeners();
+
+    // Clear filters in ProductProvider (triggers backend reload)
+    if (_productProvider != null) {
+      _productProvider!.clearSearch();
+    }
   }
 
   // Cart methods

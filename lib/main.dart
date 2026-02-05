@@ -73,10 +73,11 @@ class MyApp extends StatelessWidget {
         ),
         // ProductDetailViewModel removed from global providers
         // It should be created locally in ProductDetailPage to avoid StackOverflowError
-        ChangeNotifierProxyProvider3<
+        ChangeNotifierProxyProvider4<
           CartProvider,
           TransactionProvider,
           PendingTransactionProvider,
+          ProductProvider,
           POSTransactionViewModel
         >(
           create: (_) => POSTransactionViewModel(),
@@ -86,6 +87,7 @@ class MyApp extends StatelessWidget {
                 cartProvider,
                 transactionProvider,
                 pendingTransactionProvider,
+                productProvider,
                 viewModel,
               ) {
                 // CartProvider sudah auto-sync dengan AuthProvider melalui proxy
@@ -96,6 +98,7 @@ class MyApp extends StatelessWidget {
                   viewModel.updatePendingTransactionProvider(
                     pendingTransactionProvider,
                   );
+                  viewModel.updateProductProvider(productProvider);
                   return viewModel;
                 }
 
@@ -103,9 +106,8 @@ class MyApp extends StatelessWidget {
                 return POSTransactionViewModel()
                   ..updateCartProvider(cartProvider)
                   ..updateTransactionProvider(transactionProvider)
-                  ..updatePendingTransactionProvider(
-                    pendingTransactionProvider,
-                  );
+                  ..updatePendingTransactionProvider(pendingTransactionProvider)
+                  ..updateProductProvider(productProvider);
               },
         ),
         ChangeNotifierProxyProvider2<

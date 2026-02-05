@@ -24,17 +24,15 @@ class ProductGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, child) {
-        final allProducts = productProvider.products;
-        final filteredProducts = allProducts.where((product) {
-          final matchesSearch = product.name.toLowerCase().contains(
-            searchQuery.toLowerCase(),
-          );
-          final matchesCategory =
-              selectedCategory.isEmpty || product.category == selectedCategory;
-          return matchesSearch && matchesCategory;
-        }).toList();
+        // Products are already filtered by backend
+        // No need for client-side filtering
+        final products = productProvider.products;
 
-        if (filteredProducts.isEmpty) {
+        if (productProvider.isLoading) {
+          return const Center(child: CircularProgressIndicator());
+        }
+
+        if (products.isEmpty) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -64,9 +62,9 @@ class ProductGrid extends StatelessWidget {
             crossAxisSpacing: 8,
             mainAxisSpacing: 8,
           ),
-          itemCount: filteredProducts.length,
+          itemCount: products.length,
           itemBuilder: (context, index) {
-            final product = filteredProducts[index];
+            final product = products[index];
             return ProductCard(
               product: product,
               onTap: onProductTap != null ? () => onProductTap!(product) : null,

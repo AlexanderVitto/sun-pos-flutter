@@ -2,52 +2,22 @@ import 'package:flutter/material.dart';
 import '../../../data/models/product.dart';
 import '../data/services/product_api_service.dart';
 import '../data/models/product.dart' as ApiProduct;
+import '../data/models/category.dart';
 
 class ProductProvider extends ChangeNotifier {
   final List<Product> _products = [];
+  final List<Category> _categories = [];
   final ProductApiService _apiService = ProductApiService();
   bool _isLoading = false;
   String? _errorMessage;
   String _searchQuery = '';
   String _selectedCategory = '';
+  int? _selectedCategoryId; // Category ID for backend filtering
   int? _customerId; // Customer ID for pricing
 
   // Getters
-  List<Product> get products =>
-      _searchQuery.isEmpty && _selectedCategory.isEmpty
-      ? _products
-      : _filteredProducts;
-
-  List<Product> get _filteredProducts {
-    List<Product> filtered = _products;
-
-    // Filter by category
-    if (_selectedCategory.isNotEmpty) {
-      filtered = filtered
-          .where((product) => product.category == _selectedCategory)
-          .toList();
-    }
-
-    // Filter by search query
-    if (_searchQuery.isNotEmpty) {
-      filtered = filtered
-          .where(
-            (product) =>
-                product.name.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ) ||
-                product.code.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ) ||
-                product.description.toLowerCase().contains(
-                  _searchQuery.toLowerCase(),
-                ),
-          )
-          .toList();
-    }
-
-    return filtered;
-  }
+  // Products are already filtered by backend, no need for client-side filtering
+  List<Product> get products => _products;
 
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
@@ -55,11 +25,12 @@ class ProductProvider extends ChangeNotifier {
   String get selectedCategory => _selectedCategory;
 
   List<String> get categories {
-    final Set<String> categorySet = <String>{};
-    for (final product in _products) {
-      categorySet.add(product.category);
-    }
-    return categorySet.toList();
+    // Return category names from API-loaded categories
+    // Filter only active categories
+    return _categories
+        .where((category) => category.isActive)
+        .map((category) => category.name)
+        .toList();
   }
 
   int get totalProducts => _products.length;
@@ -76,16 +47,21 @@ class ProductProvider extends ChangeNotifier {
     if (_customerId != customerId) {
       _customerId = customerId;
       if (customerId != null) {
+        // Load both categories and products when customer is set
+        _loadCategoriesFromApi();
         _loadProductsFromApi();
       } else {
         _products.clear();
+        _categories.clear();
+        _selectedCategoryId = null;
+        _selectedCategory = '';
         notifyListeners();
       }
     }
   }
 
   // Load products from API
-  Future<void> _loadProductsFromApi() async {
+  Future<void> _loadProductsFromApi({int? categoryId}) async {
     if (_customerId == null) {
       _errorMessage = 'Customer ID is required to load products';
       notifyListeners();
@@ -97,11 +73,14 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Get products from API with customer ID
+      // Get products from API with customer ID and optional category filter
       final response = await _apiService.getProducts(
         customerId: _customerId!,
         perPage: 100, // Load more products for POS
         activeOnly: true,
+        categoryId:
+            categoryId ??
+            _selectedCategoryId, // Use parameter or current selection
       );
 
       if (response.status == 'success') {
@@ -123,6 +102,25 @@ class ProductProvider extends ChangeNotifier {
       // Fallback to dummy data if API fails
       // _loadDummyProducts();
       notifyListeners();
+    }
+  }
+
+  // Load categories from API
+  Future<void> _loadCategoriesFromApi() async {
+    try {
+      // Get categories from API
+      final response = await _apiService.getCategories();
+
+      if (response.status == 'success') {
+        _categories.clear();
+        _categories.addAll(response.data);
+        notifyListeners();
+      } else {
+        throw Exception(response.message);
+      }
+    } catch (e) {
+      // Silently fail for categories - not critical
+      debugPrint('⚠️ Failed to load categories: ${e.toString()}');
     }
   }
 
@@ -152,18 +150,41 @@ class ProductProvider extends ChangeNotifier {
   void clearSearch() {
     _searchQuery = '';
     _selectedCategory = '';
-    notifyListeners();
+    _selectedCategoryId = null;
+    // Reload all products without filters
+    _loadProductsFromApi();
   }
 
-  // Category filter
-  void filterByCategory(String category) {
-    // Jika kategori yang dipilih sama dengan yang sudah terpilih, unselect (kosongkan filter)
-    if (_selectedCategory == category) {
+  // Category filter - Server-side filtering
+  Future<void> filterByCategory(String categoryName) async {
+    // Toggle behavior: Jika kategori yang sama diklik lagi, unselect (kosongkan filter)
+    if (_selectedCategory == categoryName) {
+      // Clear filter - load all products
       _selectedCategory = '';
+      _selectedCategoryId = null;
+      await _loadProductsFromApi(categoryId: null);
     } else {
-      _selectedCategory = category;
+      // Set filter - find category ID and reload with filter
+      _selectedCategory = categoryName;
+
+      // Find category ID by name from loaded categories
+      final category = _categories.firstWhere(
+        (cat) => cat.name == categoryName,
+        orElse: () => Category(
+          id: 0,
+          name: '',
+          description: '',
+          isActive: false,
+          createdAt: '',
+          updatedAt: '',
+        ),
+      );
+
+      if (category.id != 0) {
+        _selectedCategoryId = category.id;
+        await _loadProductsFromApi(categoryId: category.id);
+      }
     }
-    notifyListeners();
   }
 
   // Add new product
