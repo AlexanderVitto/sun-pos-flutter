@@ -16,7 +16,7 @@ class AuthService {
 
       final response = await _httpClient.postJson(
         url,
-        {'email': email, 'password': password},
+        {'email': email.toLowerCase(), 'password': password},
         requireAuth: false, // Login tidak perlu token
       );
 

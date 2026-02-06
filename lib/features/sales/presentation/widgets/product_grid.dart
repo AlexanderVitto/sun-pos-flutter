@@ -4,12 +4,12 @@ import '../../../products/providers/product_provider.dart';
 import 'product_card.dart';
 import '../../../../data/models/product.dart';
 
-class ProductGrid extends StatelessWidget {
+class ProductGrid extends StatefulWidget {
   final int crossAxisCount;
   final String searchQuery;
   final String selectedCategory;
-  final Function(Product, int) onAddToCart; // Updated to include quantity
-  final Function(Product)? onProductTap; // Add onTap functionality
+  final Function(Product, int) onAddToCart;
+  final Function(Product)? onProductTap;
 
   const ProductGrid({
     super.key,
@@ -17,8 +17,39 @@ class ProductGrid extends StatelessWidget {
     required this.searchQuery,
     required this.selectedCategory,
     required this.onAddToCart,
-    this.onProductTap, // Add onTap functionality
+    this.onProductTap,
   });
+
+  @override
+  State<ProductGrid> createState() => _ProductGridState();
+}
+
+class _ProductGridState extends State<ProductGrid> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      // Trigger load more when 200px from bottom
+      final productProvider = Provider.of<ProductProvider>(
+        context,
+        listen: false,
+      );
+      productProvider.loadMoreProducts();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,24 +85,38 @@ class ProductGrid extends StatelessWidget {
         // For smaller screens: use 0.75 for more height
         final aspectRatio = screenWidth >= 400 ? 1.0 : 0.85;
 
-        return GridView.builder(
-          padding: const EdgeInsets.all(16),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: aspectRatio,
-            crossAxisSpacing: 8,
-            mainAxisSpacing: 8,
-          ),
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final product = products[index];
-            return ProductCard(
-              product: product,
-              onTap: onProductTap != null ? () => onProductTap!(product) : null,
-              onAddToCart: (product, quantity) =>
-                  onAddToCart(product, quantity),
-            );
-          },
+        return Column(
+          children: [
+            Expanded(
+              child: GridView.builder(
+                controller: _scrollController,
+                padding: const EdgeInsets.all(16),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: widget.crossAxisCount,
+                  childAspectRatio: aspectRatio,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: products.length,
+                itemBuilder: (context, index) {
+                  final product = products[index];
+                  return ProductCard(
+                    product: product,
+                    onTap: widget.onProductTap != null
+                        ? () => widget.onProductTap!(product)
+                        : null,
+                    onAddToCart: (product, quantity) =>
+                        widget.onAddToCart(product, quantity),
+                  );
+                },
+              ),
+            ),
+            if (productProvider.isLoadingMore)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(child: CircularProgressIndicator()),
+              ),
+          ],
         );
       },
     );

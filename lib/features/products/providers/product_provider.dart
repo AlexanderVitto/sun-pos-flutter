@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../data/models/product.dart';
 import '../data/services/product_api_service.dart';
@@ -9,20 +10,38 @@ class ProductProvider extends ChangeNotifier {
   final List<Category> _categories = [];
   final ProductApiService _apiService = ProductApiService();
   bool _isLoading = false;
+  bool _isLoadingMore = false; // For pagination loading
+  bool _isSearching = false; // Specific loading state for search
   String? _errorMessage;
   String _searchQuery = '';
   String _selectedCategory = '';
   int? _selectedCategoryId; // Category ID for backend filtering
   int? _customerId; // Customer ID for pricing
+  Timer? _searchDebounceTimer; // Timer for search debouncing
+  int _searchSequence = 0; // Sequence number to prevent race conditions
+
+  // Pagination state
+  int _currentPage = 1;
+  int _totalPages = 1;
+  bool _hasMore = true;
+
+  // Search configuration
+  static const int minSearchLength = 2; // Minimum characters before search
+  static const int searchDebounceMs = 500; // Debounce duration in milliseconds
 
   // Getters
   // Products are already filtered by backend, no need for client-side filtering
   List<Product> get products => _products;
 
   bool get isLoading => _isLoading;
+  bool get isLoadingMore => _isLoadingMore;
+  bool get isSearching => _isSearching;
   String? get errorMessage => _errorMessage;
   String get searchQuery => _searchQuery;
   String get selectedCategory => _selectedCategory;
+  bool get hasMore => _hasMore;
+  int get currentPage => _currentPage;
+  int get totalPages => _totalPages;
 
   List<String> get categories {
     // Return category names from API-loaded categories
@@ -61,46 +80,72 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // Load products from API
-  Future<void> _loadProductsFromApi({int? categoryId}) async {
+  Future<void> _loadProductsFromApi({
+    int? categoryId,
+    String? search,
+    int page = 1,
+    bool append = false,
+  }) async {
     if (_customerId == null) {
       _errorMessage = 'Customer ID is required to load products';
       notifyListeners();
       return;
     }
 
-    _isLoading = true;
-    _errorMessage = null;
+    // Set loading state
+    if (append) {
+      _isLoadingMore = true;
+    } else {
+      _isLoading = true;
+      _errorMessage = null;
+    }
     notifyListeners();
 
     try {
-      // Get products from API with customer ID and optional category filter
+      // Get products from API with customer ID and optional filters
       final response = await _apiService.getProducts(
         customerId: _customerId!,
-        perPage: 100, // Load more products for POS
+        page: page,
+        perPage: 20, // Load 20 items per page for pagination
         activeOnly: true,
         categoryId:
             categoryId ??
             _selectedCategoryId, // Use parameter or current selection
+        search: search ?? _searchQuery, // Add search parameter
       );
 
       if (response.status == 'success') {
+        // Update pagination meta
+        _currentPage = response.data.meta.currentPage;
+        _totalPages = response.data.meta.lastPage;
+        _hasMore = _currentPage < _totalPages;
+
         // Convert API products to local Product model
-        _products.clear();
-        _products.addAll(
-          response.data.data.map(
-            (apiProduct) => _convertApiProductToLocalProduct(apiProduct),
-          ),
-        );
-        _isLoading = false;
+        final newProducts = response.data.data
+            .map((apiProduct) => _convertApiProductToLocalProduct(apiProduct))
+            .toList();
+
+        if (append) {
+          // Append to existing products
+          _products.addAll(newProducts);
+          _isLoadingMore = false;
+        } else {
+          // Replace products
+          _products.clear();
+          _products.addAll(newProducts);
+          _isLoading = false;
+        }
         notifyListeners();
       } else {
         throw Exception(response.message);
       }
     } catch (e) {
       _errorMessage = 'Gagal memuat produk: ${e.toString()}';
-      _isLoading = false;
-      // Fallback to dummy data if API fails
-      // _loadDummyProducts();
+      if (append) {
+        _isLoadingMore = false;
+      } else {
+        _isLoading = false;
+      }
       notifyListeners();
     }
   }
@@ -141,18 +186,82 @@ class ProductProvider extends ChangeNotifier {
     );
   }
 
-  // Search functionality
-  void searchProducts(String query) {
-    _searchQuery = query;
-    notifyListeners();
+  // Search functionality - Server-side search with debounce
+  Future<void> searchProducts(String query) async {
+    final trimmedQuery = query.trim();
+    _searchQuery = query; // Keep original query for TextField
+
+    // Cancel previous timer
+    _searchDebounceTimer?.cancel();
+
+    // If query is empty, clear search immediately
+    if (trimmedQuery.isEmpty) {
+      _isSearching = false;
+      _currentPage = 1;
+      notifyListeners();
+      await _loadProductsFromApi(search: '', page: 1);
+      return;
+    }
+
+    // If query is too short, don't search yet (just update UI)
+    if (trimmedQuery.length < minSearchLength) {
+      _isSearching = false;
+      notifyListeners();
+      return;
+    }
+
+    // Set searching state (only notify when changing state)
+    if (!_isSearching) {
+      _isSearching = true;
+      notifyListeners();
+    }
+
+    // Set debounce timer
+    _searchDebounceTimer = Timer(
+      const Duration(milliseconds: searchDebounceMs),
+      () async {
+        // Increment sequence to track this search
+        _searchSequence++;
+        final currentSequence = _searchSequence;
+
+        _currentPage = 1;
+        await _performSearch(trimmedQuery, currentSequence);
+      },
+    );
+  }
+
+  // Perform actual search with race condition prevention
+  Future<void> _performSearch(String query, int sequence) async {
+    try {
+      await _loadProductsFromApi(search: query, page: 1);
+
+      // Only update state if this is still the latest search
+      if (sequence == _searchSequence) {
+        _isSearching = false;
+        notifyListeners();
+      }
+    } catch (e) {
+      // Only update error if this is still the latest search
+      if (sequence == _searchSequence) {
+        _isSearching = false;
+        notifyListeners();
+      }
+      rethrow;
+    }
   }
 
   void clearSearch() {
     _searchQuery = '';
     _selectedCategory = '';
     _selectedCategoryId = null;
+    _currentPage = 1; // Reset pagination
+    _isSearching = false;
+    _searchDebounceTimer?.cancel(); // Cancel pending search
+    _searchSequence++; // Invalidate any in-flight searches
+
+    notifyListeners();
     // Reload all products without filters
-    _loadProductsFromApi();
+    _loadProductsFromApi(search: '', page: 1);
   }
 
   // Category filter - Server-side filtering
@@ -162,7 +271,12 @@ class ProductProvider extends ChangeNotifier {
       // Clear filter - load all products
       _selectedCategory = '';
       _selectedCategoryId = null;
-      await _loadProductsFromApi(categoryId: null);
+      _currentPage = 1; // Reset pagination
+      await _loadProductsFromApi(
+        categoryId: null,
+        search: _searchQuery, // Maintain search query
+        page: 1,
+      );
     } else {
       // Set filter - find category ID and reload with filter
       _selectedCategory = categoryName;
@@ -182,7 +296,12 @@ class ProductProvider extends ChangeNotifier {
 
       if (category.id != 0) {
         _selectedCategoryId = category.id;
-        await _loadProductsFromApi(categoryId: category.id);
+        _currentPage = 1; // Reset pagination
+        await _loadProductsFromApi(
+          categoryId: category.id,
+          search: _searchQuery, // Maintain search query
+          page: 1,
+        );
       }
     }
   }
@@ -331,11 +450,34 @@ class ProductProvider extends ChangeNotifier {
 
   // Retry loading products from API
   Future<void> retryLoadProducts() async {
-    await _loadProductsFromApi();
+    _currentPage = 1; // Reset pagination
+    await _loadProductsFromApi(page: 1);
   }
 
   // Refresh products
   Future<void> refreshProducts() async {
-    await _loadProductsFromApi();
+    _currentPage = 1; // Reset pagination
+    await _loadProductsFromApi(page: 1);
+  }
+
+  // Load more products for infinite scroll
+  Future<void> loadMoreProducts() async {
+    if (_isLoadingMore || !_hasMore) {
+      return; // Don't load if already loading or no more data
+    }
+
+    final nextPage = _currentPage + 1;
+    await _loadProductsFromApi(
+      categoryId: _selectedCategoryId,
+      search: _searchQuery, // Maintain search query
+      page: nextPage,
+      append: true,
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchDebounceTimer?.cancel();
+    super.dispose();
   }
 }

@@ -174,10 +174,9 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
       return;
     }
 
-    // Set customer group ID to product provider for pricing
-    if (customer.customerGroupId != null) {
-      productProvider.setCustomerId(customer.customerGroupId!);
-    }
+    // Set customer ID to product provider for pricing
+
+    productProvider.setCustomerId(customer.id);
 
     // Check if there's already a pending transaction for this customer
     final existingTransaction = pendingProvider.getPendingTransaction(

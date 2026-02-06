@@ -25,17 +25,31 @@ class ProductSearchFilter extends StatelessWidget {
           // Search Bar
           Padding(
             padding: const EdgeInsets.all(16),
-            child: TextField(
-              decoration: InputDecoration(
-                hintText: 'Cari produk...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                filled: true,
-                fillColor: Colors.white,
-              ),
-              onChanged: onSearchChanged,
+            child: Consumer<ProductProvider>(
+              builder: (context, productProvider, child) {
+                return TextField(
+                  decoration: InputDecoration(
+                    hintText: 'Cari produk (min. 2 karakter)...',
+                    prefixIcon: const Icon(Icons.search),
+                    suffixIcon: productProvider.isSearching
+                        ? const Padding(
+                            padding: EdgeInsets.all(12.0),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : null,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                  ),
+                  onChanged: onSearchChanged,
+                );
+              },
             ),
           ),
 
@@ -66,18 +80,17 @@ class ProductSearchFilter extends StatelessWidget {
                         ).withValues(alpha: 0.2),
                         checkmarkColor: const Color(0xFF6366f1),
                         labelStyle: TextStyle(
-                          color:
-                              isSelected
-                                  ? const Color(0xFF6366f1)
-                                  : Colors.grey[700],
-                          fontWeight:
-                              isSelected ? FontWeight.w600 : FontWeight.normal,
+                          color: isSelected
+                              ? const Color(0xFF6366f1)
+                              : Colors.grey[700],
+                          fontWeight: isSelected
+                              ? FontWeight.w600
+                              : FontWeight.normal,
                         ),
                         side: BorderSide(
-                          color:
-                              isSelected
-                                  ? const Color(0xFF6366f1)
-                                  : Colors.grey[300]!,
+                          color: isSelected
+                              ? const Color(0xFF6366f1)
+                              : Colors.grey[300]!,
                           width: 1.5,
                         ),
                       ),

@@ -1,6 +1,17 @@
 {
   "version": "0.2.0",
   "configurations": [
+     {
+      "name": "Sun POS (Production)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--dart-define=ENV=production",
+        "--flavor",
+        "production"
+      ]
+    },
     {
       "name": "Sun POS (Staging)",
       "request": "launch",
@@ -10,17 +21,6 @@
         "--dart-define=ENV=staging",
         "--flavor",
         "staging"
-      ]
-    },
-    {
-      "name": "Sun POS (Production)",
-      "request": "launch",
-      "type": "dart",
-      "flutterMode": "debug",
-      "args": [
-        "--dart-define=ENV=production",
-        "--flavor",
-        "production"
       ]
     },
     {

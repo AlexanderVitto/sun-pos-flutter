@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../../../../core/utils/decimal_text_input_formatter.dart';
+import '../../../../core/utils/thousand_separator_formatter.dart';
 import '../../data/models/create_refund_request.dart';
 import '../../../transactions/data/models/create_transaction_response.dart';
 import '../../providers/refund_list_provider.dart';
@@ -152,11 +152,14 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
     setState(() {
       _refundMethod = value ?? 'cash';
       if (_refundMethod == 'cash') {
-        _cashAmountController.text = _calculateTotalRefund().toStringAsFixed(0);
+        _cashAmountController.text = ThousandSeparatorFormatter.format(
+          _calculateTotalRefund(),
+        );
         _transferAmountController.clear();
       } else if (_refundMethod == 'transfer') {
-        _transferAmountController.text = _calculateTotalRefund()
-            .toStringAsFixed(0);
+        _transferAmountController.text = ThousandSeparatorFormatter.format(
+          _calculateTotalRefund(),
+        );
         _cashAmountController.clear();
       } else {
         _cashAmountController.clear();
@@ -174,9 +177,10 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
 
     final totalRefund = _calculateTotalRefund();
     final cashAmount =
-        DecimalTextInputFormatter.parseDecimal(_cashAmountController.text) ?? 0;
+        ThousandSeparatorFormatter.parseFormatted(_cashAmountController.text) ??
+        0;
     final transferAmount =
-        DecimalTextInputFormatter.parseDecimal(
+        ThousandSeparatorFormatter.parseFormatted(
           _transferAmountController.text,
         ) ??
         0;
@@ -736,9 +740,10 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
     double transferAmount = 0;
 
     cashAmount =
-        DecimalTextInputFormatter.parseDecimal(_cashAmountController.text) ?? 0;
+        ThousandSeparatorFormatter.parseFormatted(_cashAmountController.text) ??
+        0;
     transferAmount =
-        DecimalTextInputFormatter.parseDecimal(
+        ThousandSeparatorFormatter.parseFormatted(
           _transferAmountController.text,
         ) ??
         0;
@@ -1442,7 +1447,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                         TextFormField(
                           controller: _cashAmountController,
                           keyboardType: TextInputType.number,
-                          inputFormatters: [DecimalTextInputFormatter()],
+                          inputFormatters: [ThousandSeparatorFormatter()],
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -1496,7 +1501,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                         TextFormField(
                           controller: _transferAmountController,
                           keyboardType: TextInputType.number,
-                          inputFormatters: [DecimalTextInputFormatter()],
+                          inputFormatters: [ThousandSeparatorFormatter()],
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,

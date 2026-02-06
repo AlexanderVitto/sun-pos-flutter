@@ -99,9 +99,20 @@ class POSTransactionViewModel extends ChangeNotifier {
   }
 
   // Search and filter methods
-  void updateSearchQuery(String query) {
+  void updateSearchQuery(String query) async {
     _searchQuery = query;
     notifyListeners();
+
+    // Trigger server-side search via ProductProvider
+    if (_productProvider != null) {
+      try {
+        await _productProvider!.searchProducts(query);
+      } catch (e) {
+        debugPrint('❌ Error searching products: $e');
+      }
+    } else {
+      debugPrint('⚠️ ProductProvider not available for search');
+    }
   }
 
   void updateSelectedCategory(String category) async {
