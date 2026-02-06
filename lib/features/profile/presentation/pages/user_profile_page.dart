@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../auth/providers/auth_provider.dart';
-import '../../core/theme/app_theme.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class UserProfilePage extends StatefulWidget {
   const UserProfilePage({super.key});

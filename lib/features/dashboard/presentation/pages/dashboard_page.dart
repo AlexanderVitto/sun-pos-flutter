@@ -11,14 +11,14 @@ import '../../../../core/utils/role_permissions.dart';
 import '../../../products/providers/product_provider.dart';
 // import '../../../products/presentation/pages/products_page_modern.dart'; // Hidden per user request
 // import '../../../reports/presentation/pages/reports_page.dart'; // Hidden per user request
-import '../../../profile/user_profile_page.dart';
+import '../../../profile/presentation/pages/user_profile_page.dart';
 import '../../../../core/events/transaction_events.dart';
 // import '../../../cash_flows/presentation/pages/cash_flows_page.dart'; // Hidden per user request
 // import '../../../cash_flows/presentation/pages/add_cash_flow_page.dart'; // Hidden per user request
 import '../../../sales/presentation/pages/pending_transaction_list_page.dart';
 import '../widgets/transaction_tab_page.dart';
 import '../../providers/store_provider.dart';
-import '../../../customers/pages/outstanding_customers_page.dart';
+import '../../../customers/presentation/pages/outstanding_customers_page.dart';
 
 class DashboardPage extends StatefulWidget {
   final int initialIndex;
@@ -539,7 +539,10 @@ class _DashboardPageState extends State<DashboardPage>
 
                   // Content with padding
                   Padding(
-                    padding: const EdgeInsets.all(20),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -606,7 +609,7 @@ class _DashboardPageState extends State<DashboardPage>
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 40),
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 40),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

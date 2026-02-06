@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../auth/providers/auth_provider.dart';
-import '../transactions/providers/transaction_list_provider.dart';
-import '../sales/providers/pending_transaction_provider.dart';
-import '../products/providers/product_provider.dart';
-import '../customers/providers/customer_provider.dart';
-import '../../core/routes/app_routes.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../transactions/providers/transaction_list_provider.dart';
+import '../../../sales/providers/pending_transaction_provider.dart';
+import '../../../products/providers/product_provider.dart';
+import '../../../customers/providers/customer_provider.dart';
+import '../../../../core/routes/app_routes.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

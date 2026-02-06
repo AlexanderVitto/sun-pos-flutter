@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/customer_provider.dart';
-import '../data/models/customer.dart';
+import '../../providers/customer_provider.dart';
+import '../../data/models/customer.dart';
 import '../widgets/edit_customer_dialog.dart';
 
 class CustomerDetailPage extends StatefulWidget {
@@ -44,29 +44,28 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
         actions: [
           PopupMenuButton<String>(
             onSelected: _handleMenuAction,
-            itemBuilder:
-                (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: Row(
-                      children: [
-                        Icon(Icons.edit, size: 18),
-                        SizedBox(width: 8),
-                        Text('Edit'),
-                      ],
-                    ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: Row(
-                      children: [
-                        Icon(Icons.delete, size: 18, color: Colors.red),
-                        SizedBox(width: 8),
-                        Text('Delete', style: TextStyle(color: Colors.red)),
-                      ],
-                    ),
-                  ),
-                ],
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'edit',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, size: 18),
+                    SizedBox(width: 8),
+                    Text('Edit'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete, size: 18, color: Colors.red),
+                    SizedBox(width: 8),
+                    Text('Delete', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -302,18 +301,16 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed:
-                        provider.isUpdating
-                            ? null
-                            : () => _showEditDialog(customer),
-                    icon:
-                        provider.isUpdating
-                            ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                            : const Icon(Icons.edit),
+                    onPressed: provider.isUpdating
+                        ? null
+                        : () => _showEditDialog(customer),
+                    icon: provider.isUpdating
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.edit),
                     label: Text(
                       provider.isUpdating ? 'Updating...' : 'Edit Customer',
                     ),
@@ -472,78 +469,72 @@ class _CustomerDetailPageState extends State<CustomerDetailPage> {
   void _showDeleteDialog(Customer customer) {
     showDialog(
       context: context,
-      builder:
-          (context) => AlertDialog(
-            title: const Text('Delete Customer'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Are you sure you want to delete this customer?'),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.red[50],
-                    border: Border.all(color: Colors.red[200]!),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Customer: ${customer.name}',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.red[700],
-                        ),
-                      ),
-                      Text(
-                        'Phone: ${customer.phone}',
-                        style: TextStyle(color: Colors.red[600]),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'This action cannot be undone.',
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.red,
-                  ),
-                ),
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(),
-                child: const Text('Cancel'),
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Customer'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Are you sure you want to delete this customer?'),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.red[50],
+                border: Border.all(color: Colors.red[200]!),
+                borderRadius: BorderRadius.circular(8),
               ),
-              Consumer<CustomerProvider>(
-                builder: (context, provider, child) {
-                  return ElevatedButton(
-                    onPressed:
-                        provider.isLoading
-                            ? null
-                            : () => _deleteCustomer(customer),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      foregroundColor: Colors.white,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Customer: ${customer.name}',
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.red[700],
                     ),
-                    child:
-                        provider.isLoading
-                            ? const SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                            : const Text('Delete'),
-                  );
-                },
+                  ),
+                  Text(
+                    'Phone: ${customer.phone}',
+                    style: TextStyle(color: Colors.red[600]),
+                  ),
+                ],
               ),
-            ],
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'This action cannot be undone.',
+              style: TextStyle(fontWeight: FontWeight.bold, color: Colors.red),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancel'),
           ),
+          Consumer<CustomerProvider>(
+            builder: (context, provider, child) {
+              return ElevatedButton(
+                onPressed: provider.isLoading
+                    ? null
+                    : () => _deleteCustomer(customer),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: provider.isLoading
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Delete'),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 

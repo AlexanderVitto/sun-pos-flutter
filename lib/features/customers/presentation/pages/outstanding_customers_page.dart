@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../../../core/utils/role_permissions.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../providers/customer_provider.dart';
-import '../data/models/customer.dart';
+import '../../../../core/utils/role_permissions.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../providers/customer_provider.dart';
+import '../../data/models/customer.dart';
 import 'customer_outstanding_detail_page.dart';
 
 class OutstandingCustomersPage extends StatefulWidget {

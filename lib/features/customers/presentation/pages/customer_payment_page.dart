@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import '../data/models/customer.dart';
-import '../data/models/payment_receipt_item.dart';
-import '../../transactions/data/services/transaction_api_service.dart';
-import '../../transactions/data/models/transaction_list_response.dart';
-import '../../auth/providers/auth_provider.dart';
-import '../../../core/constants/payment_constants.dart';
+import '../../data/models/customer.dart';
+import '../../data/models/payment_receipt_item.dart';
+import '../../../transactions/data/services/transaction_api_service.dart';
+import '../../../transactions/data/models/transaction_list_response.dart';
+import '../../../auth/providers/auth_provider.dart';
+import '../../../../core/constants/payment_constants.dart';
 import 'customer_payment_receipt_page.dart';
 
 class CustomerPaymentPage extends StatefulWidget {

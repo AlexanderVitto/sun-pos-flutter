@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
-import '../data/models/customer.dart';
-import '../../transactions/data/services/transaction_api_service.dart';
-import '../../transactions/data/models/transaction_list_response.dart';
+import '../../data/models/customer.dart';
+import '../../../transactions/data/services/transaction_api_service.dart';
+import '../../../transactions/data/models/transaction_list_response.dart';
 import 'customer_payment_page.dart';
 
 class CustomerOutstandingDetailPage extends StatefulWidget {

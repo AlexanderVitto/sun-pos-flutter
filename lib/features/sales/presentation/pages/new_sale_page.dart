@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../customers/widgets/customer_selection_card.dart';
+import '../../../customers/presentation/widgets/customer_selection_card.dart';
 import '../../providers/cart_provider.dart';
 import '../../../../core/constants/app_strings.dart';
 
@@ -167,20 +167,19 @@ class NewSalePage extends StatelessWidget {
                   child: Consumer<CartProvider>(
                     builder: (context, cartProvider, child) {
                       return ElevatedButton.icon(
-                        onPressed:
-                            cartProvider.items.isEmpty
-                                ? null
-                                : () {
-                                  // Handle checkout
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Checkout functionality coming soon',
-                                      ),
-                                      backgroundColor: Colors.blue,
+                        onPressed: cartProvider.items.isEmpty
+                            ? null
+                            : () {
+                                // Handle checkout
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                      'Checkout functionality coming soon',
                                     ),
-                                  );
-                                },
+                                    backgroundColor: Colors.blue,
+                                  ),
+                                );
+                              },
                         icon: const Icon(Icons.payment),
                         label: const Text('Checkout'),
                         style: ElevatedButton.styleFrom(

@@ -11,7 +11,7 @@ import '../../features/sales/presentation/pages/payment_success_page.dart';
 import '../../features/sales/presentation/pages/receipt_page.dart';
 import '../../features/customers/presentation/pages/customers_page.dart';
 import '../../features/customers/presentation/pages/add_customer_page.dart';
-import '../../features/customers/pages/customer_detail_page.dart';
+import '../../features/customers/presentation/pages/customer_detail_page.dart';
 import '../../features/reports/presentation/pages/reports_page.dart';
 import '../../features/transactions/data/models/store.dart';
 import '../../features/transactions/presentation/pages/transaction_list_page.dart';

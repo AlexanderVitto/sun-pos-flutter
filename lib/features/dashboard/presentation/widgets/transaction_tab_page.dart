@@ -185,7 +185,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -235,7 +235,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
 
   Widget _buildSearchBar(TransactionListProvider provider) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -323,7 +323,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
 
   Widget _buildStatusFilter(TransactionListProvider provider) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -607,7 +607,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
       color: const Color(0xFF6366f1),
       child: ListView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         itemCount: provider.transactions.length + (provider.isLoading ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= provider.transactions.length) {
@@ -955,7 +955,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: const Color(0xFF6366f1).withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(24),
@@ -993,7 +993,7 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
       color: const Color(0xFF6366f1),
       child: ListView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
         itemCount: provider.refunds.length + (provider.isLoading ? 1 : 0),
         itemBuilder: (context, index) {
           if (index >= provider.refunds.length) {

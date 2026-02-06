@@ -79,84 +79,80 @@ class _TransactionListPageState extends State<TransactionListPage> {
   }
 
   Widget _buildFilterSection(TransactionListProvider provider) {
-    return Card(
-      margin: const EdgeInsets.all(16.0),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Search field
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Cari nomor transaksi...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon:
-                    _searchController.text.isNotEmpty
-                        ? IconButton(
-                          onPressed: () {
-                            _searchController.clear();
-                            provider.setSearch(null);
-                            provider.refreshTransactions();
-                          },
-                          icon: const Icon(Icons.clear),
-                        )
-                        : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          // Search field
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: 'Cari nomor transaksi...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: _searchController.text.isNotEmpty
+                  ? IconButton(
+                      onPressed: () {
+                        _searchController.clear();
+                        provider.setSearch(null);
+                        provider.refreshTransactions();
+                      },
+                      icon: const Icon(Icons.clear),
+                    )
+                  : null,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8.0),
               ),
-              onSubmitted: (value) {
-                provider.setSearch(value.isEmpty ? null : value);
-                provider.refreshTransactions();
-              },
             ),
-            const SizedBox(height: 12),
-            // Quick filters
-            Wrap(
-              spacing: 8.0,
-              children: [
-                FilterChip(
-                  label: const Text('Hari Ini'),
-                  onSelected: (selected) {
-                    if (selected) {
-                      provider.applyTodayFilter();
-                      provider.refreshTransactions();
-                    }
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Minggu Ini'),
-                  onSelected: (selected) {
-                    if (selected) {
-                      provider.applyThisWeekFilter();
-                      provider.refreshTransactions();
-                    }
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Bulan Ini'),
-                  onSelected: (selected) {
-                    if (selected) {
-                      provider.applyCurrentMonthFilter();
-                      provider.refreshTransactions();
-                    }
-                  },
-                ),
-                FilterChip(
-                  label: const Text('Reset Filter'),
-                  onSelected: (selected) {
-                    if (selected) {
-                      provider.clearFilters();
-                      _searchController.clear();
-                      provider.refreshTransactions();
-                    }
-                  },
-                ),
-              ],
-            ),
-          ],
-        ),
+            onSubmitted: (value) {
+              provider.setSearch(value.isEmpty ? null : value);
+              provider.refreshTransactions();
+            },
+          ),
+          const SizedBox(height: 12),
+          // Quick filters
+          Wrap(
+            spacing: 8.0,
+            children: [
+              FilterChip(
+                label: const Text('Hari Ini'),
+                onSelected: (selected) {
+                  if (selected) {
+                    provider.applyTodayFilter();
+                    provider.refreshTransactions();
+                  }
+                },
+              ),
+              FilterChip(
+                label: const Text('Minggu Ini'),
+                onSelected: (selected) {
+                  if (selected) {
+                    provider.applyThisWeekFilter();
+                    provider.refreshTransactions();
+                  }
+                },
+              ),
+              FilterChip(
+                label: const Text('Bulan Ini'),
+                onSelected: (selected) {
+                  if (selected) {
+                    provider.applyCurrentMonthFilter();
+                    provider.refreshTransactions();
+                  }
+                },
+              ),
+              FilterChip(
+                label: const Text('Reset Filter'),
+                onSelected: (selected) {
+                  if (selected) {
+                    provider.clearFilters();
+                    _searchController.clear();
+                    provider.refreshTransactions();
+                  }
+                },
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -211,14 +207,14 @@ class _TransactionListPageState extends State<TransactionListPage> {
       onRefresh: provider.refreshTransactions,
       child: ListView.builder(
         controller: _scrollController,
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(8.0),
         itemCount:
             provider.transactions.length + (provider.hasNextPage ? 1 : 0),
         itemBuilder: (context, index) {
           if (index == provider.transactions.length) {
             // Loading indicator for next page
             return const Padding(
-              padding: EdgeInsets.all(16.0),
+              padding: EdgeInsets.all(8.0),
               child: Center(child: CircularProgressIndicator()),
             );
           }
@@ -245,7 +241,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
         onTap: () => _showTransactionDetails(transaction),
         borderRadius: BorderRadius.circular(8.0),
         child: Padding(
-          padding: const EdgeInsets.all(16.0),
+          padding: const EdgeInsets.all(8.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -861,21 +857,20 @@ class TransactionDetailsDialog extends StatelessWidget {
     Navigator.of(context).pop(); // Tutup dialog
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder:
-            (context) => ReceiptPage(
-              receiptId: transaction.transactionNumber,
-              transactionDate: transaction.transactionDate,
-              items: receiptItems,
-              store: transaction.store,
-              user: transaction.user,
-              subtotal: transaction.totalAmount,
-              discount: 0.0,
-              total: transaction.totalAmount,
-              paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
-              notes: transaction.notes,
-              status: transaction.status,
-              dueDate: transaction.outstandingReminderDate,
-            ),
+        builder: (context) => ReceiptPage(
+          receiptId: transaction.transactionNumber,
+          transactionDate: transaction.transactionDate,
+          items: receiptItems,
+          store: transaction.store,
+          user: transaction.user,
+          subtotal: transaction.totalAmount,
+          discount: 0.0,
+          total: transaction.totalAmount,
+          paymentMethod: _getPaymentMethodText(transaction.paymentMethod),
+          notes: transaction.notes,
+          status: transaction.status,
+          dueDate: transaction.outstandingReminderDate,
+        ),
       ),
     );
   }

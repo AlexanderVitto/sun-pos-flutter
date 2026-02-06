@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../data/models/customer.dart';
-import '../data/models/payment_receipt_item.dart';
-import '../../sales/presentation/services/thermal_printer_service.dart';
-import '../../sales/presentation/widgets/printer_settings_dialog.dart';
+import '../../data/models/customer.dart';
+import '../../data/models/payment_receipt_item.dart';
+import '../../../sales/presentation/services/thermal_printer_service.dart';
+import '../../../sales/presentation/widgets/printer_settings_dialog.dart';
 
 class CustomerPaymentReceiptPage extends StatefulWidget {
   final Customer customer;

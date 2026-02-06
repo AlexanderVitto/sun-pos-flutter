@@ -59,11 +59,12 @@ class _ProductGridState extends State<ProductGrid> {
         // No need for client-side filtering
         final products = productProvider.products;
 
-        if (productProvider.isLoading) {
+        // Only show full-screen loading on initial load (when products list is empty)
+        if (productProvider.isLoading && products.isEmpty) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        if (products.isEmpty) {
+        if (products.isEmpty && !productProvider.isLoading) {
           return const Center(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -87,6 +88,15 @@ class _ProductGridState extends State<ProductGrid> {
 
         return Column(
           children: [
+            // Show subtle loading indicator on top when refreshing (not initial load)
+            if (productProvider.isLoading && products.isNotEmpty)
+              Container(
+                height: 3,
+                child: const LinearProgressIndicator(
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8b5cf6)),
+                ),
+              ),
             Expanded(
               child: GridView.builder(
                 controller: _scrollController,

@@ -18,7 +18,7 @@ import 'features/customers/providers/customer_provider.dart';
 import 'features/cash_flows/providers/cash_flow_provider.dart';
 import 'features/reports/providers/reports_provider.dart';
 import 'features/dashboard/providers/store_provider.dart';
-import 'features/splash/splash_screen.dart';
+import 'features/splash/splash.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

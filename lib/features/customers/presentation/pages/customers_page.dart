@@ -3,8 +3,8 @@ import 'package:provider/provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../data/models/customer.dart';
 import 'add_customer_page.dart';
-import '../../widgets/customer_list_item.dart';
-import '../../pages/customer_detail_page.dart';
+import '../widgets/customer_list_item.dart';
+import 'customer_detail_page.dart';
 
 class CustomersPage extends StatefulWidget {
   const CustomersPage({super.key});

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/utils/device_info_helper.dart';
+import '../../../../core/utils/device_info_helper.dart';
 
 class DeviceInfoPage extends StatefulWidget {
   const DeviceInfoPage({super.key});
@@ -64,83 +64,79 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
           ),
         ],
       ),
-      body:
-          _isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Summary Card
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Device Summary',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Summary Card
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Device Summary',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 16),
-                            _buildInfoRow(
-                              'Device Name',
-                              _deviceDisplayName ?? 'Unknown',
-                            ),
-                            _buildInfoRow(
-                              'OS Version',
-                              _osVersion ?? 'Unknown',
-                            ),
-                            _buildInfoRow(
-                              'Physical Device',
-                              _isPhysicalDevice?.toString() ?? 'Unknown',
-                            ),
-                            _buildInfoRow(
-                              'Device ID',
-                              _deviceIdentifier ?? 'Unknown',
-                            ),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 16),
+                          _buildInfoRow(
+                            'Device Name',
+                            _deviceDisplayName ?? 'Unknown',
+                          ),
+                          _buildInfoRow('OS Version', _osVersion ?? 'Unknown'),
+                          _buildInfoRow(
+                            'Physical Device',
+                            _isPhysicalDevice?.toString() ?? 'Unknown',
+                          ),
+                          _buildInfoRow(
+                            'Device ID',
+                            _deviceIdentifier ?? 'Unknown',
+                          ),
+                        ],
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                    // Detailed Information
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Detailed Information',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                              ),
+                  // Detailed Information
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Detailed Information',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
                             ),
-                            const SizedBox(height: 16),
-                            if (_deviceInfo != null)
-                              ..._deviceInfo!.entries.map((entry) {
-                                return _buildInfoRow(
-                                  _formatKey(entry.key),
-                                  _formatValue(entry.value),
-                                );
-                              }).toList()
-                            else
-                              const Text('No device information available'),
-                          ],
-                        ),
+                          ),
+                          const SizedBox(height: 16),
+                          if (_deviceInfo != null)
+                            ..._deviceInfo!.entries.map((entry) {
+                              return _buildInfoRow(
+                                _formatKey(entry.key),
+                                _formatValue(entry.value),
+                              );
+                            }).toList()
+                          else
+                            const Text('No device information available'),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
     );
   }
 

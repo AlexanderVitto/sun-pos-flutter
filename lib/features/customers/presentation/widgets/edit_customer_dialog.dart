@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../providers/customer_provider.dart';
-import '../data/models/customer.dart';
+import '../../providers/customer_provider.dart';
+import '../../data/models/customer.dart';
 
 class EditCustomerDialog extends StatefulWidget {
   final Customer customer;
@@ -281,20 +281,19 @@ class _EditCustomerDialogState extends State<EditCustomerDialog> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        onPressed:
-                            _isSubmitting || customerProvider.isUpdating
-                                ? null
-                                : () => Navigator.of(context).pop(),
+                        onPressed: _isSubmitting || customerProvider.isUpdating
+                            ? null
+                            : () => Navigator.of(context).pop(),
                         child: const Text('Cancel'),
                       ),
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed:
                             _isSubmitting ||
-                                    customerProvider.isUpdating ||
-                                    !_hasChanges()
-                                ? null
-                                : _handleSubmit,
+                                customerProvider.isUpdating ||
+                                !_hasChanges()
+                            ? null
+                            : _handleSubmit,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.blue,
                           foregroundColor: Colors.white,
@@ -303,27 +302,25 @@ class _EditCustomerDialogState extends State<EditCustomerDialog> {
                             vertical: 12,
                           ),
                         ),
-                        child:
-                            customerProvider.isUpdating
-                                ? const Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.white,
-                                            ),
+                        child: customerProvider.isUpdating
+                            ? const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        Colors.white,
                                       ),
                                     ),
-                                    SizedBox(width: 8),
-                                    Text('Updating...'),
-                                  ],
-                                )
-                                : const Text('Update Customer'),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text('Updating...'),
+                                ],
+                              )
+                            : const Text('Update Customer'),
                       ),
                     ],
                   ),

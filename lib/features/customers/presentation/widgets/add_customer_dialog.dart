@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import '../providers/customer_provider.dart';
-import '../data/models/customer_group.dart';
+import '../../providers/customer_provider.dart';
+import '../../data/models/customer_group.dart';
 
 class AddCustomerDialog extends StatefulWidget {
   const AddCustomerDialog({super.key});
