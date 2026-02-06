@@ -408,7 +408,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
         ),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -525,13 +525,13 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                                 Icon(
                                                   Icons.image_not_supported,
                                                   color: Colors.grey.shade400,
-                                                  size: 24,
+                                                  size: 18,
                                                 ),
                                       )
                                     : Icon(
                                         Icons.shopping_bag,
                                         color: Colors.grey.shade400,
-                                        size: 24,
+                                        size: 18,
                                       ),
                               ),
                             ),
@@ -545,7 +545,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                   Text(
                                     item.product.name,
                                     style: const TextStyle(
-                                      fontSize: 16,
+                                      fontSize: 12,
                                       fontWeight: FontWeight.w600,
                                       color: Colors.black87,
                                     ),
@@ -592,7 +592,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                           ),
                                         ),
                                         child: Text(
-                                          'Rp ${item.product.price.toStringAsFixed(0)}',
+                                          'Rp ${_formatCurrency(item.product.price)}',
                                           style: TextStyle(
                                             fontSize: 12,
                                             color: Colors.green.shade700,
@@ -620,9 +620,9 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                 ),
                               ),
                               child: Text(
-                                'Rp ${(updatedCartItems[index].product.price * item.quantity).toStringAsFixed(0)}',
+                                'Rp ${_formatCurrency(updatedCartItems[index].product.price * item.quantity)}',
                                 style: TextStyle(
-                                  fontSize: 14,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.bold,
                                   color: Colors.orange.shade700,
                                 ),
@@ -668,7 +668,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         const Text(
                           'Informasi Toko',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
@@ -686,7 +686,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         const SizedBox(width: 8),
                         Text(
                           'Nama: ${widget.store.name}',
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ],
                     ),
@@ -702,7 +702,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         Expanded(
                           child: Text(
                             'Alamat: ${widget.store.address}',
-                            style: const TextStyle(fontSize: 16),
+                            style: const TextStyle(fontSize: 14),
                           ),
                         ),
                       ],
@@ -718,7 +718,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         const SizedBox(width: 8),
                         Text(
                           'Telepon: ${widget.store.phoneNumber}',
-                          style: const TextStyle(fontSize: 16),
+                          style: const TextStyle(fontSize: 14),
                         ),
                       ],
                     ),
@@ -759,7 +759,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                           const Text(
                             'Informasi Customer',
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
                               color: Colors.black87,
                             ),
@@ -778,7 +778,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                             const SizedBox(width: 8),
                             Text(
                               'Nama: $customerName',
-                              style: const TextStyle(fontSize: 16),
+                              style: const TextStyle(fontSize: 14),
                             ),
                           ],
                         ),
@@ -795,7 +795,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                             const SizedBox(width: 8),
                             Text(
                               'Telepon: $customerPhone',
-                              style: const TextStyle(fontSize: 16),
+                              style: const TextStyle(fontSize: 14),
                             ),
                           ],
                         ),
@@ -813,7 +813,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                             Expanded(
                               child: Text(
                                 'Alamat: $customerAddress',
-                                style: const TextStyle(fontSize: 16),
+                                style: const TextStyle(fontSize: 14),
                               ),
                             ),
                           ],
@@ -823,156 +823,6 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                 ),
               ),
 
-            const SizedBox(height: 16),
-
-            // // Discount Card
-            // Card(
-            //   elevation: 2,
-            //   shape: RoundedRectangleBorder(
-            //     borderRadius: BorderRadius.circular(12),
-            //   ),
-            //   child: Padding(
-            //     padding: const EdgeInsets.all(20),
-            //     child: Column(
-            //       crossAxisAlignment: CrossAxisAlignment.start,
-            //       children: [
-            //         Row(
-            //           children: [
-            //             Container(
-            //               padding: const EdgeInsets.all(8),
-            //               decoration: BoxDecoration(
-            //                 color: Colors.red.shade600,
-            //                 borderRadius: BorderRadius.circular(8),
-            //               ),
-            //               child: const Icon(
-            //                 Icons.percent,
-            //                 color: Colors.white,
-            //                 size: 20,
-            //               ),
-            //             ),
-            //             const SizedBox(width: 12),
-            //             const Text(
-            //               'Diskon Per Item',
-            //               style: TextStyle(
-            //                 fontSize: 18,
-            //                 fontWeight: FontWeight.bold,
-            //                 color: Colors.black87,
-            //               ),
-            //             ),
-            //           ],
-            //         ),
-            //         const SizedBox(height: 16),
-            //         Row(
-            //           children: [
-            //             Expanded(
-            //               child: TextField(
-            //                 controller: _discountController,
-            //                 keyboardType: TextInputType.number,
-            //                 onChanged: (_) => _updateDiscount(),
-            //                 decoration: InputDecoration(
-            //                   labelText: 'Diskon Per Item (%)',
-            //                   hintText: '0',
-            //                   helperText:
-            //                       'Diskon akan diterapkan ke setiap item',
-            //                   suffixText: '%',
-            //                   border: OutlineInputBorder(
-            //                     borderRadius: BorderRadius.circular(8),
-            //                   ),
-            //                   focusedBorder: OutlineInputBorder(
-            //                     borderRadius: BorderRadius.circular(8),
-            //                     borderSide: BorderSide(
-            //                       color: Colors.red.shade600,
-            //                       width: 2,
-            //                     ),
-            //                   ),
-            //                   contentPadding: const EdgeInsets.symmetric(
-            //                     horizontal: 12,
-            //                     vertical: 16,
-            //                   ),
-            //                 ),
-            //               ),
-            //             ),
-            //             const SizedBox(width: 16),
-            //             Container(
-            //               padding: const EdgeInsets.all(16),
-            //               decoration: BoxDecoration(
-            //                 color: Colors.red.shade50,
-            //                 borderRadius: BorderRadius.circular(8),
-            //                 border: Border.all(color: Colors.red.shade200),
-            //               ),
-            //               child: Text(
-            //                 'Rp ${discountAmount.toStringAsFixed(0)}',
-            //                 style: TextStyle(
-            //                   fontSize: 16,
-            //                   fontWeight: FontWeight.bold,
-            //                   color: Colors.red.shade700,
-            //                 ),
-            //               ),
-            //             ),
-            //           ],
-            //         ),
-            //         const SizedBox(height: 12),
-            //         Container(
-            //           width: double.infinity,
-            //           padding: const EdgeInsets.all(12),
-            //           decoration: BoxDecoration(
-            //             color: Colors.grey.shade50,
-            //             borderRadius: BorderRadius.circular(8),
-            //             border: Border.all(color: Colors.grey.shade300),
-            //           ),
-            //           child: Column(
-            //             children: [
-            //               Row(
-            //                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                 children: [
-            //                   Text(
-            //                     'Subtotal (sebelum diskon):',
-            //                     style: TextStyle(
-            //                       fontSize: 14,
-            //                       color: Colors.grey.shade700,
-            //                     ),
-            //                   ),
-            //                   Text(
-            //                     'Rp ${subtotal.toStringAsFixed(0)}',
-            //                     style: TextStyle(
-            //                       fontSize: 14,
-            //                       fontWeight: FontWeight.w600,
-            //                       color: Colors.grey.shade700,
-            //                     ),
-            //                   ),
-            //                 ],
-            //               ),
-            //               if (_discountPercentage > 0) ...[
-            //                 const SizedBox(height: 8),
-            //                 Row(
-            //                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            //                   children: [
-            //                     Text(
-            //                       'Total setelah diskon:',
-            //                       style: TextStyle(
-            //                         fontSize: 14,
-            //                         fontWeight: FontWeight.w600,
-            //                         color: Colors.green.shade700,
-            //                       ),
-            //                     ),
-            //                     Text(
-            //                       'Rp ${subtotalAfterDiscount.toStringAsFixed(0)}',
-            //                       style: TextStyle(
-            //                         fontSize: 14,
-            //                         fontWeight: FontWeight.bold,
-            //                         color: Colors.green.shade700,
-            //                       ),
-            //                     ),
-            //                   ],
-            //                 ),
-            //               ],
-            //             ],
-            //           ),
-            //         ),
-            //       ],
-            //     ),
-            //   ),
-            // ),
             const SizedBox(height: 16),
 
             // Payment Option Card
@@ -1004,7 +854,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         const Text(
                           'Opsi Pembayaran',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
@@ -1035,7 +885,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         title: const Text(
                           'Bayar Secara Tunai',
                           style: TextStyle(
-                            fontSize: 16,
+                            fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1044,7 +894,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                               ? 'Aktif - Akan langsung ke halaman pembayaran'
                               : 'Nonaktif - Pesanan akan disimpan sebagai pending',
                           style: TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: _payWithCash
                                 ? Colors.green.shade700
                                 : Colors.grey.shade600,
@@ -1088,7 +938,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                               child: Text(
                                 'Anda akan diarahkan ke halaman konfirmasi pembayaran',
                                 style: TextStyle(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   color: Colors.blue.shade700,
                                 ),
                               ),
@@ -1133,7 +983,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                         const Text(
                           'Catatan Pesanan',
                           style: TextStyle(
-                            fontSize: 18,
+                            fontSize: 14,
                             fontWeight: FontWeight.bold,
                             color: Colors.black87,
                           ),
@@ -1171,7 +1021,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                           color: Colors.grey.shade600,
                         ),
                       ),
-                      style: const TextStyle(fontSize: 16),
+                      style: const TextStyle(fontSize: 14),
                       textCapitalization: TextCapitalization.sentences,
                     ),
                   ],
@@ -1222,7 +1072,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                           const Text(
                             'Total Pesanan',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 14,
                               color: Colors.white,
                               fontWeight: FontWeight.w500,
                             ),

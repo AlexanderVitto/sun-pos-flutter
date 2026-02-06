@@ -34,6 +34,7 @@ class _DashboardPageState extends State<DashboardPage>
   late int _selectedIndex;
   Timer? _refreshTimer;
   StreamSubscription<TransactionEvent>? _transactionEventSubscription;
+  int? _currentUserId; // Track current user ID to detect user changes
 
   // Persistent providers that maintain state across page switches
   late final ProductProvider _productProvider;
@@ -71,8 +72,10 @@ class _DashboardPageState extends State<DashboardPage>
         user.stores.isNotEmpty &&
         !storeProvider.hasSelectedStore) {
       storeProvider.initializeWithStores(user.stores);
+      _currentUserId = user.id; // Track initial user ID
       debugPrint('🏪 StoreProvider initialized on dashboard load');
     } else {
+      _currentUserId = user?.id; // Track user ID even if no stores
       debugPrint('⏳ Waiting for AuthProvider to load user data...');
     }
   }
@@ -87,10 +90,37 @@ class _DashboardPageState extends State<DashboardPage>
       final user = authProvider.user;
       final storeProvider = context.read<StoreProvider>();
 
-      if (user != null &&
+      // Detect user change (logout or different user login)
+      final userIdChanged = _currentUserId != user?.id;
+
+      if (userIdChanged) {
+        // User changed (logout or different login)
+        if (user == null) {
+          // User logged out - clear store selection
+          debugPrint('🔄 User logged out - clearing StoreProvider');
+          storeProvider.clearSelectedStore();
+          _currentUserId = null;
+        } else {
+          // Different user logged in - clear and reinitialize
+          debugPrint(
+            '🔄 User changed (${_currentUserId} → ${user.id}) - reinitializing StoreProvider',
+          );
+          storeProvider.clearSelectedStore();
+          _currentUserId = user.id;
+
+          if (user.stores.isNotEmpty) {
+            storeProvider.initializeWithStores(user.stores);
+            debugPrint(
+              '🏪 StoreProvider initialized for new user: ${user.name}',
+            );
+          }
+        }
+      } else if (user != null &&
           user.stores.isNotEmpty &&
           !storeProvider.hasSelectedStore) {
+        // Same user but store not initialized yet
         storeProvider.initializeWithStores(user.stores);
+        _currentUserId = user.id;
         debugPrint('🏪 StoreProvider initialized after AuthProvider update');
       }
     }
