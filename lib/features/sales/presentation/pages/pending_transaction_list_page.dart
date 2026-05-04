@@ -123,15 +123,15 @@ class _PendingTransactionListPageState
         cartProvider.setDraftTransactionId(transaction.id);
         debugPrint('🔄 Setting draft transaction ID: ${transaction.id}');
 
-        // Set customer group ID to product provider for pricing BEFORE loading cart items
+        // Set customer ID to product provider for pricing BEFORE loading cart items
         if (detail.customer != null &&
             detail.customer!.customerGroupId != null) {
           debugPrint(
-            '💰 Setting customer group ID for pricing: ${detail.customer!.customerGroupId}',
+            '💰 Setting customer ID for pricing: ${detail.customer!.id}',
           );
 
           // Set customer ID without triggering auto-load, then explicitly load
-          final customerId = detail.customer!.customerGroupId!;
+          final customerId = detail.customer!.id;
           if (productProvider.customerId != customerId) {
             // Only update if different - this will trigger one load from setCustomerId
             productProvider.setCustomerId(customerId);
@@ -187,15 +187,15 @@ class _PendingTransactionListPageState
           '🔄 Resuming local pending transaction (no API transaction ID)',
         );
 
-        // Set customer group ID to product provider for pricing BEFORE loading cart items
+        // Set customer ID to product provider for pricing BEFORE loading cart items
         final localApiCustomer = transaction.customer;
         if (localApiCustomer.customerGroupId != null) {
           debugPrint(
-            '💰 Setting customer group ID for pricing: ${localApiCustomer.customerGroupId}',
+            '💰 Setting customer ID for pricing: ${localApiCustomer.id}',
           );
 
           // Set customer ID without triggering duplicate load
-          final customerId = localApiCustomer.customerGroupId!;
+          final customerId = localApiCustomer.id;
           if (productProvider.customerId != customerId) {
             // Only update if different - this will trigger one load from setCustomerId
             productProvider.setCustomerId(customerId);

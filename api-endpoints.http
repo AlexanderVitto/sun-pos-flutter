@@ -1,0 +1,587 @@
+### =====================================================================
+### Sun POS — API Endpoint Tests
+### =====================================================================
+### Cara pakai:
+###   1. Install extension "REST Client" (humao.rest-client) di VSCode.
+###   2. Set @baseUrl di bawah (staging/production).
+###   3. Jalankan request "Login" untuk dapat token, copy ke @token.
+###   4. Klik "Send Request" di atas tiap blok request.
+###
+### Konvensi:
+###   - `###` memisahkan request.
+###   - `# @name xxx` memberi nama supaya hasil bisa di-chain (mis. {{login.response.body.data.token}}).
+###   - Variabel `{{var}}` di-resolve dari @vars di atas.
+### =====================================================================
+
+### Variabel global -----------------------------------------------------
+
+# @baseUrl = https://stg.sfxsys.com/api/v1
+@baseUrl = https://sfxsys.com/api/v1
+
+# Token didapat dari endpoint Login. Update manual atau pakai chaining
+# dgn {{login.response.body.data.token}} (lihat contoh di bawah).
+@token = 104|WYuzmYwdLdtWSFlqFwt53zkwtYSnKKlvg8Ib5P7ia251610d
+
+# IDs untuk testing — sesuaikan dengan data di server
+@storeId = 7
+@customerId = 1
+@customerGroupId = 1
+@productId = 1
+@productVariantId = 1
+@transactionId = 152
+@refundId = 1
+@categoryId = 1
+
+# Headers reusable
+@contentType = application/json
+@accept = application/json
+@deviceId = test-device-vscode
+@platform = darwin
+@appVersion = 1.0.33+34
+@userAgent = Sun POS (Staging)/1.0.33+34
+
+
+### =====================================================================
+### 1. AUTH — lib/features/auth/data/services/auth_service.dart
+### =====================================================================
+
+### 1.1 Login (no auth)
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+Accept: {{accept}}
+User-Agent: {{userAgent}}
+X-Device-Id: {{deviceId}}
+X-Platform: {{platform}}
+X-App-Version: {{appVersion}}
+
+{
+  "email": "cashier@sunfirework.com",
+  "password": "password"
+}
+
+### 1.2 Get Profile (current user)
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 1.3 Refresh Token (CATATAN: belum diimplementasi di app, endpoint disketsa di service)
+POST {{baseUrl}}/auth/refresh
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "refresh_token": "REPLACE_WITH_REFRESH_TOKEN"
+}
+
+### 1.4 Change Password
+POST {{baseUrl}}/auth/change-password
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "current_password": "oldPassword123",
+  "password": "newPassword123",
+  "password_confirmation": "newPassword123"
+}
+
+### 1.5 Logout (invalidate token di server)
+POST {{baseUrl}}/auth/logout
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 1.6 Test Connection (debug)
+GET {{baseUrl}}/auth/test
+Accept: {{accept}}
+
+
+### =====================================================================
+### 2. CUSTOMERS — lib/features/customers/data/services/customer_api_service.dart
+### =====================================================================
+
+### 2.1 List Customers (paginated + search)
+GET {{baseUrl}}/customers?page=1&per_page=15
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 2.2 List Customers — search
+GET {{baseUrl}}/customers?page=1&per_page=15&search=budi
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 2.3 List Customers — outstanding only (utang)
+GET {{baseUrl}}/customers?page=1&per_page=15&outstanding_only=true&sort_direction=asc
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 2.4 Get Single Customer
+GET {{baseUrl}}/customers/{{customerId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 2.5 Create Customer
+POST {{baseUrl}}/customers
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "name": "Budi Santoso",
+  "phone": "081234567890",
+  "address": "Jl. Mawar No. 10, Jakarta",
+  "customer_group_id": {{customerGroupId}}
+}
+
+### 2.6 Update Customer
+PUT {{baseUrl}}/customers/{{customerId}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "name": "Budi Santoso (Updated)",
+  "phone": "081234567891",
+  "address": "Jl. Mawar No. 12, Jakarta",
+  "customer_group_id": {{customerGroupId}}
+}
+
+### 2.7 Delete Customer
+DELETE {{baseUrl}}/customers/{{customerId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 2.8 List Customer Groups
+GET {{baseUrl}}/customer-groups
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+
+### =====================================================================
+### 3. PRODUCTS — lib/features/products/data/services/product_api_service.dart
+### =====================================================================
+### CATATAN: parameter `customer_id` WAJIB. Backend menghitung harga
+### berdasarkan customer group si customer.
+### =====================================================================
+
+### 3.1 List Products (default)
+GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&active_only=true
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 3.2 List Products — search by name/SKU
+GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&search=indomie
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 3.3 List Products — filter by category
+GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&category_id={{categoryId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 3.4 List Products — including inactive
+GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&active_only=false
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 3.5 List Products — sort
+GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&sort_by=name&sort_direction=asc
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 3.6 Get Single Product (detail + variants + customer pricing)
+GET {{baseUrl}}/products/{{productId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 3.7 List Categories
+GET {{baseUrl}}/categories
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+
+### =====================================================================
+### 4. TRANSACTIONS — lib/features/transactions/data/services/transaction_api_service.dart
+### =====================================================================
+
+### 4.1 List Transactions
+GET {{baseUrl}}/transactions?page=1&per_page=10
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 4.2 List Transactions — full filter
+GET {{baseUrl}}/transactions?page=1&per_page=10&search=TRX&store_id={{storeId}}&customer_id={{customerId}}&date_from=2026-01-01&date_to=2026-12-31&min_amount=10000&max_amount=1000000&sort_by=created_at&sort_direction=desc&payment_method=cash&status=completed
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 4.3 List Pending (Draft) Transactions
+GET {{baseUrl}}/transactions?page=1&per_page=50&status=draft&sort_by=created_at&sort_direction=desc&store_id={{storeId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 4.4 Get Transaction Detail
+GET {{baseUrl}}/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 4.5 Create Transaction (status: completed — payment array di-include)
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "store_id": {{storeId}},
+  "customer_name": "Budi Santoso",
+  "customer_phone": "081234567890",
+  "status": "completed",
+  "notes": "Test transaction dari REST Client",
+  "transaction_date": "2026-05-04T10:30:00.000Z",
+  "payments": [
+    {
+      "payment_method": "cash",
+      "amount": 50000,
+      "payment_date": "2026-05-04T10:30:00.000Z"
+    }
+  ],
+  "details": [
+    {
+      "product_variant_id": {{productVariantId}},
+      "quantity": 2,
+      "unit_price": 25000
+    }
+  ]
+}
+
+### 4.6 Create Transaction (status: draft — TANPA payments, untuk pending)
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "store_id": {{storeId}},
+  "customer_name": "Budi Santoso",
+  "customer_phone": "081234567890",
+  "status": "draft",
+  "notes": "Pending — customer belum bayar",
+  "transaction_date": "2026-05-04T10:30:00.000Z",
+  "details": [
+    {
+      "product_variant_id": {{productVariantId}},
+      "quantity": 1,
+      "unit_price": 25000
+    }
+  ]
+}
+
+### 4.7 Create Transaction (status: outstanding — partial payment / utang)
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "store_id": {{storeId}},
+  "customer_name": "Budi Santoso",
+  "customer_phone": "081234567890",
+  "status": "outstanding",
+  "notes": "Bayar sebagian — sisa hutang",
+  "transaction_date": "2026-05-04T10:30:00.000Z",
+  "outstanding_reminder_date": "2026-06-04",
+  "details": [
+    {
+      "product_variant_id": {{productVariantId}},
+      "quantity": 5,
+      "unit_price": 25000
+    }
+  ]
+}
+
+### 4.8 Create Transaction (split payment cash + transfer)
+POST {{baseUrl}}/transactions
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "store_id": {{storeId}},
+  "customer_name": "Budi Santoso",
+  "customer_phone": "081234567890",
+  "status": "completed",
+  "notes": "",
+  "transaction_date": "2026-05-04T10:30:00.000Z",
+  "payments": [
+    { "payment_method": "cash",          "amount": 30000, "payment_date": "2026-05-04T10:30:00.000Z" },
+    { "payment_method": "bank_transfer", "amount": 20000, "payment_date": "2026-05-04T10:30:00.000Z" }
+  ],
+  "details": [
+    {
+      "product_variant_id": {{productVariantId}},
+      "quantity": 2,
+      "unit_price": 25000
+    }
+  ]
+}
+
+### 4.9 Update Transaction (full update — biasanya saat resume draft → completed)
+PUT {{baseUrl}}/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "store_id": {{storeId}},
+  "customer_name": "Budi Santoso",
+  "customer_phone": "081234567890",
+  "status": "completed",
+  "notes": "Resumed dari draft",
+  "transaction_date": "2026-05-04T10:30:00.000Z",
+  "payments": [
+    {
+      "payment_method": "cash",
+      "amount": 50000,
+      "payment_date": "2026-05-04T10:30:00.000Z"
+    }
+  ],
+  "details": [
+    {
+      "id": 1,
+      "product_variant_id": {{productVariantId}},
+      "quantity": 2,
+      "unit_price": 25000
+    }
+  ]
+}
+
+### 4.10 Update Transaction Status only
+PUT {{baseUrl}}/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "status": "completed"
+}
+
+### 4.11 Update Transaction Payment (lunasi outstanding)
+PUT {{baseUrl}}/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "status": "completed",
+  "payments": [
+    {
+      "payment_method": "cash",
+      "amount": 75000,
+      "payment_date": "2026-05-04T15:00:00.000Z"
+    }
+  ]
+}
+
+### 4.12 Delete Transaction
+DELETE {{baseUrl}}/transactions/{{transactionId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+
+### =====================================================================
+### 5. REFUNDS — lib/features/refunds/data/services/refund_api_service.dart
+### =====================================================================
+
+### 5.1 List Refunds (default)
+GET {{baseUrl}}/refunds?page=1&per_page=15&sort_by=created_at&sort_direction=desc
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 5.2 List Refunds — full filter
+GET {{baseUrl}}/refunds?page=1&per_page=15&search=REF&store_id={{storeId}}&user_id=1&customer_id={{customerId}}&date_from=2026-01-01&date_to=2026-12-31&status=completed&refund_method=cash&min_amount=1000&max_amount=500000&sort_by=created_at&sort_direction=desc
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 5.3 List Refunds — by transaction_id
+GET {{baseUrl}}/refunds?transaction_id={{transactionId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 5.4 Get Refund Detail
+GET {{baseUrl}}/refunds/{{refundId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 5.5 Create Refund (cash)
+POST {{baseUrl}}/refunds
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "transaction_id": {{transactionId}},
+  "store_id": {{storeId}},
+  "refund_method": "cash",
+  "cash_refund_amount": 25000,
+  "transfer_refund_amount": 0,
+  "status": "completed",
+  "notes": "Refund test dari REST Client",
+  "refund_date": "2026-05-04T10:30:00.000Z",
+  "details": [
+    {
+      "transaction_detail_id": 1,
+      "quantity_refunded": 1
+    }
+  ]
+}
+
+### 5.6 Create Refund (split — cash + transfer)
+POST {{baseUrl}}/refunds
+Authorization: Bearer {{token}}
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "transaction_id": {{transactionId}},
+  "store_id": {{storeId}},
+  "refund_method": "mixed",
+  "cash_refund_amount": 15000,
+  "transfer_refund_amount": 10000,
+  "status": "completed",
+  "refund_date": "2026-05-04T10:30:00.000Z",
+  "details": [
+    {
+      "transaction_detail_id": 1,
+      "quantity_refunded": 1
+    }
+  ]
+}
+
+
+### =====================================================================
+### 6. CASH FLOWS — lib/features/cash_flows/data/services/cash_flow_api_service.dart
+### =====================================================================
+
+### 6.1 List Cash Flows
+GET {{baseUrl}}/cash-flows?store_id={{storeId}}&page=1&per_page=15
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 6.2 List Cash Flows — filter type, category, date
+GET {{baseUrl}}/cash-flows?store_id={{storeId}}&type=in&category=penjualan&date_from=2026-01-01&date_to=2026-12-31&page=1&per_page=15
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 6.3 Create Cash Flow — IN (multipart/form-data)
+### Catatan: app menggunakan multipart, bukan JSON.
+POST {{baseUrl}}/cash-flows
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+Content-Type: multipart/form-data; boundary=----SunPosBoundary
+
+------SunPosBoundary
+Content-Disposition: form-data; name="store_id"
+
+{{storeId}}
+------SunPosBoundary
+Content-Disposition: form-data; name="title"
+
+Penjualan tunai
+------SunPosBoundary
+Content-Disposition: form-data; name="description"
+
+Setoran kasir akhir hari
+------SunPosBoundary
+Content-Disposition: form-data; name="amount"
+
+500000
+------SunPosBoundary
+Content-Disposition: form-data; name="type"
+
+in
+------SunPosBoundary
+Content-Disposition: form-data; name="category"
+
+penjualan
+------SunPosBoundary
+Content-Disposition: form-data; name="transaction_date"
+
+2026-05-04
+------SunPosBoundary
+Content-Disposition: form-data; name="notes"
+
+Test dari REST Client
+------SunPosBoundary--
+
+### 6.4 Create Cash Flow — OUT (multipart/form-data)
+POST {{baseUrl}}/cash-flows
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+Content-Type: multipart/form-data; boundary=----SunPosBoundary
+
+------SunPosBoundary
+Content-Disposition: form-data; name="store_id"
+
+{{storeId}}
+------SunPosBoundary
+Content-Disposition: form-data; name="title"
+
+Beli ATK
+------SunPosBoundary
+Content-Disposition: form-data; name="description"
+
+Pembelian alat tulis kantor
+------SunPosBoundary
+Content-Disposition: form-data; name="amount"
+
+75000
+------SunPosBoundary
+Content-Disposition: form-data; name="type"
+
+out
+------SunPosBoundary
+Content-Disposition: form-data; name="category"
+
+operasional
+------SunPosBoundary
+Content-Disposition: form-data; name="transaction_date"
+
+2026-05-04
+------SunPosBoundary--
+
+
+### =====================================================================
+### 7. REPORTS — lib/features/reports/data/services/reports_api_service.dart
+### =====================================================================
+
+### 7.1 Transaction Widgets (ringkasan transaksi)
+GET {{baseUrl}}/reports/transaction-widgets?date_from=2026-05-01&date_to=2026-05-04
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 7.2 Most Sold Products
+GET {{baseUrl}}/reports/most-sold-products?date_from=2026-05-01&date_to=2026-05-04
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+
+### =====================================================================
+### 8. CONTOH CHAINING — login → pakai token-nya otomatis
+### =====================================================================
+### Setelah jalankan request di bawah, request berikutnya bisa pakai
+### {{loginChain.response.body.data.token}} tanpa perlu copy-paste.
+
+### 8.1 Login (chained)
+# @name loginChain
+POST {{baseUrl}}/auth/login
+Content-Type: {{contentType}}
+Accept: {{accept}}
+
+{
+  "email": "user@example.com",
+  "password": "password123"
+}
+
+### 8.2 Auto pakai token dari response 8.1
+GET {{baseUrl}}/auth/profile
+Authorization: Bearer {{loginChain.response.body.data.token}}
+Accept: {{accept}}

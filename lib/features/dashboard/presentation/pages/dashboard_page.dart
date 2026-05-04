@@ -956,31 +956,12 @@ class _DashboardPageState extends State<DashboardPage>
 
             const SizedBox(height: 16),
 
-            Row(
-              children: [
-                // Average Transaction
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Rata-rata',
-                    value: 'Rp ${_formatPrice(avgTransaction.toDouble())}',
-                    icon: LucideIcons.trendingUp,
-                    color: const Color(0xFFf59e0b), // Amber
-                    subtitle: 'Per transaksi',
-                  ),
-                ),
-                const SizedBox(width: 16),
-
-                // Products Count
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Produk',
-                    value: _productProvider.products.length.toString(),
-                    icon: LucideIcons.package,
-                    color: const Color(0xFF8b5cf6), // Purple
-                    subtitle: 'Total produk',
-                  ),
-                ),
-              ],
+            _buildStatCard(
+              title: 'Rata-rata',
+              value: 'Rp ${_formatPrice(avgTransaction.toDouble())}',
+              icon: LucideIcons.trendingUp,
+              color: const Color(0xFFf59e0b), // Amber
+              subtitle: 'Per transaksi',
             ),
           ],
         );
