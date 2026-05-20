@@ -45,13 +45,13 @@ abstract class TransactionEvent {
 
 // Specific event types
 class TransactionCreatedEvent extends TransactionEvent {
-  TransactionCreatedEvent(String transactionNumber) : super(transactionNumber);
+  TransactionCreatedEvent(super.transactionNumber);
 }
 
 class TransactionUpdatedEvent extends TransactionEvent {
-  TransactionUpdatedEvent(String transactionNumber) : super(transactionNumber);
+  TransactionUpdatedEvent(super.transactionNumber);
 }
 
 class TransactionDeletedEvent extends TransactionEvent {
-  TransactionDeletedEvent(String transactionNumber) : super(transactionNumber);
+  TransactionDeletedEvent(super.transactionNumber);
 }

@@ -335,7 +335,7 @@ class _AddCashFlowPageState extends State<AddCashFlowPage> {
 
   Widget _buildCategorySelector() {
     return DropdownButtonFormField<String>(
-      value: _selectedCategory,
+      initialValue: _selectedCategory,
       decoration: InputDecoration(
         labelText: 'Kategori',
         prefixIcon: const Icon(Icons.category),

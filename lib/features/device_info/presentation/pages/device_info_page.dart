@@ -127,7 +127,7 @@ class _DeviceInfoPageState extends State<DeviceInfoPage> {
                                 _formatKey(entry.key),
                                 _formatValue(entry.value),
                               );
-                            }).toList()
+                            })
                           else
                             const Text('No device information available'),
                         ],

@@ -103,7 +103,7 @@ class _DashboardPageState extends State<DashboardPage>
         } else {
           // Different user logged in - clear and reinitialize
           debugPrint(
-            '🔄 User changed (${_currentUserId} → ${user.id}) - reinitializing StoreProvider',
+            '🔄 User changed ($_currentUserId → ${user.id}) - reinitializing StoreProvider',
           );
           storeProvider.clearSelectedStore();
           _currentUserId = user.id;

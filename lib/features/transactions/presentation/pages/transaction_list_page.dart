@@ -8,7 +8,7 @@ import '../../../sales/presentation/pages/receipt_page.dart';
 import '../../../../data/models/cart_item.dart';
 
 class TransactionListPage extends StatefulWidget {
-  const TransactionListPage({Key? key}) : super(key: key);
+  const TransactionListPage({super.key});
 
   @override
   State<TransactionListPage> createState() => _TransactionListPageState();
@@ -476,7 +476,7 @@ class _TransactionListPageState extends State<TransactionListPage> {
 
 // Dialog for advanced filters
 class TransactionFiltersDialog extends StatefulWidget {
-  const TransactionFiltersDialog({Key? key}) : super(key: key);
+  const TransactionFiltersDialog({super.key});
 
   @override
   State<TransactionFiltersDialog> createState() =>
@@ -603,7 +603,7 @@ class _TransactionFiltersDialogState extends State<TransactionFiltersDialog> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedPaymentMethod,
+                initialValue: _selectedPaymentMethod,
                 decoration: const InputDecoration(
                   hintText: 'Pilih metode pembayaran',
                 ),
@@ -629,7 +629,7 @@ class _TransactionFiltersDialogState extends State<TransactionFiltersDialog> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _selectedStatus,
+                initialValue: _selectedStatus,
                 decoration: const InputDecoration(hintText: 'Pilih status'),
                 items: const [
                   DropdownMenuItem(value: null, child: Text('Semua')),
@@ -730,8 +730,7 @@ class _TransactionFiltersDialogState extends State<TransactionFiltersDialog> {
 class TransactionDetailsDialog extends StatelessWidget {
   final dynamic transaction;
 
-  const TransactionDetailsDialog({Key? key, required this.transaction})
-    : super(key: key);
+  const TransactionDetailsDialog({super.key, required this.transaction});
 
   @override
   Widget build(BuildContext context) {

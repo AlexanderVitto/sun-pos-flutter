@@ -19,7 +19,7 @@ class RefundListProvider with ChangeNotifier {
 
   // Filters
   int _currentPage = 1;
-  int _perPage = 10;
+  final int _perPage = 10;
   String? _search;
   int? _userId;
   int? _customerId;

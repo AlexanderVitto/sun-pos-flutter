@@ -150,7 +150,7 @@ class AddToCartSection extends StatelessWidget {
                         ],
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ),

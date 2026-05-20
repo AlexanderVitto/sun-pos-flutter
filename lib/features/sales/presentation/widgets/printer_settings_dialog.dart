@@ -445,7 +445,7 @@ class _PrinterSettingsDialogState extends State<PrinterSettingsDialog>
                             await PrinterPreferencesService.instance
                                 .setAutoConnect(value);
                           },
-                          activeColor: Colors.green[600],
+                          activeThumbColor: Colors.green[600],
                         ),
                         const SizedBox(width: 8),
                       ],

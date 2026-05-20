@@ -302,7 +302,7 @@ class _CustomerSelectorWidgetState extends State<CustomerSelectorWidget> {
                         onTap: () => _selectCustomer(customer),
                       ),
                     )
-                    .toList(),
+                    ,
 
                 // Create new customer option
                 if (_showCreateOption &&

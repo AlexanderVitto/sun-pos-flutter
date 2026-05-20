@@ -59,7 +59,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
   final TextEditingController _amountPaidController = TextEditingController();
 
   // Map to store edited prices per item (itemId -> editedPrice)
-  Map<int, double> _editedPrices = {};
+  final Map<int, double> _editedPrices = {};
 
   @override
   void initState() {

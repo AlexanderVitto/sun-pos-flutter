@@ -13,8 +13,7 @@ import '../../../../data/models/product.dart';
 class CreateRefundPage extends StatefulWidget {
   final TransactionData transaction;
 
-  const CreateRefundPage({Key? key, required this.transaction})
-    : super(key: key);
+  const CreateRefundPage({super.key, required this.transaction});
 
   @override
   State<CreateRefundPage> createState() => _CreateRefundPageState();
@@ -1183,7 +1182,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                           ),
                         ),
                       );
-                    }).toList(),
+                    }),
                     const SizedBox(height: 20),
 
                     // Outstanding Debt Info Card (untuk transaksi outstanding)
@@ -1389,7 +1388,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
                       ),
                       const SizedBox(height: 12),
                       DropdownButtonFormField<String>(
-                        value: _refundMethod,
+                        initialValue: _refundMethod,
                         decoration: InputDecoration(
                           filled: true,
                           fillColor: Colors.white,

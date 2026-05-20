@@ -36,7 +36,9 @@ class AppConfig {
     }
   }
 
-  static const String appVersion = '1.0.28';
+  // Keep in sync with pubspec.yaml `version:`. Prefer
+  // [AppInfoHelper.appVersion] (runtime via package_info_plus) for new code.
+  static const String appVersion = '1.0.33';
 
   // Network Configuration
   static const int timeoutSeconds = 30;

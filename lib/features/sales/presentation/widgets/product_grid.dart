@@ -95,7 +95,7 @@ class _ProductGridState extends State<ProductGrid> {
           children: [
             // Show subtle loading indicator on top when refreshing (not initial load)
             if (productProvider.isLoading && products.isNotEmpty)
-              Container(
+              SizedBox(
                 height: 3,
                 child: const LinearProgressIndicator(
                   backgroundColor: Colors.transparent,

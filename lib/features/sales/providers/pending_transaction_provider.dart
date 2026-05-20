@@ -24,7 +24,7 @@ class PendingTransactionProvider extends ChangeNotifier {
   );
 
   // Local storage for backward compatibility
-  Map<String, PendingTransaction> _pendingTransactions = {};
+  final Map<String, PendingTransaction> _pendingTransactions = {};
 
   // API data
   List<PendingTransactionItem> _apiPendingTransactions = [];

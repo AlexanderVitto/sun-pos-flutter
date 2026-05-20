@@ -526,7 +526,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                 ),
               ],
             );
-          }).toList(),
+          }),
         ],
       ),
     );

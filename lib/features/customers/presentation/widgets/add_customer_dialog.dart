@@ -159,7 +159,7 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
                     )
                   else if (customerProvider.customerGroups.isNotEmpty)
                     DropdownButtonFormField<CustomerGroup>(
-                      value: _selectedCustomerGroup,
+                      initialValue: _selectedCustomerGroup,
                       decoration: const InputDecoration(
                         labelText: 'Customer Group (Optional)',
                         hintText: 'Select customer group',

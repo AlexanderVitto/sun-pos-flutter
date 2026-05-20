@@ -242,8 +242,9 @@ class ProductDetailViewModel extends ChangeNotifier {
   void _initializeVariantQuantitiesFromCart() {
     _variantQuantities.clear();
 
-    if (_productDetail == null || (_cartProvider?.items.length ?? 0) == 0)
+    if (_productDetail == null || (_cartProvider?.items.length ?? 0) == 0) {
       return;
+    }
 
     // Check cart for each variant
     for (final variant in _productDetail!.variants) {

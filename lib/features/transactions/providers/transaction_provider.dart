@@ -18,7 +18,7 @@ class TransactionProvider extends ChangeNotifier {
   double _paidAmount = 0.0;
   String? _notes;
   String _transactionDate = DateTime.now().toIso8601String().split('T')[0];
-  List<TransactionDetail> _details = [];
+  final List<TransactionDetail> _details = [];
   String? _customerName;
   String? _customerPhone;
 

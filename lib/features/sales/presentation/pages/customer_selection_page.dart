@@ -611,7 +611,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
             ),
             const SizedBox(height: 24),
             Text(
-              'Pelanggan "${_searchQuery}" tidak ditemukan',
+              'Pelanggan "$_searchQuery" tidak ditemukan',
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w600,

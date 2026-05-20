@@ -60,7 +60,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   Customer? _selectedCustomer;
   bool _isProcessing = false;
   late List<CartItem> _cartItems;
-  double _discountPercentage = 0.0;
+  final double _discountPercentage = 0.0;
   late TextEditingController _discountController;
   bool _payWithCash = false; // Toggle untuk bayar tunai
 
@@ -948,7 +948,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                 : Colors.grey.shade600,
                           ),
                         ),
-                        activeColor: Colors.green.shade600,
+                        activeThumbColor: Colors.green.shade600,
                         secondary: Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(

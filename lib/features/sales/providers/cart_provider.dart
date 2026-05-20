@@ -24,7 +24,7 @@ class CartProvider extends ChangeNotifier {
   int? _draftTransactionId; // ✅ Added to track draft transaction ID
   int _itemIdCounter = 1; // ✅ Added counter for unique IDs
   Timer? _refreshTimer; // ✅ Timer for debounced product refresh
-  Map<int, int> _initialQuantities =
+  final Map<int, int> _initialQuantities =
       {}; // ✅ Store initial quantities per product ID
   bool _hasUserAction = false; // ✅ Track if user has made any cart action
 

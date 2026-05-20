@@ -163,7 +163,7 @@ class _AddProductDialogState extends State<AddProductDialog> {
 
               // Kategori
               DropdownButtonFormField<String>(
-                value: _selectedCategory,
+                initialValue: _selectedCategory,
                 decoration: const InputDecoration(
                   labelText: 'Kategori',
                   prefixIcon: Icon(Icons.category),

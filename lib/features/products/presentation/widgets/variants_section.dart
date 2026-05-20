@@ -84,7 +84,7 @@ class VariantsSection extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 12),
               child: _VariantCard(variant: variant, viewModel: viewModel),
             );
-          }).toList(),
+          }),
         ],
       ),
     );

@@ -11,7 +11,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
   final bool automaticallyImplyLeading;
 
   const CustomAppBar({
-    Key? key,
+    super.key,
     required this.title,
     this.showBackButton = false,
     this.actions,
@@ -20,7 +20,7 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
     this.elevation,
     this.bottom,
     this.automaticallyImplyLeading = true,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
