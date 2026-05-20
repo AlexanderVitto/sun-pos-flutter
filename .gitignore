@@ -44,3 +44,17 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 *.apk
+
+# Secrets & credentials
+.env
+.env.*
+!.env.example
+key.properties
+android/key.properties
+**/key.properties
+*.keystore
+*.jks
+google-services.json
+GoogleService-Info.plist
+secrets.dart
+**/secrets.dart
