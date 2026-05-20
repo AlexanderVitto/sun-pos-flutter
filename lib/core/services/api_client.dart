@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../config/app_config.dart';
 
@@ -74,9 +75,9 @@ class ApiClient {
 
   void _logResponse(String method, String url, http.Response response) {
     if (AppConfig.enableLogging) {
-      print('[$method] $url');
-      print('Status: ${response.statusCode}');
-      print('Response: ${response.body}');
+      debugPrint('[$method] $url');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Response: ${response.body}');
     }
   }
 

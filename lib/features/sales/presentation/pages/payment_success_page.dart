@@ -7,8 +7,8 @@ import '../../providers/cart_provider.dart';
 import 'receipt_page.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
-import '../../../transactions/data/models/user.dart' as TransactionsUser;
-import '../../../auth/data/models/user.dart' as AuthUser;
+import '../../../transactions/data/models/user.dart' as transactions_user;
+import '../../../auth/data/models/user.dart' as auth_user;
 
 class PaymentSuccessPage extends StatelessWidget {
   final String paymentMethod;
@@ -18,7 +18,7 @@ class PaymentSuccessPage extends StatelessWidget {
   final Store store; // Add store parameter
   final List<CartItem>? cartItems; // Store cart items before clearing
   final String? notes; // Add notes parameter
-  final AuthUser.User? user; // Add user parameter
+  final auth_user.User? user; // Add user parameter
   final String? status; // Add status parameter
   final DateTime? dueDate; // Add dueDate parameter
   final List<PaymentHistory>? paymentHistories;
@@ -38,20 +38,20 @@ class PaymentSuccessPage extends StatelessWidget {
     this.paymentHistories,
   });
 
-  // Helper function to convert AuthUser.User to TransactionsUser.User
-  TransactionsUser.User? _convertAuthUserToTransactionsUser(
-    AuthUser.User? authUser,
+  // Helper function to convert auth_user.User to transactions_user.User
+  transactions_user.User? _convertAuthUserToTransactionsUser(
+    auth_user.User? authUser,
   ) {
     if (authUser == null) return null;
 
-    return TransactionsUser.User(
+    return transactions_user.User(
       id: authUser.id,
       name: authUser.name,
       email: authUser.email,
       roles:
           authUser.roles
               .map(
-                (authRole) => TransactionsUser.Role(
+                (authRole) => transactions_user.Role(
                   id: authRole.id,
                   name: authRole.name,
                   displayName: authRole.displayName,

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../services/secure_storage_service.dart';
 import '../services/ssl_certificate_service.dart';
@@ -207,7 +208,7 @@ class AuthHttpClient {
         }
       } catch (e) {
         // Log error tapi jangan throw, biar request tetap bisa dilanjutkan
-        print('Error getting auth token: $e');
+        debugPrint('Error getting auth token: $e');
       }
     }
 
@@ -240,7 +241,7 @@ class AuthHttpClient {
           // }
         }
       } catch (e) {
-        print('Error refreshing token: $e');
+        debugPrint('Error refreshing token: $e');
       }
 
       // Jika refresh gagal, hapus session dan throw exception

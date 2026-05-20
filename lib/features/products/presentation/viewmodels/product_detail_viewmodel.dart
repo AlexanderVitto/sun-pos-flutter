@@ -82,7 +82,7 @@ class ProductDetailViewModel extends ChangeNotifier {
         total += variant.finalPrice * quantity;
       } catch (e) {
         // Variant not found, skip
-        print('⚠️ Variant $variantId not found in totalPrice calculation');
+        debugPrint('⚠️ Variant $variantId not found in totalPrice calculation');
       }
     });
     return total;
@@ -102,7 +102,7 @@ class ProductDetailViewModel extends ChangeNotifier {
             return {'variant': variant, 'quantity': entry.value};
           } catch (e) {
             // Variant not found, return null and filter it out later
-            print('⚠️ Variant ${entry.key} not found in selectedVariants');
+            debugPrint('⚠️ Variant ${entry.key} not found in selectedVariants');
             return null;
           }
         })
@@ -136,7 +136,7 @@ class ProductDetailViewModel extends ChangeNotifier {
   /// Sesuai dengan dokumentasi: reuse instance dan update properties
   void updateCartProvider(CartProvider cartProvider) {
     if (_cartProvider != cartProvider) {
-      print(
+      debugPrint(
         '🔄 ProductDetailViewModel: Updating CartProvider instance ${cartProvider.hashCode}',
       );
       _cartProvider = cartProvider;
@@ -152,7 +152,7 @@ class ProductDetailViewModel extends ChangeNotifier {
   /// Update ProductProvider reference
   void updateProductProvider(ProductProvider productProvider) {
     if (_productProvider != productProvider) {
-      print(
+      debugPrint(
         '🔄 ProductDetailViewModel: Updating ProductProvider instance ${productProvider.hashCode}',
       );
       _productProvider = productProvider;
@@ -271,7 +271,7 @@ class ProductDetailViewModel extends ChangeNotifier {
       variant = _productDetail?.variants.firstWhere((v) => v.id == variantId);
     } catch (e) {
       // Variant not found
-      print('⚠️ Variant with ID $variantId not found');
+      debugPrint('⚠️ Variant with ID $variantId not found');
       return;
     }
 
@@ -413,7 +413,7 @@ class ProductDetailViewModel extends ChangeNotifier {
         _quantityController.text = _quantity.toString();
         notifyListeners();
 
-        print(
+        debugPrint(
           '🗑️ ProductDetailViewModel: Removed product $_productId from cart',
         );
 
@@ -429,7 +429,7 @@ class ProductDetailViewModel extends ChangeNotifier {
       }
       return false;
     } catch (e) {
-      print('❌ Error removing product from cart: ${e.toString()}');
+      debugPrint('❌ Error removing product from cart: ${e.toString()}');
       return false;
     }
   }
@@ -443,7 +443,7 @@ class ProductDetailViewModel extends ChangeNotifier {
         return false;
       }
 
-      print(
+      debugPrint(
         '🛒 ProductDetailViewModel: Using CartProvider instance ${_cartProvider!.hashCode}',
       );
 
@@ -469,12 +469,12 @@ class ProductDetailViewModel extends ChangeNotifier {
             );
             // Mark for removal
             itemsToRemove.add(existingItem.id);
-            print(
+            debugPrint(
               '🗑️ ProductDetailViewModel: Marking variant $variantId for removal (quantity = 0)',
             );
           } catch (e) {
             // Item not found in cart, nothing to remove
-            print(
+            debugPrint(
               '⚠️ ProductDetailViewModel: Variant $variantId not found in cart for removal',
             );
           }
@@ -484,7 +484,7 @@ class ProductDetailViewModel extends ChangeNotifier {
       // Remove items with quantity = 0
       for (final itemId in itemsToRemove) {
         _cartProvider!.removeItem(itemId);
-        print('🗑️ ProductDetailViewModel: Removed item $itemId from cart');
+        debugPrint('🗑️ ProductDetailViewModel: Removed item $itemId from cart');
       }
 
       // Process each selected variant (quantity > 0)
@@ -499,7 +499,7 @@ class ProductDetailViewModel extends ChangeNotifier {
             (v) => v.id == variantId,
           );
         } catch (e) {
-          print('⚠️ ProductDetailViewModel: Variant $variantId not found');
+          debugPrint('⚠️ ProductDetailViewModel: Variant $variantId not found');
           continue;
         }
 
@@ -527,7 +527,7 @@ class ProductDetailViewModel extends ChangeNotifier {
           // Don't pass context to prevent automatic draft transaction processing
           // We'll manually update draft transaction later
           _cartProvider!.updateItemQuantity(existingItem.id, quantity);
-          print(
+          debugPrint(
             '📝 ProductDetailViewModel: Updated variant $variantId quantity to $quantity',
           );
         } catch (e) {
@@ -535,7 +535,7 @@ class ProductDetailViewModel extends ChangeNotifier {
           // Don't pass context to prevent automatic draft transaction processing
           // We'll manually update draft transaction later
           _cartProvider!.addItem(product, quantity: quantity);
-          print(
+          debugPrint(
             '➕ ProductDetailViewModel: Added variant $variantId to cart with quantity $quantity',
           );
         }
@@ -549,7 +549,7 @@ class ProductDetailViewModel extends ChangeNotifier {
       // Clear variant quantities after successful update to prevent double-adding
       // This ensures that the next time user adds, it starts fresh
       _variantQuantities.clear();
-      print(
+      debugPrint(
         '🧹 ProductDetailViewModel: Cleared variant quantities after successful cart update',
       );
 
@@ -561,7 +561,7 @@ class ProductDetailViewModel extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      print('❌ Error updating cart: ${e.toString()}');
+      debugPrint('❌ Error updating cart: ${e.toString()}');
       return false;
     }
   }
@@ -570,17 +570,17 @@ class ProductDetailViewModel extends ChangeNotifier {
   Future<void> _refreshProductList() async {
     try {
       if (_productProvider != null) {
-        print('🔄 ProductDetailViewModel: Refreshing product list in POS');
+        debugPrint('🔄 ProductDetailViewModel: Refreshing product list in POS');
         await _productProvider!.refreshProducts();
-        print('✅ ProductDetailViewModel: Product list refreshed successfully');
+        debugPrint('✅ ProductDetailViewModel: Product list refreshed successfully');
       } else {
-        print(
+        debugPrint(
           '⚠️ ProductDetailViewModel: ProductProvider not available for refresh',
         );
       }
     } catch (e) {
       // Silent failure for refresh to not interrupt UX
-      print('❌ Error refreshing product list: ${e.toString()}');
+      debugPrint('❌ Error refreshing product list: ${e.toString()}');
     }
   }
 
@@ -596,10 +596,10 @@ class ProductDetailViewModel extends ChangeNotifier {
         cartProvider: _cartProvider!,
       );
 
-      print('📡 ProductDetailViewModel: Draft transaction updated on server');
+      debugPrint('📡 ProductDetailViewModel: Draft transaction updated on server');
     } catch (e) {
       // Silent failure for draft transaction updates to not interrupt UX
-      print('Failed to update draft transaction on server: ${e.toString()}');
+      debugPrint('Failed to update draft transaction on server: ${e.toString()}');
     }
   }
 
@@ -607,7 +607,7 @@ class ProductDetailViewModel extends ChangeNotifier {
   /// This method doesn't show loading indicator to avoid UI flickering
   Future<void> _reloadProductDetail() async {
     try {
-      print('🔄 ProductDetailViewModel: Reloading product detail data');
+      debugPrint('🔄 ProductDetailViewModel: Reloading product detail data');
 
       final response = await _apiService.getProduct(
         _productId,
@@ -623,15 +623,15 @@ class ProductDetailViewModel extends ChangeNotifier {
         // Reinitialize variant quantities from cart to show current cart state
         _initializeVariantQuantitiesFromCart();
 
-        print('✅ ProductDetailViewModel: Product detail reloaded successfully');
+        debugPrint('✅ ProductDetailViewModel: Product detail reloaded successfully');
       } else {
-        print('⚠️ ProductDetailViewModel: Failed to reload product detail');
+        debugPrint('⚠️ ProductDetailViewModel: Failed to reload product detail');
       }
 
       notifyListeners();
     } catch (e) {
       // Silent failure for reload to not interrupt UX
-      print('❌ Error reloading product detail: ${e.toString()}');
+      debugPrint('❌ Error reloading product detail: ${e.toString()}');
     }
   }
 

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import '../../../../core/services/secure_storage_service.dart';
 import '../../../../core/config/app_config.dart';
@@ -28,7 +29,7 @@ class TransactionApiService {
         'Authorization': 'Bearer $token',
         'Accept': 'application/json',
       };
-      print('Request JSON: ${jsonEncode(request.toJson())}'); // Debug print
+      debugPrint('Request JSON: ${jsonEncode(request.toJson())}'); // Debug print
 
       final response = await http.post(
         url,
@@ -249,7 +250,7 @@ class TransactionApiService {
         'Accept': 'application/json',
       };
 
-      print('Request JSON: ${jsonEncode(request.toJson())}'); // Debug print
+      debugPrint('Request JSON: ${jsonEncode(request.toJson())}'); // Debug print
 
       final response = await http.put(
         url,
@@ -472,7 +473,7 @@ class TransactionApiService {
         'Accept': 'application/json',
       };
 
-      print(
+      debugPrint(
         'Payment Update Request: ${jsonEncode(paymentData)}',
       ); // Debug print
 

@@ -69,7 +69,7 @@ class ProductDetailHelpers {
         );
 
         // Log successful cart operation
-        print(
+        debugPrint(
           '✅ ProductDetailHelpers: Cart operation completed successfully - ${isRemoveAction ? 'Removed' : 'Added/Updated'} ${viewModel.productDetail?.name}',
         );
       } else {

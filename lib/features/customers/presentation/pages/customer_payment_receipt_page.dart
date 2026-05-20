@@ -1073,7 +1073,7 @@ class _CustomerPaymentReceiptPageState
     // Jika belum ada printer atau tidak terkoneksi, coba reconnect dulu
     if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
       // Show loading dialog
-      if (!mounted) return;
+      if (!context.mounted) return;
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1099,13 +1099,13 @@ class _CustomerPaymentReceiptPageState
           }
         }
 
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // Close loading dialog
         }
 
         // Jika masih tidak bisa connect, tampilkan dialog setup
         if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
-          if (!mounted) return;
+          if (!context.mounted) return;
           final printer = await showDialog<ThermalPrinterService>(
             context: context,
             builder: (context) => const PrinterSettingsDialog(),
@@ -1120,7 +1120,7 @@ class _CustomerPaymentReceiptPageState
           }
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // Close loading dialog
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1135,7 +1135,7 @@ class _CustomerPaymentReceiptPageState
     }
 
     // Show printing dialog
-    if (!mounted) return;
+    if (!context.mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1159,7 +1159,7 @@ class _CustomerPaymentReceiptPageState
         success = await _connectedPrinter!.testPrint();
       }
 
-      if (mounted) {
+      if (context.mounted) {
         Navigator.of(context).pop(); // Close printing dialog
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1172,7 +1172,7 @@ class _CustomerPaymentReceiptPageState
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         Navigator.of(context).pop(); // Close printing dialog
 
         ScaffoldMessenger.of(context).showSnackBar(

@@ -1706,7 +1706,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                                         '',
                                       );
 
-                                      print('Cleaned Text: $cleanText');
+                                      debugPrint('Cleaned Text: $cleanText');
 
                                       if (cleanText.isEmpty) {
                                         return;

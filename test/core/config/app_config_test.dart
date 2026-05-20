@@ -24,7 +24,7 @@ void main() {
       final headers = AppConfig.defaultHeaders;
       expect(headers['Content-Type'], 'application/json');
       expect(headers['Accept'], 'application/json');
-      expect(headers['User-Agent'], 'Sun POS (Staging)/1.0.0');
+      expect(headers['User-Agent'], 'Sun POS (Staging)/${AppConfig.appVersion}');
     });
 
     test('Auth headers should include Bearer token', () {

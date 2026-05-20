@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../data/models/create_transaction_request.dart';
 import '../data/models/create_transaction_response.dart';
 import '../data/models/transaction_detail.dart';
@@ -231,10 +232,10 @@ class TransactionHelper {
       );
 
       if (result1.status == 'success') {
-        print('Transaction created successfully!');
-        print('Transaction Number: ${result1.data?.transactionNumber}');
+        debugPrint('Transaction created successfully!');
+        debugPrint('Transaction Number: ${result1.data?.transactionNumber}');
       } else {
-        print('Transaction failed: ${result1.message}');
+        debugPrint('Transaction failed: ${result1.message}');
       }
 
       // Contoh 2: Cash transaction
@@ -247,11 +248,11 @@ class TransactionHelper {
         notes: 'Pembelian cepat',
       );
 
-      print(
+      debugPrint(
         'Cash transaction result: ${result2.status == 'success' ? 'Success' : 'Failed'}',
       );
     } catch (e) {
-      print('Error creating transaction: $e');
+      debugPrint('Error creating transaction: $e');
     }
   }
 }

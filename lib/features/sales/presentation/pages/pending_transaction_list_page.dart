@@ -69,6 +69,7 @@ class _PendingTransactionListPageState
         // Check if customer has customer group ID
         if (detail.customer != null &&
             detail.customer!.customerGroupId == null) {
+          if (!mounted) return;
           // Show dialog to update customer
           final shouldUpdate = await showDialog<bool>(
             context: context,
@@ -189,6 +190,7 @@ class _PendingTransactionListPageState
         }
 
         // Show confirmation
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Melanjutkan transaksi untuk ${detail.customerName}'),
@@ -228,6 +230,7 @@ class _PendingTransactionListPageState
 
         // Check if customer has customer group ID
         if (localApiCustomer.customerGroupId == null) {
+          if (!mounted) return;
           // Show dialog to update customer
           final shouldUpdate = await showDialog<bool>(
             context: context,
@@ -293,6 +296,7 @@ class _PendingTransactionListPageState
         cartProvider.setCustomerFromApi(localApiCustomer);
 
         // Show confirmation
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -330,78 +334,6 @@ class _PendingTransactionListPageState
         );
       }
       debugPrint('❌ Error resuming transaction: $e');
-    }
-  }
-
-  Future<void> _deleteTransaction(dynamic transaction) async {
-    String customerName;
-    if (transaction is PendingTransactionItem) {
-      customerName = transaction.customerName;
-    } else if (transaction is PendingTransaction) {
-      customerName = transaction.customerName;
-    } else {
-      customerName = 'Unknown Customer';
-    }
-
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Hapus Transaksi Pending'),
-        content: Text(
-          'Apakah Anda yakin ingin menghapus transaksi pending untuk $customerName?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Batal'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Hapus'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirm == true) {
-      try {
-        final pendingProvider = Provider.of<PendingTransactionProvider>(
-          context,
-          listen: false,
-        );
-
-        if (transaction is PendingTransactionItem) {
-          // Delete API transaction by ID
-          await pendingProvider.deletePendingTransactionById(transaction.id);
-        } else if (transaction is PendingTransaction) {
-          // Delete local transaction by customer ID
-          await pendingProvider.deletePendingTransaction(
-            transaction.customerId,
-          );
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Transaksi untuk $customerName berhasil dihapus'),
-              backgroundColor: Colors.green,
-            ),
-          );
-        }
-      } catch (e) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Gagal menghapus transaksi: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
     }
   }
 

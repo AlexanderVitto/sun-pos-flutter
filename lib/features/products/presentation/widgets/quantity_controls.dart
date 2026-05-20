@@ -69,7 +69,6 @@ class QuantityControls extends StatelessWidget {
                 viewModel.productId,
               );
               final quantityInCart = productInCart?.quantity ?? 0;
-              final remainingStock = maxStock - quantityInCart;
               final totalQuantityAfterAdd = quantityInCart + viewModel.quantity;
 
               return Column(

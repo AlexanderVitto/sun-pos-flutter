@@ -103,6 +103,7 @@ class _CustomerSelectorWidgetState extends State<CustomerSelectorWidget> {
     // Show phone input dialog
     final phone = await _showPhoneInputDialog(name);
     if (phone == null || phone.trim().isEmpty) return;
+    if (!mounted) return;
 
     try {
       final customerProvider = Provider.of<CustomerProvider>(

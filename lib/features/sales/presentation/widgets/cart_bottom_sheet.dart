@@ -32,7 +32,6 @@ class CartBottomSheet extends StatelessWidget {
               _buildHandle(),
               _buildHeader(context),
               _buildCartContent(scrollController),
-              // _buildFooter(context),
             ],
           ),
         );
@@ -275,105 +274,4 @@ class CartBottomSheet extends StatelessWidget {
     );
   }
 
-  Widget _buildFooter(BuildContext context) {
-    return Consumer<CartProvider>(
-      builder: (_, cartProvider, child) {
-        if (cartProvider.items.isEmpty) {
-          return const SizedBox.shrink();
-        }
-
-        return Container(
-          padding: const EdgeInsets.all(24),
-          margin: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: const Color(0xFFf8fafc),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFe2e8f0), width: 1),
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF1f2937).withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Total (${cartProvider.itemCount} item)',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF6b7280),
-                    ),
-                  ),
-                  Text(
-                    'Rp ${PosUIHelpers.formatPrice(cartProvider.total)}',
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF10b981),
-                      letterSpacing: -0.5,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              SizedBox(
-                width: double.infinity,
-                child: Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF10b981).withValues(alpha: 0.3),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                      onPaymentPressed();
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10b981),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 18,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.payment_rounded, size: 22),
-                        SizedBox(width: 12),
-                        Text(
-                          'PROSES PEMBAYARAN',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.5,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
 }

@@ -504,9 +504,8 @@ class _UserProfilePageState extends State<UserProfilePage> {
 
     if (confirmed == true && mounted) {
       await authProvider.logout();
-      if (mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-      }
+      if (!context.mounted) return;
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
     }
   }
 }

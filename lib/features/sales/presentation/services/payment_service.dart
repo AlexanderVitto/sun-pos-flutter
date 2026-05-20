@@ -4,8 +4,8 @@ import '../../providers/cart_provider.dart';
 import '../../providers/transaction_provider.dart';
 import '../../providers/pending_transaction_provider.dart';
 import '../../../../data/models/cart_item.dart';
-import '../../../../data/models/customer.dart' as CartCustomer;
-import '../../../customers/data/models/customer.dart' as DialogCustomer;
+import '../../../../data/models/customer.dart' as cart_customer;
+import '../../../customers/data/models/customer.dart' as dialog_customer;
 import '../../../transactions/data/models/store.dart';
 import '../../../transactions/data/models/payment_history.dart';
 import '../../../auth/providers/auth_provider.dart';
@@ -17,13 +17,13 @@ import '../pages/payment_success_page.dart';
 import '../pages/order_success_page.dart';
 
 class PaymentService {
-  // Convert CartCustomer to DialogCustomer
-  static DialogCustomer.Customer? _convertCustomer(
-    CartCustomer.Customer? cartCustomer,
+  // Convert cart_customer to dialog_customer
+  static dialog_customer.Customer? _convertCustomer(
+    cart_customer.Customer? cartCustomer,
   ) {
     if (cartCustomer == null) return null;
 
-    return DialogCustomer.Customer(
+    return dialog_customer.Customer(
       id: int.tryParse(cartCustomer.id) ?? 0,
       name: cartCustomer.name,
       phone: cartCustomer.phone,
@@ -210,6 +210,7 @@ class PaymentService {
 
         // Store draft transaction ID for future updates
         if (response != null && response.data != null) {
+          if (!context.mounted) return;
           // Use a separate method call to update the cart provider
           _updateCartProviderWithTransactionId(context, response.data!.id);
           debugPrint(
@@ -370,6 +371,7 @@ class PaymentService {
         final cartItems = List<CartItem>.from(updatedCartItems);
         final totalAmount = updatedTotalAmount;
 
+        if (!context.mounted) return;
         // Delete pending transaction if it exists
         final pendingProvider = Provider.of<PendingTransactionProvider>(
           context,
@@ -401,6 +403,7 @@ class PaymentService {
         cartProvider.clearCart();
         notesController.clear();
 
+        if (!context.mounted) return;
         // Get store information from user profile
         final store = _getStoreFromUser(context);
 
@@ -842,6 +845,7 @@ class PaymentService {
       }
 
       if (transactionResponse != null) {
+        if (!context.mounted) return;
         // Get store information from user profile
         final store = _getStoreFromUser(context);
 

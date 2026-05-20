@@ -335,7 +335,7 @@ class _CashFlowsPageState extends State<CashFlowsPage> {
 
     if (result == true) {
       // Refresh the list if a cash flow was created
-      if (mounted) {
+      if (context.mounted) {
         context.read<CashFlowProvider>().loadCashFlows(refresh: true);
       }
     }

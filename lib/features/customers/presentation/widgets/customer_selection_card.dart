@@ -266,6 +266,7 @@ class _CustomerSelectionCardState extends State<CustomerSelectionCard> {
 
     // Debounce search
     Future.delayed(const Duration(milliseconds: 300), () async {
+      if (!mounted) return;
       if (query == _searchController.text) {
         final customerProvider = Provider.of<CustomerProvider>(
           context,

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import '../../../../core/network/auth_http_client.dart';
 import '../../../../core/services/api_client.dart';
 import '../../../../core/config/app_config.dart';
@@ -53,7 +54,7 @@ class AuthService {
       );
     } catch (e) {
       // Logout di server gagal, tapi tetap lanjutkan logout lokal
-      print('Server logout failed: $e');
+      debugPrint('Server logout failed: $e');
     }
   }
 
@@ -95,7 +96,7 @@ class AuthService {
       final response = await _apiClient.get('auth/test');
       return response.statusCode == 200;
     } catch (e) {
-      print('Connection test failed: $e');
+      debugPrint('Connection test failed: $e');
       return false;
     }
   }

@@ -157,31 +157,6 @@ class CartProvider extends ChangeNotifier {
     }
   }
 
-  // Increase item quantity
-  void increaseQuantity(String itemId, {BuildContext? context}) {
-    final index = _items.indexWhere((item) => item.id == itemId);
-    if (index == -1) return;
-
-    final item = _items[index];
-    final newQuantity = item.quantity + 1;
-
-    // Check stock availability
-    if (newQuantity > item.product.stock) {
-      _errorMessage = 'Not enough stock. Available: ${item.product.stock}';
-      notifyListeners();
-      return;
-    }
-
-    _items[index] = item.copyWith(quantity: newQuantity);
-    _clearError();
-    notifyListeners();
-
-    // Process draft transaction when context is available
-    if (context != null) {
-      _processDraftTransaction(context);
-    }
-  }
-
   // Decrease item quantity
   void decreaseQuantity(int itemId, {BuildContext? context}) {
     debugPrint('🛒 CartProvider: Decreasing quantity for item ID: $itemId');

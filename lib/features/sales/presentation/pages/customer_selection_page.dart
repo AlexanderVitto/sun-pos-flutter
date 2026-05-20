@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../../customers/providers/customer_provider.dart';
-import '../../../customers/data/models/customer.dart' as ApiCustomer;
+import '../../../customers/data/models/customer.dart' as api_customer;
 import '../../../customers/presentation/pages/add_customer_page.dart';
 import '../../../customers/presentation/pages/update_customer_page.dart';
 import '../../../products/providers/product_provider.dart';
@@ -21,7 +21,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isSearching = false;
-  List<ApiCustomer.Customer> _searchResults = [];
+  List<api_customer.Customer> _searchResults = [];
   String _searchQuery = '';
 
   @override
@@ -105,7 +105,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
     }
   }
 
-  Future<void> _selectCustomer(ApiCustomer.Customer customer) async {
+  Future<void> _selectCustomer(api_customer.Customer customer) async {
     final pendingProvider = Provider.of<PendingTransactionProvider>(
       context,
       listen: false,
@@ -156,7 +156,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
 
       if (shouldUpdate == true && mounted) {
         // Navigate to update customer page
-        final updatedCustomer = await Navigator.push<ApiCustomer.Customer>(
+        final updatedCustomer = await Navigator.push<api_customer.Customer>(
           context,
           MaterialPageRoute(
             builder: (context) => UpdateCustomerPage(
@@ -225,7 +225,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
   }
 
   Future<void> _showCreateCustomerDialog() async {
-    final customer = await Navigator.push<ApiCustomer.Customer>(
+    final customer = await Navigator.push<api_customer.Customer>(
       context,
       MaterialPageRoute(builder: (context) => const AddCustomerPage()),
     );
@@ -675,7 +675,7 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
     );
   }
 
-  Widget _buildCustomerCard(ApiCustomer.Customer customer) {
+  Widget _buildCustomerCard(api_customer.Customer customer) {
     return Consumer<PendingTransactionProvider>(
       builder: (context, pendingProvider, child) {
         final hasPendingTransaction =

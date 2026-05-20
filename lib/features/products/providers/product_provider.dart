@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../data/models/product.dart';
 import '../data/services/product_api_service.dart';
-import '../data/models/product.dart' as ApiProduct;
+import '../data/models/product.dart' as api_product;
 import '../data/models/category.dart';
 
 class ProductProvider extends ChangeNotifier {
@@ -191,7 +191,7 @@ class ProductProvider extends ChangeNotifier {
   }
 
   // Convert API Product model to local Product model
-  Product _convertApiProductToLocalProduct(ApiProduct.Product apiProduct) {
+  Product _convertApiProductToLocalProduct(api_product.Product apiProduct) {
     final firstVariant = apiProduct.variants.first;
     return Product(
       id: apiProduct.id,
@@ -417,61 +417,6 @@ class ProductProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
       return false;
-    }
-  }
-
-  // Delete product
-  Future<bool> deleteProduct(String productId) async {
-    try {
-      _isLoading = true;
-      _errorMessage = null;
-      notifyListeners();
-
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 1));
-
-      final index = _products.indexWhere((p) => p.id == productId);
-      if (index == -1) {
-        _errorMessage = 'Product not found';
-        _isLoading = false;
-        notifyListeners();
-        return false;
-      }
-
-      _products.removeAt(index);
-      _isLoading = false;
-      notifyListeners();
-      return true;
-    } catch (e) {
-      _errorMessage = 'Failed to delete product: $e';
-      _isLoading = false;
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // Update stock
-  Future<bool> updateStock(String productId, int newStock) async {
-    try {
-      final product = _products.firstWhere((p) => p.id == productId);
-      final updatedProduct = product.copyWith(
-        stock: newStock,
-        updatedAt: DateTime.now(),
-      );
-      return await updateProduct(updatedProduct);
-    } catch (e) {
-      _errorMessage = 'Product not found';
-      notifyListeners();
-      return false;
-    }
-  }
-
-  // Get product by ID
-  Product? getProductById(String id) {
-    try {
-      return _products.firstWhere((product) => product.id == id);
-    } catch (e) {
-      return null;
     }
   }
 

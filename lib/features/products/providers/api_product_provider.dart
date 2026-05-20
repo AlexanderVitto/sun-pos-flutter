@@ -115,7 +115,7 @@ class ApiProductProvider extends ChangeNotifier {
       }
     } catch (e) {
       _errorMessage = 'Failed to load products: ${e.toString()}';
-      print('Error loading products: $e');
+      debugPrint('Error loading products: $e');
     } finally {
       _isLoading = false;
       notifyListeners();

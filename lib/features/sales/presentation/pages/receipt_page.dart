@@ -973,12 +973,13 @@ class _ReceiptPageState extends State<ReceiptPage> {
           }
         }
 
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // Close loading dialog
         }
 
         // Jika masih tidak bisa connect, tampilkan dialog setup
         if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
+          if (!context.mounted) return;
           final printer = await showDialog<ThermalPrinterService>(
             context: context,
             builder: (context) => const PrinterSettingsDialog(),
@@ -994,7 +995,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
           }
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // Close loading dialog
 
           ScaffoldMessenger.of(context).showSnackBar(
@@ -1009,6 +1010,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
     }
 
     // Show printing dialog
+    if (!context.mounted) return;
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -1042,7 +1044,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         dueDate: widget.dueDate,
       );
 
-      if (mounted) {
+      if (context.mounted) {
         Navigator.of(context).pop(); // Close printing dialog
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1078,7 +1080,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         Navigator.of(context).pop(); // Close printing dialog
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1116,7 +1118,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         _connectedPrinter = printer;
       });
 
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Printer berhasil dikonfigurasi!'),
@@ -1129,7 +1131,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
 
   Future<void> _testPrinter(BuildContext context) async {
     if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Printer belum terhubung'),
@@ -1141,7 +1143,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
     }
 
     // Show loading
-    if (mounted) {
+    if (context.mounted) {
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -1161,7 +1163,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
     try {
       final success = await _connectedPrinter!.testPrint();
 
-      if (mounted) {
+      if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
 
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1176,7 +1178,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         );
       }
     } catch (e) {
-      if (mounted) {
+      if (context.mounted) {
         Navigator.of(context).pop(); // Close loading dialog
 
         ScaffoldMessenger.of(context).showSnackBar(

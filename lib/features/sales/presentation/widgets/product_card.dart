@@ -22,25 +22,6 @@ class ProductCard extends StatefulWidget {
 }
 
 class _ProductCardState extends State<ProductCard> {
-  int _quantity = 1; // Default quantity
-
-  // Helper methods for quantity management
-  void _increaseQuantity() {
-    if (_quantity < widget.product.stock) {
-      setState(() {
-        _quantity++;
-      });
-    }
-  }
-
-  void _decreaseQuantity() {
-    if (_quantity > 1) {
-      setState(() {
-        _quantity--;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
@@ -317,8 +298,7 @@ class _ProductCardState extends State<ProductCard> {
                     child: ElevatedButton(
                       onPressed:
                           widget.product.stock > 0
-                              ? () =>
-                                  widget.onAddToCart(widget.product, _quantity)
+                              ? () => widget.onAddToCart(widget.product, 1)
                               : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor:

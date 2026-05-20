@@ -39,7 +39,7 @@ class POSAppBar extends StatelessWidget implements PreferredSizeWidget {
         final variantCount = cartProvider?.items.length ?? 0;
         final totalAmount = cartProvider?.total ?? 0;
 
-        print(
+        debugPrint(
           '🛒 POSAppBar: Building cart button with itemCount: $itemCount, variants: $variantCount',
         );
 

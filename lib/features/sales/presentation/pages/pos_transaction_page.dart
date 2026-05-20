@@ -304,7 +304,7 @@ class _POSTransactionView extends StatelessWidget {
     final cartProvider = viewModel.cartProvider;
 
     if (cartProvider != null) {
-      print('🛒 Opening cart page - items: ${cartProvider.items.length}');
+      debugPrint('🛒 Opening cart page - items: ${cartProvider.items.length}');
 
       // Navigate to cart page instead of showing bottom sheet
       Navigator.push(

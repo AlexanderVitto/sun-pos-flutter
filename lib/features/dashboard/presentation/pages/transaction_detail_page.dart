@@ -2079,6 +2079,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     if (result == true && mounted) {
       await _loadTransactionDetails();
 
+      if (!mounted) return;
       // Pop back to previous screen to refresh the list
       Navigator.of(context).pop(true);
     }

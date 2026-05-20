@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:http/io_client.dart';
 
@@ -29,16 +30,16 @@ class SSLHttpClient extends http.BaseClient {
       // In production, implement proper certificate validation
 
       // Log the certificate details for debugging
-      print('SSL Certificate for $host:$port');
-      print('Subject: ${cert.subject}');
-      print('Issuer: ${cert.issuer}');
-      print('Valid from: ${cert.startValidity}');
-      print('Valid to: ${cert.endValidity}');
+      debugPrint('SSL Certificate for $host:$port');
+      debugPrint('Subject: ${cert.subject}');
+      debugPrint('Issuer: ${cert.issuer}');
+      debugPrint('Valid from: ${cert.startValidity}');
+      debugPrint('Valid to: ${cert.endValidity}');
 
       // For now, accept certificates for sfxsys.com domain
       // You should implement proper certificate validation in production
       if (host == 'sfxsys.com' || host.endsWith('.sfxsys.com')) {
-        print('Accepting certificate for sfxsys.com domain');
+        debugPrint('Accepting certificate for sfxsys.com domain');
         return true;
       }
 
