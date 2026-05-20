@@ -33,6 +33,13 @@ class ProductVariant {
   });
 
   factory ProductVariant.fromJson(Map<String, dynamic> json) {
+    // Backend (PHP/Laravel) men-serialize empty associative array sebagai
+    // `[]` alih-alih `{}`. Toleransi keduanya supaya parsing tidak crash.
+    final rawAttrs = json['attributes'];
+    final attributes = rawAttrs is Map
+        ? Map<String, dynamic>.from(rawAttrs)
+        : <String, dynamic>{};
+
     return ProductVariant(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
@@ -40,7 +47,7 @@ class ProductVariant {
       price: (json['price'] ?? 0).toDouble(),
       costPrice: (json['cost_price'] ?? 0).toDouble(),
       stock: json['stock'] ?? 0,
-      attributes: Map<String, dynamic>.from(json['attributes'] ?? {}),
+      attributes: attributes,
       image: json['image'],
       isActive: json['is_active'] ?? false,
       createdAt: DateTime.parse(
@@ -49,9 +56,14 @@ class ProductVariant {
       updatedAt: DateTime.parse(
         json['updated_at'] ?? DateTime.now().toIso8601String(),
       ),
-      customerPricing: json['customer_pricing'] != null
-          ? CustomerPricing.fromJson(json['customer_pricing'])
-          : null,
+      // API key actually `pricing_info`. Tetap toleransi `customer_pricing`
+      // untuk endpoint lain yang mungkin masih pakai nama lama.
+      customerPricing:
+          json['pricing_info'] != null
+              ? CustomerPricing.fromJson(json['pricing_info'])
+              : (json['customer_pricing'] != null
+                  ? CustomerPricing.fromJson(json['customer_pricing'])
+                  : null),
       formattedPrices: json['formatted_prices'] != null
           ? FormattedPrices.fromJson(json['formatted_prices'])
           : null,
@@ -71,8 +83,7 @@ class ProductVariant {
       'is_active': isActive,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
-      if (customerPricing != null)
-        'customer_pricing': customerPricing!.toJson(),
+      if (customerPricing != null) 'pricing_info': customerPricing!.toJson(),
       if (formattedPrices != null)
         'formatted_prices': formattedPrices!.toJson(),
     };

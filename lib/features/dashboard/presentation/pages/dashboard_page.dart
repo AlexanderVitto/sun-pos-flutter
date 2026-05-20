@@ -495,8 +495,8 @@ class _DashboardPageState extends State<DashboardPage>
       pages.add(_buildDashboardContent());
     }
 
-    // Only full access users (role ID <= 2) can access POS
-    if (RolePermissions.canAccessPOSByUser(user)) {
+    // All authenticated users can access transactions list (tabs/actions are gated per-role inside the page)
+    if (RolePermissions.canAccessTransactionsByUser(user)) {
       pages.add(const TransactionTabPage());
     }
 
@@ -1689,8 +1689,8 @@ class _DashboardPageState extends State<DashboardPage>
       );
     }
 
-    // Only full access users (role ID <= 2) can access POS
-    if (RolePermissions.canAccessPOSByUser(user)) {
+    // All authenticated users see the transactions tab (content is filtered by role inside the page)
+    if (RolePermissions.canAccessTransactionsByUser(user)) {
       items.add(
         const BottomNavigationBarItem(
           icon: Icon(LucideIcons.clock),

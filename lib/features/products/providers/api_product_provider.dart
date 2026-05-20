@@ -214,11 +214,20 @@ class ApiProductProvider extends ChangeNotifier {
 
   /// Get single API product by ID
   Future<api_product.Product?> getProduct(int productId) async {
+    if (_customerId == null) {
+      _errorMessage = 'Customer ID is required to get product';
+      notifyListeners();
+      return null;
+    }
+
     try {
       _isLoading = true;
       notifyListeners();
 
-      final response = await _apiService.getProduct(productId);
+      final response = await _apiService.getProduct(
+        productId,
+        customerId: _customerId!,
+      );
 
       if (response.status == 'success') {
         // Convert ProductDetail to api_product.Product for compatibility
@@ -266,11 +275,20 @@ class ApiProductProvider extends ChangeNotifier {
 
   /// Get product detail with full information including variants
   Future<ProductDetail?> getProductDetail(int productId) async {
+    if (_customerId == null) {
+      _errorMessage = 'Customer ID is required to get product detail';
+      notifyListeners();
+      return null;
+    }
+
     try {
       _isLoading = true;
       notifyListeners();
 
-      final response = await _apiService.getProduct(productId);
+      final response = await _apiService.getProduct(
+        productId,
+        customerId: _customerId!,
+      );
 
       if (response.status == 'success') {
         return response.data;

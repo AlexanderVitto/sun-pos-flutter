@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import '../../../../data/models/cart_item.dart';
 import '../../../transactions/data/models/store.dart';
 import '../../../transactions/data/models/user.dart';
+import '../../../transactions/data/models/payment_history.dart';
 import 'bluetooth_printer_service.dart';
 import 'printer_preferences_service.dart';
 
@@ -237,6 +238,7 @@ class ThermalPrinterService {
     required double discount,
     required double total,
     String paymentMethod = 'Tunai',
+    List<PaymentHistory>? paymentHistories,
     String? notes,
     String? status,
     DateTime? dueDate,
@@ -259,6 +261,7 @@ class ThermalPrinterService {
           discount: discount,
           total: total,
           paymentMethod: paymentMethod,
+          paymentHistories: paymentHistories,
           notes: notes,
           status: status,
           dueDate: dueDate,
@@ -275,6 +278,7 @@ class ThermalPrinterService {
           discount: discount,
           total: total,
           paymentMethod: paymentMethod,
+          paymentHistories: paymentHistories,
           notes: notes,
           status: status,
           dueDate: dueDate,
@@ -285,6 +289,27 @@ class ThermalPrinterService {
     } catch (e) {
       debugPrint('Error printing receipt: $e');
       return false;
+    }
+  }
+
+  /// Convert API payment method key to display label.
+  String _formatPaymentMethodLabel(String method) {
+    switch (method.toLowerCase()) {
+      case 'cash':
+        return 'Tunai';
+      case 'card':
+        return 'Kartu';
+      case 'transfer':
+      case 'bank_transfer':
+        return 'Transfer';
+      case 'e-wallet':
+      case 'ewallet':
+      case 'digital_wallet':
+        return 'E-Wallet';
+      case 'credit':
+        return 'Kredit';
+      default:
+        return method;
     }
   }
 
@@ -299,6 +324,7 @@ class ThermalPrinterService {
     required double discount,
     required double total,
     String paymentMethod = 'Tunai',
+    List<PaymentHistory>? paymentHistories,
     String? notes,
     String? status,
     DateTime? dueDate,
@@ -378,18 +404,51 @@ class ThermalPrinterService {
         ),
       ]);
 
-      _printer!.row([
-        PosColumn(
-          text: 'Pembayaran',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-        PosColumn(
-          text: ': $paymentMethod',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-      ]);
+      // Pembayaran — multi-method bila ada histories > 1, selain itu single line
+      if (paymentHistories != null && paymentHistories.length > 1) {
+        _printer!.row([
+          PosColumn(
+            text: 'Pembayaran',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+          PosColumn(
+            text: ':',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+        ]);
+        for (final p in paymentHistories) {
+          _printer!.row([
+            PosColumn(
+              text: '  ${_formatPaymentMethodLabel(p.paymentMethod)}',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.left),
+            ),
+            PosColumn(
+              text: 'Rp ${_formatPrice(p.amount)}',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.right),
+            ),
+          ]);
+        }
+      } else {
+        final label = paymentHistories != null && paymentHistories.isNotEmpty
+            ? _formatPaymentMethodLabel(paymentHistories.first.paymentMethod)
+            : paymentMethod;
+        _printer!.row([
+          PosColumn(
+            text: 'Pembayaran',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+          PosColumn(
+            text: ': $label',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+        ]);
+      }
 
       // Tambahkan informasi outstanding jika status adalah outstanding
       if (status != null && status.toLowerCase() == 'outstanding') {
@@ -627,6 +686,7 @@ class ThermalPrinterService {
     required double discount,
     required double total,
     String paymentMethod = 'Tunai',
+    List<PaymentHistory>? paymentHistories,
     String? notes,
     String? status,
     DateTime? dueDate,
@@ -711,18 +771,51 @@ class ThermalPrinterService {
         ),
       ]);
 
-      bytes += generator.row([
-        PosColumn(
-          text: 'Pembayaran',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-        PosColumn(
-          text: ': $paymentMethod',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-      ]);
+      // Pembayaran — multi-method bila ada histories > 1, selain itu single line
+      if (paymentHistories != null && paymentHistories.length > 1) {
+        bytes += generator.row([
+          PosColumn(
+            text: 'Pembayaran',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+          PosColumn(
+            text: ':',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+        ]);
+        for (final p in paymentHistories) {
+          bytes += generator.row([
+            PosColumn(
+              text: '  ${_formatPaymentMethodLabel(p.paymentMethod)}',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.left),
+            ),
+            PosColumn(
+              text: 'Rp ${_formatPrice(p.amount)}',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.right),
+            ),
+          ]);
+        }
+      } else {
+        final label = paymentHistories != null && paymentHistories.isNotEmpty
+            ? _formatPaymentMethodLabel(paymentHistories.first.paymentMethod)
+            : paymentMethod;
+        bytes += generator.row([
+          PosColumn(
+            text: 'Pembayaran',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+          PosColumn(
+            text: ': $label',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+        ]);
+      }
 
       // Tambahkan informasi outstanding jika status adalah outstanding
       if (status != null && status.toLowerCase() == 'outstanding') {

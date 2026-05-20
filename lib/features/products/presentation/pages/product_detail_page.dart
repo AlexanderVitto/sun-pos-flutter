@@ -25,12 +25,16 @@ class ProductDetailPage extends StatelessWidget {
       listen: false,
     );
 
+    // Customer ID required for customer-specific pricing
+    final customerId = productProvider.customerId ?? 0;
+
     // Create ProductDetailViewModel locally with ChangeNotifierProxyProvider
     // This avoids the StackOverflowError caused by global provider
     return ChangeNotifierProxyProvider<CartProvider, ProductDetailViewModel>(
       create: (_) {
         final viewModel = ProductDetailViewModel(
           productId: productId,
+          customerId: customerId,
           apiService: ProductApiService(),
         );
         // Inject ProductProvider
@@ -54,6 +58,7 @@ class ProductDetailPage extends StatelessWidget {
         // Fallback if viewModel is null
         return ProductDetailViewModel(
             productId: productId,
+            customerId: customerId,
             apiService: ProductApiService(),
           )
           ..updateCartProvider(cartProvider)

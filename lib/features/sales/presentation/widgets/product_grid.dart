@@ -35,11 +35,13 @@ class _ProductGridState extends State<ProductGrid> {
 
   @override
   void dispose() {
+    _scrollController.removeListener(_onScroll);
     _scrollController.dispose();
     super.dispose();
   }
 
   void _onScroll() {
+    if (!mounted) return;
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       // Trigger load more when 200px from bottom
@@ -47,6 +49,9 @@ class _ProductGridState extends State<ProductGrid> {
         context,
         listen: false,
       );
+      // Skip jika ada load primary atau debounce search aktif —
+      // pagination tidak boleh race dengan search/filter yang berjalan.
+      if (productProvider.isLoading || productProvider.isSearching) return;
       productProvider.loadMoreProducts();
     }
   }

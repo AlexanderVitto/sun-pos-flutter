@@ -92,7 +92,7 @@ class AddToCartSection extends StatelessWidget {
                   ...selectedVariants.map((item) {
                     final variant = item['variant'] as ProductVariant;
                     final quantity = item['quantity'] as int;
-                    final itemSubtotal = variant.price * quantity;
+                    final itemSubtotal = variant.finalPrice * quantity;
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 8),
@@ -130,7 +130,7 @@ class AddToCartSection extends StatelessWidget {
                                   ),
                                 ),
                                 Text(
-                                  CurrencyFormatter.formatIDR(variant.price),
+                                  CurrencyFormatter.formatIDR(variant.finalPrice),
                                   style: const TextStyle(
                                     fontSize: 12,
                                     color: Color(0xFF6b7280),

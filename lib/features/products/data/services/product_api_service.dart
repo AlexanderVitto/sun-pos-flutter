@@ -76,11 +76,21 @@ class ProductApiService {
   }
 
   /// Get single product by ID
-  Future<ProductDetailResponse> getProduct(int productId) async {
+  /// [productId] - Product ID
+  /// [customerId] - Customer ID for customer-specific pricing (REQUIRED)
+  Future<ProductDetailResponse> getProduct(
+    int productId, {
+    required int customerId,
+  }) async {
     try {
-      final url = '$baseUrl/products/$productId';
+      final uri = Uri.parse('$baseUrl/products/$productId').replace(
+        queryParameters: {'customer_id': customerId.toString()},
+      );
 
-      final response = await _httpClient.get(url, requireAuth: true);
+      final response = await _httpClient.get(
+        uri.toString(),
+        requireAuth: true,
+      );
 
       final responseData = _httpClient.parseJsonResponse(response);
       return ProductDetailResponse.fromJson(responseData);

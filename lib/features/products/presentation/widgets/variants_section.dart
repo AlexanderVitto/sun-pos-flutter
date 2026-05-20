@@ -147,7 +147,7 @@ class _VariantCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          CurrencyFormatter.formatIDR(variant.price),
+                          CurrencyFormatter.formatIDR(variant.finalPrice),
                           style: const TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
@@ -305,7 +305,7 @@ class _VariantCard extends StatelessWidget {
                         // Decrease Button
                         _buildQuantityButton(
                           icon: LucideIcons.minus,
-                          onPressed: quantity > 0 && !isOutOfStock
+                          onPressed: (quantity > 0 || quantityInCart > 0)
                               ? () => viewModel.decreaseVariantQuantity(
                                   variant.id,
                                 )

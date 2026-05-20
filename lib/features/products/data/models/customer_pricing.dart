@@ -21,7 +21,10 @@ class CustomerPricing {
   factory CustomerPricing.fromJson(Map<String, dynamic> json) {
     return CustomerPricing(
       finalPrice: (json['final_price'] ?? 0).toDouble(),
-      basePrice: (json['base_price'] ?? 0).toDouble(),
+      // API menggunakan `base_variant_price` di payload `pricing_info`.
+      // Fallback ke `base_price` untuk kompatibilitas data lama.
+      basePrice: (json['base_variant_price'] ?? json['base_price'] ?? 0)
+          .toDouble(),
       priceSource: json['price_source'] ?? 'base',
       priceDifference: (json['price_difference'] ?? 0).toDouble(),
       priceDifferencePercentage: (json['price_difference_percentage'] ?? 0)
@@ -34,7 +37,7 @@ class CustomerPricing {
   Map<String, dynamic> toJson() {
     return {
       'final_price': finalPrice,
-      'base_price': basePrice,
+      'base_variant_price': basePrice,
       'price_source': priceSource,
       'price_difference': priceDifference,
       'price_difference_percentage': priceDifferencePercentage,

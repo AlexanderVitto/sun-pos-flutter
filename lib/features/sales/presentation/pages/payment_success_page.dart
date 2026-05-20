@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../core/constants/payment_constants.dart';
 import '../../../transactions/data/models/store.dart';
+import '../../../transactions/data/models/payment_history.dart';
 import '../../providers/cart_provider.dart';
 import 'receipt_page.dart';
 import '../../../../data/models/cart_item.dart';
@@ -20,6 +21,7 @@ class PaymentSuccessPage extends StatelessWidget {
   final AuthUser.User? user; // Add user parameter
   final String? status; // Add status parameter
   final DateTime? dueDate; // Add dueDate parameter
+  final List<PaymentHistory>? paymentHistories;
 
   const PaymentSuccessPage({
     super.key,
@@ -33,6 +35,7 @@ class PaymentSuccessPage extends StatelessWidget {
     this.user,
     this.status,
     this.dueDate,
+    this.paymentHistories,
   });
 
   // Helper function to convert AuthUser.User to TransactionsUser.User
@@ -64,6 +67,76 @@ class PaymentSuccessPage extends StatelessWidget {
       createdAt: DateTime.tryParse(authUser.createdAt) ?? DateTime.now(),
       updatedAt: DateTime.tryParse(authUser.updatedAt) ?? DateTime.now(),
     );
+  }
+
+  /// Render bagian "Metode Bayar". Saat ada lebih dari satu pembayaran
+  /// (split: cash + transfer), tampilkan rincian per metode dengan
+  /// nominalnya. Selain itu fallback ke single label seperti sebelumnya.
+  Widget _buildPaymentMethodSection() {
+    final histories = paymentHistories;
+
+    if (histories == null || histories.length <= 1) {
+      final label = histories != null && histories.isNotEmpty
+          ? (PaymentConstants.paymentMethods[histories.first.paymentMethod] ??
+              histories.first.paymentMethod)
+          : (PaymentConstants.paymentMethods[paymentMethod] ?? '');
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            'Metode Bayar:',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Metode Bayar:',
+          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+        ),
+        const SizedBox(height: 6),
+        ...histories.map(
+          (p) => Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  PaymentConstants.paymentMethods[p.paymentMethod] ??
+                      p.paymentMethod,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'Rp ${_formatAmount(p.amount)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatAmount(double amount) {
+    return amount.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+          (Match m) => '${m[1]}.',
+        );
   }
 
   @override
@@ -235,27 +308,7 @@ class PaymentSuccessPage extends StatelessWidget {
 
                           const SizedBox(height: 12),
 
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Metode Bayar:',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
-                                ),
-                              ),
-                              Text(
-                                PaymentConstants
-                                        .paymentMethods[paymentMethod] ??
-                                    '',
-                                style: const TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ],
-                          ),
+                          _buildPaymentMethodSection(),
 
                           // Add notes section if notes exist
                           if (notes != null && notes!.trim().isNotEmpty) ...[
@@ -341,6 +394,7 @@ class PaymentSuccessPage extends StatelessWidget {
                                           PaymentConstants
                                               .paymentMethods[paymentMethod] ??
                                           '',
+                                      paymentHistories: paymentHistories,
                                       notes: notes,
                                       status: status,
                                       dueDate: dueDate,

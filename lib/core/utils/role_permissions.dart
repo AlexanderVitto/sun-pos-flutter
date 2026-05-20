@@ -176,6 +176,12 @@ class RolePermissions {
     return hasFullAccess(user);
   }
 
+  // NEW: Check if user can access transactions list (all logged-in users).
+  // Restricted users (role ID > 2) see limited tabs and actions on the page.
+  static bool canAccessTransactionsByUser(User? user) {
+    return user != null;
+  }
+
   // Check if user can access products
   static bool canAccessProducts(List<String> userRoles) {
     return hasPermission(userRoles, accessProducts);

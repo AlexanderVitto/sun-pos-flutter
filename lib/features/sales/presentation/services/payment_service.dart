@@ -7,6 +7,7 @@ import '../../../../data/models/cart_item.dart';
 import '../../../../data/models/customer.dart' as CartCustomer;
 import '../../../customers/data/models/customer.dart' as DialogCustomer;
 import '../../../transactions/data/models/store.dart';
+import '../../../transactions/data/models/payment_history.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../dashboard/providers/store_provider.dart';
 import '../utils/pos_ui_helpers.dart';
@@ -588,6 +589,29 @@ class PaymentService {
         cartProvider.clearCart();
         notesController.clear();
 
+        // Build payment histories from split amounts so the success page
+        // can render multi-method breakdown (cash + transfer).
+        final paymentDateIso = DateTime.now().toIso8601String();
+        final histories = <PaymentHistory>[];
+        if ((cashAmount ?? 0) > 0) {
+          histories.add(
+            PaymentHistory(
+              paymentMethod: 'cash',
+              amount: cashAmount!,
+              paymentDate: paymentDateIso,
+            ),
+          );
+        }
+        if ((transferAmount ?? 0) > 0) {
+          histories.add(
+            PaymentHistory(
+              paymentMethod: 'bank_transfer',
+              amount: transferAmount!,
+              paymentDate: paymentDateIso,
+            ),
+          );
+        }
+
         // Navigate to success page (use cached navigator, don't check context.mounted)
         navigator.pushReplacement(
           MaterialPageRoute(
@@ -604,6 +628,7 @@ class PaymentService {
               dueDate: outstandingReminderDate != null
                   ? DateTime.tryParse(outstandingReminderDate)
                   : null,
+              paymentHistories: histories.isNotEmpty ? histories : null,
             ),
           ),
         );

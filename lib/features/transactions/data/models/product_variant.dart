@@ -33,7 +33,9 @@ class ProductVariant {
       price: (json['price'] ?? 0).toDouble(),
       costPrice: (json['cost_price'] ?? 0).toDouble(),
       stock: json['stock'] ?? 0,
-      attributes: json['attributes'] as Map<String, dynamic>?,
+      attributes: json['attributes'] is Map<String, dynamic>
+          ? json['attributes'] as Map<String, dynamic>
+          : null,
       image: json['image'],
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(

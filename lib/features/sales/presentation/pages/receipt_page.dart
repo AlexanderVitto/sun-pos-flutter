@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import '../../../../data/models/cart_item.dart';
+import '../../../../shared/utils/receipt_share_helper.dart';
 import '../../../dashboard/presentation/pages/dashboard_page.dart';
 import '../../../transactions/data/models/store.dart';
 import '../../../transactions/data/models/user.dart';
+import '../../../transactions/data/models/payment_history.dart';
+import '../services/receipt_pdf_builder.dart';
 import '../services/thermal_printer_service.dart';
 import '../widgets/printer_settings_dialog.dart';
 
@@ -18,6 +21,7 @@ class ReceiptPage extends StatefulWidget {
   final double discount;
   final double total;
   final String paymentMethod;
+  final List<PaymentHistory>? paymentHistories;
   final String? notes; // Add notes parameter
   final String? status; // Add status parameter for outstanding transactions
   final DateTime? dueDate; // Add dueDate parameter for outstanding transactions
@@ -33,6 +37,7 @@ class ReceiptPage extends StatefulWidget {
     required this.discount,
     required this.total,
     this.paymentMethod = 'Tunai',
+    this.paymentHistories,
     this.notes,
     this.status,
     this.dueDate,
@@ -45,6 +50,7 @@ class ReceiptPage extends StatefulWidget {
 class _ReceiptPageState extends State<ReceiptPage> {
   ThermalPrinterService? _connectedPrinter;
   bool _isInitializingPrinter = true;
+  final GlobalKey _receiptBoundaryKey = GlobalKey();
 
   @override
   void initState() {
@@ -179,53 +185,56 @@ class _ReceiptPageState extends State<ReceiptPage> {
       body: SingleChildScrollView(
         child: Container(
           margin: const EdgeInsets.all(16),
-          child: Card(
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
+          child: RepaintBoundary(
+            key: _receiptBoundaryKey,
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Store Header
-                  _buildStoreHeader(),
+              child: Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Store Header
+                    _buildStoreHeader(),
 
-                  const Divider(height: 32, thickness: 2),
+                    const Divider(height: 32, thickness: 2),
 
-                  // Transaction Info
-                  _buildTransactionInfo(),
+                    // Transaction Info
+                    _buildTransactionInfo(),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 24),
 
-                  // Items List
-                  _buildItemsList(),
+                    // Items List
+                    _buildItemsList(),
 
-                  const Divider(height: 32, thickness: 1),
+                    const Divider(height: 32, thickness: 1),
 
-                  // Totals
-                  _buildTotals(),
+                    // Totals
+                    _buildTotals(),
 
-                  const Divider(height: 32, thickness: 2),
+                    const Divider(height: 32, thickness: 2),
 
-                  // Notes section (if exists)
-                  if (widget.notes != null &&
-                      widget.notes!.trim().isNotEmpty) ...[
-                    _buildNotesSection(),
-                    const SizedBox(height: 16),
+                    // Notes section (if exists)
+                    if (widget.notes != null &&
+                        widget.notes!.trim().isNotEmpty) ...[
+                      _buildNotesSection(),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // Footer
+                    _buildFooter(),
+
+                    // Status printer info
+                    if (!_isInitializingPrinter) _buildPrinterStatus(),
                   ],
-
-                  // Footer
-                  _buildFooter(),
-
-                  // Status printer info
-                  if (!_isInitializingPrinter) _buildPrinterStatus(),
-                ],
+                ),
               ),
             ),
           ),
@@ -392,24 +401,15 @@ class _ReceiptPageState extends State<ReceiptPage> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             Text('Kasir:', style: TextStyle(color: Colors.grey[600])),
-            const Text(
-              'Admin POS',
-              style: TextStyle(fontWeight: FontWeight.bold),
+            Text(
+              widget.user?.name ?? 'Admin POS',
+              style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
         ),
         const SizedBox(height: 8),
 
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Pembayaran:', style: TextStyle(color: Colors.grey[600])),
-            Text(
-              widget.paymentMethod,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+        _buildPaymentSection(),
 
         // Tambahkan informasi outstanding jika status adalah outstanding
         if (widget.status != null &&
@@ -451,6 +451,72 @@ class _ReceiptPageState extends State<ReceiptPage> {
         ],
       ],
     );
+  }
+
+  Widget _buildPaymentSection() {
+    final histories = widget.paymentHistories;
+
+    if (histories == null || histories.length <= 1) {
+      final label = histories != null && histories.isNotEmpty
+          ? _formatPaymentMethodLabel(histories.first.paymentMethod)
+          : widget.paymentMethod;
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Pembayaran:', style: TextStyle(color: Colors.grey[600])),
+          Text(label, style: const TextStyle(fontWeight: FontWeight.bold)),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Pembayaran:',
+            style: TextStyle(color: Colors.grey[600]),
+          ),
+        ),
+        const SizedBox(height: 4),
+        ...histories.map(
+          (p) => Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _formatPaymentMethodLabel(p.paymentMethod),
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+                Text(
+                  'Rp ${_formatPrice(p.amount)}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  String _formatPaymentMethodLabel(String method) {
+    switch (method.toLowerCase()) {
+      case 'cash':
+        return 'Tunai';
+      case 'card':
+        return 'Kartu';
+      case 'transfer':
+      case 'bank_transfer':
+        return 'Transfer';
+      case 'e-wallet':
+      case 'ewallet':
+        return 'E-Wallet';
+      default:
+        return method;
+    }
   }
 
   Widget _buildItemsList() {
@@ -497,7 +563,22 @@ class _ReceiptPageState extends State<ReceiptPage> {
         const SizedBox(height: 8),
 
         // Items
-        ...widget.items.map((item) => _buildItemRow(item)),
+        if (widget.items.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 24),
+            child: Center(
+              child: Text(
+                'Detail item tidak tersedia',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[500],
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ),
+          )
+        else
+          ...widget.items.map((item) => _buildItemRow(item)),
       ],
     );
   }
@@ -740,16 +821,124 @@ class _ReceiptPageState extends State<ReceiptPage> {
   }
 
   void _shareReceipt(BuildContext context) {
-    final receiptText = _generateReceiptText();
-
-    // Copy to clipboard
-    Clipboard.setData(ClipboardData(text: receiptText));
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Struk disalin ke clipboard'),
-        backgroundColor: Colors.green,
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
       ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Bagikan Struk',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                title: const Text('Bagikan sebagai PDF'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _shareAsPdf();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image, color: Colors.blue),
+                title: const Text('Bagikan sebagai Gambar'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _shareAsImage();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.copy, color: Colors.grey),
+                title: const Text('Salin Teks ke Clipboard'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  Clipboard.setData(
+                    ClipboardData(text: _generateReceiptText()),
+                  );
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Struk disalin ke clipboard'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _shareSubject() => 'Struk ${widget.receiptId}';
+
+  String _shareCaption() {
+    return '${widget.store.name} — Struk ${widget.receiptId}\n'
+        'Total: Rp ${_formatPrice(widget.total)}';
+  }
+
+  Future<void> _shareAsImage() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ReceiptShareHelper.shareImageFromBoundary(
+        _receiptBoundaryKey,
+        filename: 'struk_${widget.receiptId}.png',
+        subject: _shareSubject(),
+        text: _shareCaption(),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal membagikan gambar: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareAsPdf() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final bytes = await _buildReceiptPdf();
+      await ReceiptShareHelper.sharePdfBytes(
+        bytes,
+        filename: 'struk_${widget.receiptId}.pdf',
+        subject: _shareSubject(),
+        text: _shareCaption(),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal membuat PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<Uint8List> _buildReceiptPdf() {
+    return ReceiptPdfBuilder.build(
+      receiptId: widget.receiptId,
+      transactionDate: widget.transactionDate,
+      items: widget.items,
+      store: widget.store,
+      user: widget.user,
+      subtotal: widget.subtotal,
+      discount: widget.discount,
+      total: widget.total,
+      paymentMethod: widget.paymentMethod,
+      paymentHistories: widget.paymentHistories,
+      notes: widget.notes,
+      status: widget.status,
+      dueDate: widget.dueDate,
     );
   }
 
@@ -847,6 +1036,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         discount: widget.discount,
         total: widget.total,
         paymentMethod: widget.paymentMethod,
+        paymentHistories: widget.paymentHistories,
         notes: widget.notes,
         status: widget.status,
         dueDate: widget.dueDate,
@@ -1032,7 +1222,21 @@ class _ReceiptPageState extends State<ReceiptPage> {
     buffer.writeln('No. Transaksi: ${widget.receiptId}');
     buffer.writeln('Tanggal: ${_formatDateTime(widget.transactionDate)}');
     buffer.writeln('Kasir: ${widget.user?.name ?? 'Admin POS'}');
-    buffer.writeln('Pembayaran: ${widget.paymentMethod}');
+
+    final histories = widget.paymentHistories;
+    if (histories != null && histories.length > 1) {
+      buffer.writeln('Pembayaran:');
+      for (final p in histories) {
+        final label = _formatPaymentMethodLabel(p.paymentMethod);
+        buffer.writeln('  $label: Rp ${_formatPrice(p.amount)}');
+      }
+    } else if (histories != null && histories.isNotEmpty) {
+      buffer.writeln(
+        'Pembayaran: ${_formatPaymentMethodLabel(histories.first.paymentMethod)}',
+      );
+    } else {
+      buffer.writeln('Pembayaran: ${widget.paymentMethod}');
+    }
 
     // Tambahkan informasi outstanding jika status adalah outstanding
     if (widget.status != null &&

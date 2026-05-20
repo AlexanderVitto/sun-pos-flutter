@@ -4,10 +4,12 @@ import 'package:lucide_icons/lucide_icons.dart';
 import 'package:intl/intl.dart';
 import 'package:shimmer/shimmer.dart';
 import 'dart:async';
+import '../../../auth/providers/auth_provider.dart';
 import '../../../transactions/data/models/transaction_list_response.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../refunds/providers/refund_list_provider.dart';
 import '../../../refunds/presentation/pages/refund_detail_page.dart';
+import '../../../../core/utils/role_permissions.dart';
 import '../pages/transaction_detail_page.dart';
 
 class TransactionTabPage extends StatefulWidget {
@@ -30,14 +32,21 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
     super.initState();
     _scrollController.addListener(_onScroll);
 
-    // Load initial data with pending status filter only
+    // Load initial data with appropriate status filter based on user role
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Restricted users (role ID > 2) start on 'completed' since they
+      // cannot see the pending tab; full-access users default to 'pending'.
+      final user = Provider.of<AuthProvider>(context, listen: false).user;
+      final initialStatus = RolePermissions.hasFullAccess(user)
+          ? 'pending'
+          : 'completed';
+      setState(() => _selectedStatus = initialStatus);
+
       final provider = Provider.of<TransactionListProvider>(
         context,
         listen: false,
       );
-      // Set status filter to pending only
-      provider.setStatus('pending');
+      provider.setStatus(initialStatus);
       // Set sorting to show newest transactions first
       provider.setSorting('created_at', 'desc');
       provider.loadTransactions(refresh: true);
@@ -377,13 +386,18 @@ class _TransactionTabPageState extends State<TransactionTabPage> {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _buildStatusChip('pending', 'Pending', provider),
-                const SizedBox(width: 12),
-                // _buildStatusChip('outstanding', 'Outstanding', provider),
-                // const SizedBox(width: 12),
-                _buildStatusChip('completed', 'Success', provider),
-                const SizedBox(width: 12),
-                _buildStatusChip('refund', 'Refund', provider),
+                if (RolePermissions.hasFullAccess(
+                  context.watch<AuthProvider>().user,
+                )) ...[
+                  _buildStatusChip('pending', 'Pending', provider),
+                  const SizedBox(width: 12),
+                  // _buildStatusChip('outstanding', 'Outstanding', provider),
+                  // const SizedBox(width: 12),
+                  _buildStatusChip('completed', 'Success', provider),
+                  const SizedBox(width: 12),
+                  _buildStatusChip('refund', 'Refund', provider),
+                ] else
+                  _buildStatusChip('completed', 'Success', provider),
               ],
             ),
           ),

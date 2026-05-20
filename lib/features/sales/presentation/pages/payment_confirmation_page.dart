@@ -152,11 +152,87 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     return baseMethod;
   }
 
+  /// Render baris "Metode Bayar" pada dialog konfirmasi.
+  /// Saat split (cash + transfer di mode partial) tampilkan rincian
+  /// per metode dengan nominalnya, bukan single label "(Sebagian)".
+  Widget _buildMetodeBayarRow() {
+    final isPartialSplit =
+        _selectedPaymentMethod == 'bank_transfer' &&
+        _bankTransferType == 'partial';
+
+    if (!isPartialSplit) {
+      String label =
+          PaymentConstants.paymentMethods[_selectedPaymentMethod] ?? '';
+      if (_selectedPaymentMethod == 'bank_transfer') {
+        label = '$label (Penuh)';
+      }
+      return Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const Text('Metode Bayar:', style: TextStyle(fontSize: 14)),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+          ),
+        ],
+      );
+    }
+
+    final cash = _parseAmount(_cashAmountController.text);
+    final transfer = _parseAmount(_transferAmountController.text);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Metode Bayar:', style: TextStyle(fontSize: 14)),
+        const SizedBox(height: 6),
+        if (cash > 0)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Tunai',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  'Rp ${_formatPrice(cash)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (transfer > 0)
+          Padding(
+            padding: const EdgeInsets.only(left: 12, top: 2),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Transfer Bank',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                ),
+                Text(
+                  'Rp ${_formatPrice(transfer)}',
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   void _showConfirmationDialog() {
     // Calculate total payment based on method
     double totalPayment = 0.0;
-    String paymentMethodText =
-        PaymentConstants.paymentMethods[_selectedPaymentMethod] ?? '';
 
     if (_selectedPaymentMethod == 'cash') {
       totalPayment = _parseAmount(_amountPaidController.text);
@@ -165,10 +241,8 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
         final cash = _parseAmount(_cashAmountController.text);
         final transfer = _parseAmount(_transferAmountController.text);
         totalPayment = cash + transfer;
-        paymentMethodText = '$paymentMethodText (Sebagian)';
       } else {
         totalPayment = _calculateTotalWithEditedPrices();
-        paymentMethodText = '$paymentMethodText (Penuh)';
       }
     }
 
@@ -262,22 +336,7 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
                       ],
                     ),
                     const Divider(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Metode Bayar:',
-                          style: TextStyle(fontSize: 14),
-                        ),
-                        Text(
-                          paymentMethodText,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
+                    _buildMetodeBayarRow(),
                     const SizedBox(height: 8),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,

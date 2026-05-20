@@ -66,6 +66,11 @@ dependencies:
   # Date & Time
   timeago: ^3.7.0
 
+  # Share & PDF
+  share_plus: ^10.1.4
+  pdf: ^3.8.4
+  path_provider: ^2.1.4
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

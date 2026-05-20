@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart';
 import '../../transactions/data/models/store.dart';
 
 class StoreProvider extends ChangeNotifier {
@@ -29,13 +30,28 @@ class StoreProvider extends ChangeNotifier {
     }
   }
 
-  /// Initialize with first store from user's stores list
+  /// Initialize with first store from user's stores list.
+  /// Saat berhasil men-set store dari null → store pertama, picu juga
+  /// callback yang sama dengan setSelectedStore agar data dependen
+  /// (TransactionListProvider, RefundListProvider, dll) ikut termuat.
+  ///
+  /// Notifikasi & callback di-defer ke post-frame karena method ini sering
+  /// dipanggil dari `initState` atau dari listener yang fire selama build
+  /// phase parent — `notifyListeners()` sync di sini akan throw
+  /// "setState() called during build".
   void initializeWithStores(List<Store> stores) {
     if (stores.isNotEmpty && _selectedStore == null) {
       _selectedStore = stores.first;
       debugPrint(
         '🏪 Store initialized: ${_selectedStore!.name} (ID: ${_selectedStore!.id})',
       );
+
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+        for (final callback in _onStoreChangedCallbacks) {
+          callback.call();
+        }
+      });
     }
   }
 

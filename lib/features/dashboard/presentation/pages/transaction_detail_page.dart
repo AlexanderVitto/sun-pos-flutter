@@ -11,8 +11,11 @@ import '../../../../data/models/cart_item.dart';
 import '../../../../data/models/product.dart';
 import '../../../sales/presentation/pages/payment_success_page.dart';
 import '../../../sales/presentation/pages/receipt_page.dart';
+import '../../../sales/presentation/services/receipt_pdf_builder.dart';
+import '../../../../shared/utils/receipt_share_helper.dart';
 import '../../../../shared/widgets/payment_method_widgets.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../../../core/utils/role_permissions.dart';
 import '../../../sales/providers/transaction_provider.dart';
 import '../../../transactions/data/models/payment_history.dart';
 import '../../../refunds/presentation/pages/create_refund_page.dart';
@@ -72,6 +75,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   List<PaymentHistory>? _paymentHistories;
   bool _isLoadingItems = true;
   String? _errorMessage;
+  final GlobalKey _detailBoundaryKey = GlobalKey();
 
   // Get storeId from user profile
   int _getStoreIdFromUser(BuildContext context) {
@@ -222,22 +226,28 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       appBar: _buildAppBar(context),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTransactionHeader(),
-            const SizedBox(height: 24),
-            _buildTransactionInfo(),
-            const SizedBox(height: 24),
-            _buildTransactionItems(),
-            const SizedBox(height: 24),
-            // Payment History Section (for outstanding, completed, and refund)
-            if (_shouldShowPaymentHistory()) ...[
-              _buildPaymentHistorySection(),
-              const SizedBox(height: 24),
-            ],
-            _buildActionButtons(context),
-          ],
+        child: RepaintBoundary(
+          key: _detailBoundaryKey,
+          child: Container(
+            color: const Color(0xFFF8FAFC),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildTransactionHeader(),
+                const SizedBox(height: 24),
+                _buildTransactionInfo(),
+                const SizedBox(height: 24),
+                _buildTransactionItems(),
+                const SizedBox(height: 24),
+                // Payment History Section (for outstanding, completed, and refund)
+                if (_shouldShowPaymentHistory()) ...[
+                  _buildPaymentHistorySection(),
+                  const SizedBox(height: 24),
+                ],
+                _buildActionButtons(context),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -278,6 +288,34 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         ),
       ),
       centerTitle: true,
+      actions: [
+        Padding(
+          padding: const EdgeInsets.only(right: 8),
+          child: IconButton(
+            onPressed: () => _showShareSheet(context),
+            tooltip: 'Bagikan',
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                LucideIcons.share2,
+                color: Color(0xFF1F2937),
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -453,10 +491,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           if (transaction.status.toLowerCase() == 'outstanding')
             _buildDetailRow('Status Pembayaran', 'Hutang')
           else if (_paymentHistories != null && _paymentHistories!.isNotEmpty)
-            _buildPaymentMethodRow(
-              'Metode Pembayaran',
-              _paymentHistories!.first.paymentMethod,
-            )
+            _buildPaymentMethodsFromHistory(_paymentHistories!)
           else
             _buildDetailRow('Metode Pembayaran', 'Belum tersedia'),
           // Add due date for outstanding transactions
@@ -499,6 +534,72 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Render baris "Metode Pembayaran" dari riwayat. Saat split (lebih dari
+  /// satu metode unik), tampilkan semua metode dalam satu baris dipisah `+`.
+  /// Detail nominal per metode tetap di section "Histori Pembayaran" di bawah.
+  Widget _buildPaymentMethodsFromHistory(List<PaymentHistory> histories) {
+    final seen = <String>{};
+    final uniqueMethods = <String>[];
+    for (final h in histories) {
+      if (seen.add(h.paymentMethod)) {
+        uniqueMethods.add(h.paymentMethod);
+      }
+    }
+
+    if (uniqueMethods.length <= 1) {
+      return _buildPaymentMethodRow(
+        'Metode Pembayaran',
+        uniqueMethods.isEmpty ? histories.first.paymentMethod : uniqueMethods.first,
+      );
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 140,
+            child: Text(
+              'Metode Pembayaran',
+              style: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          const Text(': ', style: TextStyle(color: Color(0xFF6B7280))),
+          Expanded(
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                for (int i = 0; i < uniqueMethods.length; i++) ...[
+                  PaymentMethodDisplay(
+                    paymentMethod: uniqueMethods[i],
+                    fontSize: 14,
+                    iconSize: 16,
+                    color: const Color(0xFF1F2937),
+                  ),
+                  if (i < uniqueMethods.length - 1)
+                    const Text(
+                      '+',
+                      style: TextStyle(
+                        color: Color(0xFF9CA3AF),
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                ],
+              ],
             ),
           ),
         ],
@@ -1245,6 +1346,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
   Widget _buildActionButtons(BuildContext context) {
     final status = transaction.status.toLowerCase();
+    final hasFullAccess = RolePermissions.hasFullAccess(
+      context.watch<AuthProvider>().user,
+    );
 
     // Show "Lihat Struk" and "Refund" buttons for completed transactions
     if (status == 'completed') {
@@ -1270,8 +1374,9 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
               ),
             ),
           ),
-          // Show Refund button only if there are items with remaining_qty > 0
-          if (_transactionData != null &&
+          // Show Refund button only for full-access users (role ID <= 2) and when there are refundable items
+          if (hasFullAccess &&
+              _transactionData != null &&
               _transactionData!.hasRefundableItems) ...[
             const SizedBox(height: 12),
             SizedBox(
@@ -1300,6 +1405,33 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
 
     // Show action buttons for pending and outstanding transactions
     if (status != 'pending' && status != 'outstanding') {
+      return const SizedBox.shrink();
+    }
+
+    // Restricted users (role ID > 2): only allow viewing receipt for pending; hide all actions for outstanding
+    if (!hasFullAccess) {
+      if (status == 'pending') {
+        return SizedBox(
+          width: double.infinity,
+          child: ElevatedButton.icon(
+            onPressed: () => _navigateToReceipt(),
+            icon: const Icon(LucideIcons.receipt, size: 20),
+            label: const Text(
+              'Lihat Struk',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF059669),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              elevation: 0,
+            ),
+          ),
+        );
+      }
       return const SizedBox.shrink();
     }
 
@@ -1577,6 +1709,29 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           //     }).toList() ??
           //     [];
 
+          // Build payment histories from split amounts so the success page
+          // dapat menampilkan rincian metode pembayaran (cash + transfer).
+          final paymentDateIso = DateTime.now().toIso8601String();
+          final histories = <PaymentHistory>[];
+          if ((cashAmount ?? 0) > 0) {
+            histories.add(
+              PaymentHistory(
+                paymentMethod: 'cash',
+                amount: cashAmount!,
+                paymentDate: paymentDateIso,
+              ),
+            );
+          }
+          if ((transferAmount ?? 0) > 0) {
+            histories.add(
+              PaymentHistory(
+                paymentMethod: 'bank_transfer',
+                amount: transferAmount!,
+                paymentDate: paymentDateIso,
+              ),
+            );
+          }
+
           // Navigate to PaymentSuccessPage instead of just going back
           navigator.pushReplacement(
             MaterialPageRoute(
@@ -1598,6 +1753,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
                     paymentStatus == 'utang' && outstandingReminderDate != null
                     ? DateTime.tryParse(outstandingReminderDate)
                     : null,
+                paymentHistories: histories.isNotEmpty ? histories : null,
               ),
             ),
           );
@@ -1679,15 +1835,12 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
     }
   }
 
-  void _navigateToReceipt() {
-    // Konversi data transaksi ke format CartItem untuk ReceiptPage
-    List<CartItem> receiptItems = [];
-
-    // Gunakan _cartItems jika tersedia, jika tidak buat dari _transactionItems
+  List<CartItem> _buildReceiptCartItems() {
     if (_cartItems != null && _cartItems!.isNotEmpty) {
-      receiptItems = _cartItems!;
-    } else if (_transactionItems != null && _transactionItems!.isNotEmpty) {
-      receiptItems = _transactionItems!.map((item) {
+      return _cartItems!;
+    }
+    if (_transactionItems != null && _transactionItems!.isNotEmpty) {
+      return _transactionItems!.map((item) {
         final product = Product(
           id: item.productId,
           name: item.productName,
@@ -1707,31 +1860,12 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           addedAt: item.createdAt,
         );
       }).toList();
-    } else {
-      // Fallback: buat placeholder items berdasarkan total dan jumlah item
-      if (transaction.detailsCount > 0) {
-        double averagePrice =
-            transaction.totalAmount / transaction.detailsCount;
-        for (int i = 0; i < transaction.detailsCount; i++) {
-          receiptItems.add(
-            CartItem(
-              id: i + 1,
-              product: Product(
-                id: i + 1,
-                name: 'Item ${i + 1}',
-                code: 'ITEM${i + 1}',
-                description: 'Item transaksi',
-                price: averagePrice,
-                stock: 1,
-                category: 'General',
-              ),
-              quantity: 1,
-              addedAt: transaction.transactionDate,
-            ),
-          );
-        }
-      }
     }
+    return [];
+  }
+
+  void _navigateToReceipt() {
+    final receiptItems = _buildReceiptCartItems();
 
     Navigator.of(context).push(
       MaterialPageRoute(
@@ -1744,17 +1878,129 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
           subtotal: transaction.totalAmount,
           discount: 0.0,
           total: transaction.totalAmount,
-          paymentMethod: _getPaymentMethodText(
-            _paymentHistories != null && _paymentHistories!.isNotEmpty
-                ? _paymentHistories!.first.paymentMethod
-                : 'cash',
-          ),
+          paymentMethod:
+              _paymentHistories != null && _paymentHistories!.isNotEmpty
+              ? _getPaymentMethodText(_paymentHistories!.first.paymentMethod)
+              : '',
+          paymentHistories: _paymentHistories,
           notes: transaction.notes,
           status: transaction.status,
           dueDate: transaction.outstandingReminderDate,
         ),
       ),
     );
+  }
+
+  void _showShareSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Bagikan Detail Transaksi',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                title: const Text('Bagikan sebagai PDF'),
+                subtitle: const Text('Format struk'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _shareDetailAsPdf();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image, color: Colors.blue),
+                title: const Text('Bagikan sebagai Gambar'),
+                subtitle: const Text('Tangkapan layar detail transaksi'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _shareDetailAsImage();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _shareSubject() => 'Transaksi ${transaction.transactionNumber}';
+
+  String _shareCaption() {
+    final f = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    return '${transaction.store.name} — ${transaction.transactionNumber}\n'
+        'Total: ${f.format(transaction.totalAmount)}';
+  }
+
+  Future<void> _shareDetailAsImage() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ReceiptShareHelper.shareImageFromBoundary(
+        _detailBoundaryKey,
+        filename: 'transaksi_${transaction.transactionNumber}.png',
+        subject: _shareSubject(),
+        text: _shareCaption(),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal membagikan gambar: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareDetailAsPdf() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final bytes = await ReceiptPdfBuilder.build(
+        receiptId: transaction.transactionNumber,
+        transactionDate: transaction.transactionDate,
+        items: _buildReceiptCartItems(),
+        store: transaction.store,
+        user: transaction.user,
+        subtotal: transaction.totalAmount,
+        discount: 0.0,
+        total: transaction.totalAmount,
+        paymentMethod:
+            _paymentHistories != null && _paymentHistories!.isNotEmpty
+            ? _getPaymentMethodText(_paymentHistories!.first.paymentMethod)
+            : '',
+        paymentHistories: _paymentHistories,
+        notes: transaction.notes,
+        status: transaction.status,
+        dueDate: transaction.outstandingReminderDate,
+      );
+      await ReceiptShareHelper.sharePdfBytes(
+        bytes,
+        filename: 'transaksi_${transaction.transactionNumber}.pdf',
+        subject: _shareSubject(),
+        text: _shareCaption(),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal membuat PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   Future<void> _navigateToRefund() async {

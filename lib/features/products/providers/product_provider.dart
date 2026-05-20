@@ -19,6 +19,7 @@ class ProductProvider extends ChangeNotifier {
   int? _customerId; // Customer ID for pricing
   Timer? _searchDebounceTimer; // Timer for search debouncing
   int _searchSequence = 0; // Sequence number to prevent race conditions
+  int _loadSequence = 0; // Token untuk drop respons stale di _loadProductsFromApi
 
   // Pagination state
   int _currentPage = 1;
@@ -92,11 +93,20 @@ class ProductProvider extends ChangeNotifier {
       return;
     }
 
+    // Increment sequence untuk full-replace load. Append ikut sequence
+    // yang sama supaya bila ada full-replace baru di tengah-tengah,
+    // append yang stale ikut di-drop.
+    _loadSequence++;
+    final mySequence = _loadSequence;
+
     // Set loading state
     if (append) {
       _isLoadingMore = true;
     } else {
       _isLoading = true;
+      // Reset flag append yang mungkin nyangkut dari respons stale yang
+      // di-drop tanpa sempat reset flag-nya sendiri.
+      _isLoadingMore = false;
       _errorMessage = null;
     }
     notifyListeners();
@@ -113,6 +123,13 @@ class ProductProvider extends ChangeNotifier {
             _selectedCategoryId, // Use parameter or current selection
         search: search ?? _searchQuery, // Add search parameter
       );
+
+      // Drop respons yang sudah kadaluarsa (ada load lebih baru terjadi
+      // sebelum respons ini tiba). Tanpa guard ini, respons lambat dari
+      // load awal bisa override hasil search yang sudah datang duluan.
+      if (mySequence != _loadSequence) {
+        return;
+      }
 
       if (response.status == 'success') {
         // Update pagination meta
@@ -140,6 +157,10 @@ class ProductProvider extends ChangeNotifier {
         throw Exception(response.message);
       }
     } catch (e) {
+      // Stale error juga di-drop supaya tidak menimpa state load yang lebih baru.
+      if (mySequence != _loadSequence) {
+        return;
+      }
       _errorMessage = 'Gagal memuat produk: ${e.toString()}';
       if (append) {
         _isLoadingMore = false;
@@ -171,14 +192,17 @@ class ProductProvider extends ChangeNotifier {
 
   // Convert API Product model to local Product model
   Product _convertApiProductToLocalProduct(ApiProduct.Product apiProduct) {
+    final firstVariant = apiProduct.variants.first;
     return Product(
       id: apiProduct.id,
-      productVariantId: apiProduct.variants.first.id,
-      name: '${apiProduct.name} ${apiProduct.variants.first.name}',
+      productVariantId: firstVariant.id,
+      name: '${apiProduct.name} ${firstVariant.name}',
       code: apiProduct.sku,
       description: apiProduct.description,
-      price: apiProduct.variants.first.price,
-      stock: apiProduct.variants.first.stock,
+      // Pakai finalPrice supaya harga sesuai customer group (dari pricing_info).
+      // Fallback ke base price kalau pricing_info tidak ada.
+      price: firstVariant.finalPrice,
+      stock: firstVariant.stock,
       category: apiProduct.category.name,
       imagePath: apiProduct.image,
       createdAt: apiProduct.createdAt,
@@ -262,6 +286,26 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
     // Reload all products without filters
     _loadProductsFromApi(search: '', page: 1);
+  }
+
+  /// Reset filter pencarian & kategori lalu reload produk dari API tanpa
+  /// filter. Versi awaitable dari [clearSearch] untuk dipakai pada alur
+  /// resume pending transaction supaya pemanggil bisa menunggu data
+  /// produk siap sebelum mengisi cart / navigasi.
+  Future<void> resetFilters() async {
+    _searchQuery = '';
+    _selectedCategory = '';
+    _selectedCategoryId = null;
+    _currentPage = 1;
+    _isSearching = false;
+    _searchDebounceTimer?.cancel();
+    _searchSequence++;
+
+    notifyListeners();
+
+    if (_customerId != null) {
+      await _loadProductsFromApi(search: '', page: 1);
+    }
   }
 
   // Category filter - Server-side filtering
@@ -462,8 +506,11 @@ class ProductProvider extends ChangeNotifier {
 
   // Load more products for infinite scroll
   Future<void> loadMoreProducts() async {
-    if (_isLoadingMore || !_hasMore) {
-      return; // Don't load if already loading or no more data
+    // Jangan paginate saat load primary (search/filter/refresh) sedang
+    // berjalan — hasil append akan di-drop oleh guard sequence di
+    // _loadProductsFromApi dan respons utama akan reset list-nya.
+    if (_isLoadingMore || !_hasMore || _isLoading || _isSearching) {
+      return;
     }
 
     final nextPage = _currentPage + 1;

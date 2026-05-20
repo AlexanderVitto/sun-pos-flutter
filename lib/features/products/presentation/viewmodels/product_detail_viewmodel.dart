@@ -11,12 +11,15 @@ class ProductDetailViewModel extends ChangeNotifier {
   CartProvider? _cartProvider;
   ProductProvider? _productProvider;
   int _productId;
+  final int _customerId;
   bool _disposed = false;
 
   ProductDetailViewModel({
     required int productId,
+    required int customerId,
     required ProductApiService apiService,
   }) : _productId = productId,
+       _customerId = customerId,
        _apiService = apiService {
     _quantityController = TextEditingController(text: _quantity.toString());
     loadProductDetail();
@@ -76,7 +79,7 @@ class ProductDetailViewModel extends ChangeNotifier {
         final variant = _productDetail!.variants.firstWhere(
           (v) => v.id == variantId,
         );
-        total += variant.price * quantity;
+        total += variant.finalPrice * quantity;
       } catch (e) {
         // Variant not found, skip
         print('⚠️ Variant $variantId not found in totalPrice calculation');
@@ -178,7 +181,10 @@ class ProductDetailViewModel extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final response = await _apiService.getProduct(_productId);
+      final response = await _apiService.getProduct(
+        _productId,
+        customerId: _customerId,
+      );
 
       if (response.status == 'success') {
         _productDetail = response.data;
@@ -286,15 +292,35 @@ class ProductDetailViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Effective current quantity: jika local state belum di-set / 0 tapi
+  /// item sudah ada di cart, pakai jumlah dari cart sebagai titik awal.
+  /// Ini menghindari desync ketika cart diubah di luar ViewModel.
+  int _effectiveVariantQuantity(int variantId) {
+    final localQty = getVariantQuantity(variantId);
+    if (localQty > 0) return localQty;
+
+    if (_cartProvider != null) {
+      try {
+        final cartItem = _cartProvider!.items.firstWhere(
+          (item) => item.product.productVariantId == variantId,
+        );
+        return cartItem.quantity;
+      } catch (_) {
+        // Tidak ada di cart
+      }
+    }
+    return localQty;
+  }
+
   /// Increase quantity for a specific variant
   void increaseVariantQuantity(int variantId) {
-    final currentQty = getVariantQuantity(variantId);
+    final currentQty = _effectiveVariantQuantity(variantId);
     setVariantQuantity(variantId, currentQty + 1);
   }
 
   /// Decrease quantity for a specific variant
   void decreaseVariantQuantity(int variantId) {
-    final currentQty = getVariantQuantity(variantId);
+    final currentQty = _effectiveVariantQuantity(variantId);
     if (currentQty > 0) {
       setVariantQuantity(variantId, currentQty - 1);
     }
@@ -483,7 +509,7 @@ class ProductDetailViewModel extends ChangeNotifier {
           name: '${_productDetail!.name} - ${variant.name}',
           code: variant.sku,
           description: _productDetail!.description,
-          price: variant.price.toDouble(),
+          price: variant.finalPrice.toDouble(),
           stock: variant.stock,
           category: _productDetail!.category.name,
           imagePath: variant.image ?? _productDetail!.image,
@@ -582,7 +608,10 @@ class ProductDetailViewModel extends ChangeNotifier {
     try {
       print('🔄 ProductDetailViewModel: Reloading product detail data');
 
-      final response = await _apiService.getProduct(_productId);
+      final response = await _apiService.getProduct(
+        _productId,
+        customerId: _customerId,
+      );
 
       if (response.status == 'success') {
         _productDetail = response.data;

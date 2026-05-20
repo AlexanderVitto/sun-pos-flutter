@@ -54,6 +54,12 @@ class _PendingTransactionListPageState
       // Clear current cart
       cartProvider.clearCart();
 
+      // Reset filter pencarian/kategori produk supaya POSTransactionPage
+      // menampilkan daftar produk lengkap, bukan hasil filter sesi sebelumnya.
+      // Juga memastikan pencarian product-by-variantId di bawah ini bekerja
+      // pada list produk yang tidak terpotong filter.
+      await productProvider.resetFilters();
+
       if (transaction is PendingTransactionItem) {
         // Handle API transaction - need to get detail first
         final detail = await pendingProvider.getPendingTransactionDetail(
@@ -147,25 +153,34 @@ class _PendingTransactionListPageState
           }
         }
 
-        // Convert API detail items to cart items
+        // Build cart items langsung dari payload detail. Sebelumnya kita cari
+        // di productProvider.products, tapi list itu hanya berisi 1 halaman
+        // (pagination) — produk yang tidak ter-load akan hilang dari cart.
+        // Detail item sudah membawa semua data yang dibutuhkan (id, name,
+        // sku, unitPrice, variantId, optional variant.stock).
         for (final item in detail.details) {
-          // find product in productProvider, return null if not found
-          Product? product =
-              productProvider.products
-                  .where((p) => p.productVariantId == item.productVariantId)
-                  .isNotEmpty
-              ? productProvider.products.firstWhere(
-                  (p) => p.productVariantId == item.productVariantId,
-                )
-              : null;
+          final variant = item.productVariant;
+          final embeddedProduct = item.product;
 
-          if (product != null) {
-            cartProvider.addItem(product, quantity: item.quantity);
-          } else {
-            debugPrint(
-              '⚠️ Product with ID ${item.productVariantId} not found in productProvider',
-            );
-          }
+          final productName = variant != null
+              ? '${item.productName} ${variant.name}'
+              : item.productName;
+
+          final product = Product(
+            id: item.productId,
+            productVariantId: item.productVariantId,
+            name: productName,
+            code: item.productSku,
+            description: embeddedProduct?.description ?? '',
+            price: item.unitPrice,
+            stock: variant?.stock ?? embeddedProduct?.stock ?? 0,
+            category: embeddedProduct?.category ?? 'General',
+            imagePath: variant?.image ?? embeddedProduct?.imagePath,
+            createdAt: item.createdAt,
+            updatedAt: item.updatedAt,
+          );
+
+          cartProvider.addItem(product, quantity: item.quantity);
         }
 
         // Set customer from API customer format

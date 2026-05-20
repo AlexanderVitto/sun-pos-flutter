@@ -24,11 +24,11 @@
 
 # IDs untuk testing — sesuaikan dengan data di server
 @storeId = 7
-@customerId = 1
+@customerId = 59
 @customerGroupId = 1
-@productId = 1
+@productId = 1037
 @productVariantId = 1
-@transactionId = 152
+@transactionId = 162
 @refundId = 1
 @categoryId = 1
 
@@ -170,7 +170,7 @@ Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 3.2 List Products — search by name/SKU
-GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&search=indomie
+GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=1&search=roman
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
@@ -190,7 +190,7 @@ Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 3.6 Get Single Product (detail + variants + customer pricing)
-GET {{baseUrl}}/products/{{productId}}
+GET {{baseUrl}}/products/{{productId}}?customer_id={{customerId}}
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
@@ -577,8 +577,8 @@ Content-Type: {{contentType}}
 Accept: {{accept}}
 
 {
-  "email": "user@example.com",
-  "password": "password123"
+  "email": "cashier@sunfirework.com",
+  "password": "password"
 }
 
 ### 8.2 Auto pakai token dari response 8.1

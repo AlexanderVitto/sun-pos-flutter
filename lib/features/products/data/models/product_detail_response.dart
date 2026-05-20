@@ -13,7 +13,7 @@ class ProductDetailResponse {
     return ProductDetailResponse(
       status: json['status'] ?? '',
       message: json['message'] ?? '',
-      data: ProductDetail.fromJson(json['data'] ?? {}),
+      data: ProductDetail.fromJson(json['data']['data'] ?? {}),
     );
   }
 }
@@ -142,6 +142,11 @@ class ProductVariant {
   final bool isActive;
   final String createdAt;
   final String updatedAt;
+  // Pricing dari payload `pricing_info`. Berisi customer-specific price
+  // sesuai grup customer. Null jika backend tidak mengirim pricing_info.
+  final double? customerFinalPrice;
+  final bool hasCustomerPricing;
+  final String? customerGroupName;
 
   ProductVariant({
     required this.id,
@@ -155,9 +160,23 @@ class ProductVariant {
     required this.isActive,
     required this.createdAt,
     required this.updatedAt,
+    this.customerFinalPrice,
+    this.hasCustomerPricing = false,
+    this.customerGroupName,
   });
 
   factory ProductVariant.fromJson(Map<String, dynamic> json) {
+    // Backend (Laravel) men-serialize empty associative array sebagai `[]`
+    // alih-alih `{}`. Toleransi keduanya supaya parsing tidak crash.
+    final rawAttrs = json['attributes'];
+    final attributes = rawAttrs is Map
+        ? Map<String, dynamic>.from(rawAttrs)
+        : <String, dynamic>{};
+
+    final pricingInfo = json['pricing_info'] is Map
+        ? Map<String, dynamic>.from(json['pricing_info'])
+        : null;
+
     return ProductVariant(
       id: json['id'] ?? 0,
       name: json['name'] ?? '',
@@ -165,11 +184,20 @@ class ProductVariant {
       price: (json['price'] ?? 0).toDouble(),
       costPrice: (json['cost_price'] ?? 0).toDouble(),
       stock: json['stock'] ?? 0,
-      attributes: json['attributes'] ?? {},
+      attributes: attributes,
       image: json['image'],
       isActive: json['is_active'] ?? false,
       createdAt: json['created_at'] ?? '',
       updatedAt: json['updated_at'] ?? '',
+      customerFinalPrice: pricingInfo != null
+          ? (pricingInfo['final_price'] ?? 0).toDouble()
+          : null,
+      hasCustomerPricing: pricingInfo?['has_customer_pricing'] ?? false,
+      customerGroupName: pricingInfo?['customer_group_name'],
     );
   }
+
+  /// Harga akhir untuk display: customer-specific price kalau ada,
+  /// fallback ke base `price`.
+  double get finalPrice => customerFinalPrice ?? price;
 }

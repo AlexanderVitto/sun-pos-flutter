@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/cart_item.dart';
+import '../../../../shared/utils/receipt_share_helper.dart';
 import '../../../customers/data/models/customer.dart';
 import '../../../transactions/data/models/store.dart';
+import '../services/receipt_pdf_builder.dart';
 import 'payment_confirmation_page.dart';
 
 class OrderConfirmationPage extends StatefulWidget {
@@ -173,6 +175,45 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _sharePreviewPdf() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final bytes = await ReceiptPdfBuilder.buildPreview(
+        previewDate: DateTime.now(),
+        items: _cartItems,
+        store: widget.store,
+        customerName: customerName.isNotEmpty ? customerName : null,
+        customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
+        subtotal: subtotal,
+        discount: discountAmount,
+        total: updatedTotalAmount,
+        notes: widget.notesController.text,
+        status: 'Draft',
+      );
+
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final custSlug = customerName.isNotEmpty
+          ? customerName.replaceAll(RegExp(r'\s+'), '_')
+          : 'pesanan';
+      await ReceiptShareHelper.sharePdfBytes(
+        bytes,
+        filename: 'preview_${custSlug}_$ts.pdf',
+        subject: 'Preview Pesanan — ${widget.store.name}',
+        text:
+            'Preview pesanan dari ${widget.store.name}.\n'
+            'Total: Rp ${_formatCurrency(updatedTotalAmount)}\n'
+            'Catatan: dokumen ini bukan bukti pembayaran.',
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal membuat PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   void _showConfirmationDialog() {
@@ -406,6 +447,13 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Bagikan Pesanan (PDF)',
+            onPressed: _sharePreviewPdf,
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 16),

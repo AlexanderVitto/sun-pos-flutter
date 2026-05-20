@@ -1,6 +1,11 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:pdf/pdf.dart';
+import 'package:pdf/widgets.dart' as pw;
+import '../../../../shared/utils/receipt_share_helper.dart';
 import '../../data/models/customer.dart';
 import '../../data/models/payment_receipt_item.dart';
 import '../../../sales/presentation/services/thermal_printer_service.dart';
@@ -34,6 +39,7 @@ class CustomerPaymentReceiptPage extends StatefulWidget {
 class _CustomerPaymentReceiptPageState
     extends State<CustomerPaymentReceiptPage> {
   ThermalPrinterService? _connectedPrinter;
+  final GlobalKey _receiptBoundaryKey = GlobalKey();
 
   @override
   void initState() {
@@ -87,36 +93,46 @@ class _CustomerPaymentReceiptPageState
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            // Header Card
-            _buildHeaderCard(currencyFormat),
-            const SizedBox(height: 16),
+        child: RepaintBoundary(
+          key: _receiptBoundaryKey,
+          child: Container(
+            color: Colors.grey.shade50,
+            child: Column(
+              children: [
+                // Header Card
+                _buildHeaderCard(currencyFormat),
+                const SizedBox(height: 16),
 
-            // List of Paid Transactions
-            ...widget.paidTransactions.asMap().entries.map((entry) {
-              final index = entry.key;
-              final item = entry.value;
-              return Column(
-                children: [
-                  _buildTransactionReceiptCard(item, index + 1, currencyFormat),
-                  const SizedBox(height: 12),
-                ],
-              );
-            }),
+                // List of Paid Transactions
+                ...widget.paidTransactions.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final item = entry.value;
+                  return Column(
+                    children: [
+                      _buildTransactionReceiptCard(
+                        item,
+                        index + 1,
+                        currencyFormat,
+                      ),
+                      const SizedBox(height: 12),
+                    ],
+                  );
+                }),
 
-            // Summary Card
-            _buildSummaryCard(currencyFormat),
-            const SizedBox(height: 16),
+                // Summary Card
+                _buildSummaryCard(currencyFormat),
+                const SizedBox(height: 16),
 
-            // Footer
-            _buildFooter(),
-            const SizedBox(height: 16),
+                // Footer
+                _buildFooter(),
+                const SizedBox(height: 16),
 
-            // Notes if exists
-            if (widget.notes != null && widget.notes!.trim().isNotEmpty)
-              _buildNotesCard(),
-          ],
+                // Notes if exists
+                if (widget.notes != null && widget.notes!.trim().isNotEmpty)
+                  _buildNotesCard(),
+              ],
+            ),
+          ),
         ),
       ),
       bottomNavigationBar: _buildBottomBar(context),
@@ -746,15 +762,7 @@ class _CustomerPaymentReceiptPageState
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    // TODO: Implement share functionality
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Fitur share akan segera hadir'),
-                        backgroundColor: Colors.blue,
-                      ),
-                    );
-                  },
+                  onPressed: () => _showShareSheet(context),
                   icon: const Icon(LucideIcons.share2, size: 18),
                   label: const Text('Bagikan', style: TextStyle(fontSize: 13)),
                   style: OutlinedButton.styleFrom(
@@ -805,6 +813,260 @@ class _CustomerPaymentReceiptPageState
         ),
       ),
     );
+  }
+
+  void _showShareSheet(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Padding(
+                padding: EdgeInsets.all(16),
+                child: Text(
+                  'Bagikan Struk Pembayaran',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.picture_as_pdf, color: Colors.red),
+                title: const Text('Bagikan sebagai PDF'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _shareAsPdf();
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.image, color: Colors.blue),
+                title: const Text('Bagikan sebagai Gambar'),
+                onTap: () {
+                  Navigator.of(sheetContext).pop();
+                  _shareAsImage();
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  String _shareSubject() => 'Struk Pembayaran — ${widget.customer.name}';
+
+  String _shareCaption() {
+    final f = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    return 'Pembayaran hutang dari ${widget.customer.name}\n'
+        'Total dibayar: ${f.format(widget.totalPaid)}';
+  }
+
+  String _baseFilename() {
+    final ts = DateFormat('yyyyMMdd_HHmm').format(widget.paymentDate);
+    final cust = widget.customer.name.replaceAll(RegExp(r'\s+'), '_');
+    return 'pembayaran_${cust}_$ts';
+  }
+
+  Future<void> _shareAsImage() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ReceiptShareHelper.shareImageFromBoundary(
+        _receiptBoundaryKey,
+        filename: '${_baseFilename()}.png',
+        subject: _shareSubject(),
+        text: _shareCaption(),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal membagikan gambar: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _shareAsPdf() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final bytes = await _buildReceiptPdf();
+      await ReceiptShareHelper.sharePdfBytes(
+        bytes,
+        filename: '${_baseFilename()}.pdf',
+        subject: _shareSubject(),
+        text: _shareCaption(),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal membuat PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<Uint8List> _buildReceiptPdf() async {
+    final doc = pw.Document();
+    final currency = NumberFormat.currency(
+      locale: 'id_ID',
+      symbol: 'Rp ',
+      decimalDigits: 0,
+    );
+    final dateFmt = DateFormat('dd MMM yyyy HH:mm', 'id_ID');
+
+    pw.Widget kv(String key, String value, {bool bold = false}) {
+      return pw.Padding(
+        padding: const pw.EdgeInsets.symmetric(vertical: 1),
+        child: pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Text(
+              key,
+              style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+              ),
+            ),
+            pw.Text(
+              value,
+              style: pw.TextStyle(
+                fontSize: 10,
+                fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    doc.addPage(
+      pw.MultiPage(
+        pageFormat: PdfPageFormat.a4.copyWith(
+          marginLeft: 32,
+          marginRight: 32,
+          marginTop: 32,
+          marginBottom: 32,
+        ),
+        build: (context) {
+          return [
+            pw.Center(
+              child: pw.Text(
+                'STRUK PEMBAYARAN HUTANG',
+                style: pw.TextStyle(
+                  fontSize: 14,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 4),
+            pw.Center(
+              child: pw.Text(
+                dateFmt.format(widget.paymentDate),
+                style: const pw.TextStyle(fontSize: 10),
+              ),
+            ),
+            pw.Divider(thickness: 0.8),
+            pw.SizedBox(height: 4),
+            kv('Customer', widget.customer.name, bold: true),
+            if (widget.customer.phone.isNotEmpty)
+              kv('Telepon', widget.customer.phone),
+            kv('Metode Pembayaran', widget.paymentMethod),
+            pw.SizedBox(height: 8),
+            pw.Text(
+              'TRANSAKSI YANG DIBAYAR',
+              style: pw.TextStyle(
+                fontSize: 11,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.SizedBox(height: 4),
+            ...widget.paidTransactions.asMap().entries.map((entry) {
+              final i = entry.key + 1;
+              final item = entry.value;
+              return pw.Container(
+                margin: const pw.EdgeInsets.only(bottom: 6),
+                padding: const pw.EdgeInsets.all(6),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.grey400, width: 0.5),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.start,
+                  children: [
+                    pw.Text(
+                      '$i. ${item.receiptNumber}',
+                      style: pw.TextStyle(
+                        fontSize: 10,
+                        fontWeight: pw.FontWeight.bold,
+                      ),
+                    ),
+                    pw.Text(
+                      dateFmt.format(item.transactionDate),
+                      style: const pw.TextStyle(fontSize: 9),
+                    ),
+                    pw.SizedBox(height: 4),
+                    kv('Total Transaksi', currency.format(item.originalAmount)),
+                    kv(
+                      'Hutang Sebelumnya',
+                      currency.format(item.previousOutstanding),
+                    ),
+                    kv(
+                      'Pembayaran',
+                      currency.format(item.paymentAmount),
+                      bold: true,
+                    ),
+                    kv(
+                      'Sisa Hutang',
+                      currency.format(item.remainingOutstanding),
+                    ),
+                    kv('Status', item.isFullyPaid ? 'LUNAS' : 'SEBAGIAN'),
+                  ],
+                ),
+              );
+            }),
+            pw.Divider(thickness: 0.8),
+            kv('Total Dibayar', currency.format(widget.totalPaid), bold: true),
+            if (widget.changeAmount > 0)
+              kv('Kembalian', currency.format(widget.changeAmount)),
+            if (widget.notes != null && widget.notes!.trim().isNotEmpty) ...[
+              pw.SizedBox(height: 10),
+              pw.Text(
+                'CATATAN:',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontWeight: pw.FontWeight.bold,
+                ),
+              ),
+              pw.Text(
+                widget.notes!,
+                style: const pw.TextStyle(fontSize: 9),
+              ),
+            ],
+            pw.SizedBox(height: 16),
+            pw.Center(
+              child: pw.Text(
+                'Terima kasih atas pembayaran Anda',
+                style: pw.TextStyle(
+                  fontSize: 10,
+                  fontStyle: pw.FontStyle.italic,
+                ),
+              ),
+            ),
+          ];
+        },
+      ),
+    );
+
+    return doc.save();
   }
 
   Future<void> _printReceipt(BuildContext context) async {

@@ -199,7 +199,7 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
                     ),
                     // Price
                     Text(
-                      'Rp ${_formatCurrency(variant.price)}',
+                      'Rp ${_formatCurrency(variant.finalPrice)}',
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,

@@ -115,17 +115,22 @@ class MyApp extends StatelessWidget {
           AuthProvider,
           TransactionListProvider
         >(
-          create: (context) => TransactionListProvider(
-            storeProvider: context.read<StoreProvider>(),
-            authProvider: context.read<AuthProvider>(),
-          ),
+          // Register store-change callback di create() saja agar tidak
+          // terakumulasi setiap kali update() dipanggil oleh proxy.
+          create: (context) {
+            final storeProvider = context.read<StoreProvider>();
+            final provider = TransactionListProvider(
+              storeProvider: storeProvider,
+              authProvider: context.read<AuthProvider>(),
+            );
+            storeProvider.addOnStoreChangedCallback(() {
+              provider.loadTransactions(refresh: true);
+            });
+            return provider;
+          },
           update: (_, storeProvider, authProvider, transactionListProvider) {
             if (transactionListProvider != null) {
               transactionListProvider.updateUserId(authProvider.user?.id);
-              // Register callback to reload transactions when store changes
-              storeProvider.addOnStoreChangedCallback(() {
-                transactionListProvider.loadTransactions(refresh: true);
-              });
               return transactionListProvider;
             }
             final newProvider = TransactionListProvider(
@@ -133,7 +138,6 @@ class MyApp extends StatelessWidget {
               authProvider: authProvider,
             );
             newProvider.updateUserId(authProvider.user?.id);
-            // Register callback to reload transactions when store changes
             storeProvider.addOnStoreChangedCallback(() {
               newProvider.loadTransactions(refresh: true);
             });
@@ -145,22 +149,23 @@ class MyApp extends StatelessWidget {
           AuthProvider,
           RefundListProvider
         >(
-          create: (context) =>
-              RefundListProvider(storeProvider: context.read<StoreProvider>()),
+          create: (context) {
+            final storeProvider = context.read<StoreProvider>();
+            final provider = RefundListProvider(storeProvider: storeProvider);
+            storeProvider.addOnStoreChangedCallback(() {
+              provider.loadRefunds(refresh: true);
+            });
+            return provider;
+          },
           update: (_, storeProvider, authProvider, refundListProvider) {
             if (refundListProvider != null) {
               refundListProvider.updateUserId(authProvider.user?.id);
-              // Register callback to reload refunds when store changes
-              storeProvider.addOnStoreChangedCallback(() {
-                refundListProvider.loadRefunds(refresh: true);
-              });
               return refundListProvider;
             }
             final newProvider = RefundListProvider(
               storeProvider: storeProvider,
             );
             newProvider.updateUserId(authProvider.user?.id);
-            // Register callback to reload refunds when store changes
             storeProvider.addOnStoreChangedCallback(() {
               newProvider.loadRefunds(refresh: true);
             });

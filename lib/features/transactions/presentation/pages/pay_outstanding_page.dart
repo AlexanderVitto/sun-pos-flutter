@@ -1107,6 +1107,17 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
       receiptNotes += '\nCatatan: ${_notesController.text.trim()}';
     }
 
+    // Gabungkan pembayaran lama + pembayaran baru ini agar struk
+    // menampilkan riwayat lengkap (split payment di-render utuh).
+    final mergedPayments = <PaymentHistory>[
+      ...widget.transaction.paymentHistories,
+      PaymentHistory(
+        paymentMethod: _selectedPaymentMethod,
+        amount: _inputAmount,
+        paymentDate: DateTime.now().toIso8601String(),
+      ),
+    ];
+
     // Navigate to receipt page
     Navigator.of(context).pushReplacement(
       MaterialPageRoute(
@@ -1120,6 +1131,7 @@ class _PayOutstandingPageState extends State<PayOutstandingPage> {
           discount: 0.0,
           total: widget.transaction.totalAmount,
           paymentMethod: _selectedPaymentMethod,
+          paymentHistories: mergedPayments,
           notes: receiptNotes,
           status: newStatus,
           dueDate: newStatus == 'outstanding'
