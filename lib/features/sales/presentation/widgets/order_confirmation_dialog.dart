@@ -33,7 +33,7 @@ class OrderConfirmationDialog extends StatefulWidget {
   });
 
   @override
-  _OrderConfirmationDialogState createState() =>
+  State<OrderConfirmationDialog> createState() =>
       _OrderConfirmationDialogState();
 }
 
@@ -87,7 +87,7 @@ class _OrderConfirmationDialogState extends State<OrderConfirmationDialog> {
           // Container(
           //   padding: const EdgeInsets.all(8),
           //   decoration: BoxDecoration(
-          //     color: Colors.orange.withOpacity(0.1),
+          //     color: Colors.orange.withValues(alpha: 0.1),
           //     borderRadius: BorderRadius.circular(8),
           //   ),
           //   child: const Icon(

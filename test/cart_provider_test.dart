@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sun_pos/features/products/providers/product_provider.dart';
 import 'package:sun_pos/features/sales/providers/cart_provider.dart';
@@ -33,7 +34,7 @@ void main() {
       expect(cartProvider.items.first.product.name, 'Test Product');
       expect(cartProvider.items.first.quantity, 1);
 
-      print('✅ Cart test passed - item added successfully');
+      debugPrint('✅ Cart test passed - item added successfully');
     });
 
     test('Cart should handle multiple quantities', () {
@@ -60,7 +61,7 @@ void main() {
       expect(cartProvider.itemCount, 2); // Total quantity is 2
       expect(cartProvider.items.first.quantity, 2);
 
-      print('✅ Cart test passed - multiple quantities handled correctly');
+      debugPrint('✅ Cart test passed - multiple quantities handled correctly');
     });
 
     test('Product provider should have dummy products', () {
@@ -70,7 +71,7 @@ void main() {
       // We can check if products are available after loading
       expect(productProvider.products, isNotNull);
 
-      print('✅ ProductProvider test passed - provider initialized');
+      debugPrint('✅ ProductProvider test passed - provider initialized');
     });
   });
 }

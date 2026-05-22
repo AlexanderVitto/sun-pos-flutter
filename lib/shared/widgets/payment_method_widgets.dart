@@ -45,7 +45,7 @@ class PaymentMethodSelector extends StatelessWidget {
                     border: Border.all(
                       color:
                           isSelected
-                              ? (selectedColor?.withOpacity(0.7) ??
+                              ? (selectedColor?.withValues(alpha: 0.7) ??
                                   Colors.teal.shade400)
                               : Colors.grey.shade300,
                       width: isSelected ? 2 : 1,

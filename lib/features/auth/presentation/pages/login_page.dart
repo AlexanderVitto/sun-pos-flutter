@@ -111,7 +111,7 @@ class _LoginPageState extends State<LoginPage> {
                             borderRadius: BorderRadius.circular(20),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.orange.withOpacity(0.3),
+                                color: Colors.orange.withValues(alpha: 0.3),
                                 blurRadius: 8,
                                 offset: const Offset(0, 2),
                               ),
@@ -153,7 +153,7 @@ class _LoginPageState extends State<LoginPage> {
                             BoxShadow(
                               color: Theme.of(
                                 context,
-                              ).primaryColor.withOpacity(0.3),
+                              ).primaryColor.withValues(alpha: 0.3),
                               blurRadius: 20,
                               offset: const Offset(0, 10),
                             ),
@@ -281,7 +281,7 @@ class _LoginPageState extends State<LoginPage> {
                                 elevation: 2,
                                 shadowColor: Theme.of(
                                   context,
-                                ).primaryColor.withOpacity(0.5),
+                                ).primaryColor.withValues(alpha: 0.5),
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -368,8 +368,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                   decoration: BoxDecoration(
                     color: isStaging
-                        ? Colors.orange.withOpacity(0.1)
-                        : Colors.green.withOpacity(0.1),
+                        ? Colors.orange.withValues(alpha: 0.1)
+                        : Colors.green.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: isStaging ? Colors.orange : Colors.green,

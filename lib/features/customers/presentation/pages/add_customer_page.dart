@@ -89,7 +89,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: const Color(0xFF3B82F6).withOpacity(0.3),
+                          color: const Color(0xFF3B82F6).withValues(alpha: 0.3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -100,7 +100,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: const Icon(
@@ -145,7 +145,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: 0.05),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -548,7 +548,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: isSelected
-              ? const Color(0xFF3B82F6).withOpacity(0.1)
+              ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
               : Colors.transparent,
           borderRadius: BorderRadius.circular(10),
         ),
@@ -592,15 +592,15 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
-                color: discountColor.withOpacity(0.1),
+                color: discountColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: discountColor.withOpacity(0.3)),
+                border: Border.all(color: discountColor.withValues(alpha: 0.3)),
               ),
               child: Text(
                 discount,
                 style: TextStyle(
                   fontSize: 12,
-                  color: discountColor.withOpacity(0.8),
+                  color: discountColor.withValues(alpha: 0.8),
                   fontWeight: FontWeight.bold,
                 ),
               ),

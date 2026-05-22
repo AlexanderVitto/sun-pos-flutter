@@ -38,7 +38,7 @@ class PaymentConfirmationPage extends StatefulWidget {
   });
 
   @override
-  _PaymentConfirmationPageState createState() =>
+  State<PaymentConfirmationPage> createState() =>
       _PaymentConfirmationPageState();
 }
 

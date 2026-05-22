@@ -313,7 +313,7 @@ class AddToCartSection extends StatelessWidget {
                 color: const Color(0xFFFEF2F2),
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(
-                  color: const Color(0xFFEF4444).withOpacity(0.2),
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.2),
                 ),
               ),
               child: Row(

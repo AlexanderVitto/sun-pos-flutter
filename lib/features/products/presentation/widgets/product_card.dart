@@ -178,7 +178,7 @@ class ProductCard extends StatelessWidget {
                                       product.stock > 0
                                           ? Theme.of(
                                             context,
-                                          ).primaryColor.withOpacity(0.1)
+                                          ).primaryColor.withValues(alpha: 0.1)
                                           : Colors.grey[200],
                                   padding: EdgeInsets.zero,
                                 ),
