@@ -929,7 +929,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
       receiptId: widget.receiptId,
       transactionDate: widget.transactionDate,
       items: widget.items,
-      store: widget.store,
       user: widget.user,
       subtotal: widget.subtotal,
       discount: widget.discount,

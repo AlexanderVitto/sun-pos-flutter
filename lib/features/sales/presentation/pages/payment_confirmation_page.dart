@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../../../data/models/cart_item.dart';
+import '../../../../shared/utils/receipt_share_helper.dart';
 import '../../../customers/data/models/customer.dart';
 import '../../../../core/constants/payment_constants.dart';
 import '../../../../core/utils/decimal_text_input_formatter.dart';
+import '../services/receipt_pdf_builder.dart';
 
 class PaymentConfirmationPage extends StatefulWidget {
   final List<CartItem> cartItems;
@@ -632,6 +634,59 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
     }
   }
 
+  /// Build daftar item dengan harga yang sudah diedit (jika ada) diterapkan,
+  /// supaya PDF menampilkan harga final yang disepakati.
+  List<CartItem> _itemsWithEditedPrices() {
+    return widget.cartItems.map((item) {
+      final editedPrice = _editedPrices[item.id];
+      if (editedPrice != null && editedPrice != item.product.price) {
+        return item.copyWith(
+          product: item.product.copyWith(price: editedPrice),
+        );
+      }
+      return item;
+    }).toList();
+  }
+
+  Future<void> _sharePdf() async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final total = _calculateTotalWithEditedPrices();
+      final bytes = await ReceiptPdfBuilder.buildPreview(
+        previewDate: DateTime.now(),
+        items: _itemsWithEditedPrices(),
+        customerName: customerName.isNotEmpty ? customerName : null,
+        customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
+        subtotal: total,
+        discount: 0,
+        total: total,
+        notes: widget.notesController.text,
+        status: _paymentStatus == 'utang' ? 'Hutang' : 'Draft',
+      );
+
+      final ts = DateTime.now().millisecondsSinceEpoch;
+      final custSlug = customerName.isNotEmpty
+          ? customerName.replaceAll(RegExp(r'\s+'), '_')
+          : 'pesanan';
+      await ReceiptShareHelper.sharePdfBytes(
+        bytes,
+        filename: 'preview_${custSlug}_$ts.pdf',
+        subject: 'Preview Pesanan',
+        text:
+            'Preview pesanan.\n'
+            'Total: Rp ${_formatPrice(total)}\n'
+            'Catatan: dokumen ini bukan bukti pembayaran.',
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text('Gagal membuat PDF: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -648,6 +703,13 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.of(context).pop(),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share),
+            tooltip: 'Bagikan Pesanan (PDF)',
+            onPressed: _isProcessing ? null : _sharePdf,
+          ),
+        ],
       ),
       body: SafeArea(
         child: Column(
@@ -2621,6 +2683,22 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
       );
     }
 
+    // Helper untuk mengembalikan harga ke harga asli produk.
+    void resetPrice() {
+      setState(() {
+        _editedPrices.remove(item.id);
+      });
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harga dikembalikan ke harga asli'),
+          backgroundColor: Colors.blueGrey,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -2850,6 +2928,14 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
             ],
           ),
           actions: [
+            if (_editedPrices.containsKey(item.id))
+              TextButton(
+                onPressed: resetPrice,
+                child: Text(
+                  'Reset',
+                  style: TextStyle(color: Colors.red.shade600),
+                ),
+              ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               child: Text(
@@ -2888,6 +2974,6 @@ class _PaymentConfirmationPageState extends State<PaymentConfirmationPage> {
           ],
         );
       },
-    );
+    ).whenComplete(priceController.dispose);
   }
 }

@@ -103,27 +103,31 @@ class _ProductGridState extends State<ProductGrid> {
                 ),
               ),
             Expanded(
-              child: GridView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.all(16),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: widget.crossAxisCount,
-                  childAspectRatio: aspectRatio,
-                  crossAxisSpacing: 8,
-                  mainAxisSpacing: 8,
+              child: RefreshIndicator(
+                onRefresh: productProvider.refreshProducts,
+                child: GridView.builder(
+                  controller: _scrollController,
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.all(16),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: widget.crossAxisCount,
+                    childAspectRatio: aspectRatio,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                  ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) {
+                    final product = products[index];
+                    return ProductCard(
+                      product: product,
+                      onTap: widget.onProductTap != null
+                          ? () => widget.onProductTap!(product)
+                          : null,
+                      onAddToCart: (product, quantity) =>
+                          widget.onAddToCart(product, quantity),
+                    );
+                  },
                 ),
-                itemCount: products.length,
-                itemBuilder: (context, index) {
-                  final product = products[index];
-                  return ProductCard(
-                    product: product,
-                    onTap: widget.onProductTap != null
-                        ? () => widget.onProductTap!(product)
-                        : null,
-                    onAddToCart: (product, quantity) =>
-                        widget.onAddToCart(product, quantity),
-                  );
-                },
               ),
             ),
             if (productProvider.isLoadingMore)

@@ -1,7 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../core/routes/app_router.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/pending_transaction_provider.dart';
+import '../../../products/providers/product_provider.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../../data/models/product.dart';
 import '../../../products/presentation/pages/product_detail_page.dart';
@@ -22,15 +26,29 @@ class POSTransactionPage extends StatefulWidget {
 }
 
 class _POSTransactionPageState extends State<POSTransactionPage>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, RouteAware {
   DateTime? _lastAutoSave;
   int _lastCartItemCount = 0;
+
+  // Periodic product refresh: how often to pull fresh products in the
+  // background, and the minimum gap between any two refreshes (regardless of
+  // trigger) to avoid storms when multiple triggers fire close together.
+  static const Duration _productRefreshInterval = Duration(seconds: 30);
+  static const Duration _productRefreshThrottle = Duration(seconds: 10);
+  Timer? _productRefreshTimer;
+  DateTime? _lastProductRefresh;
 
   @override
   void initState() {
     super.initState();
     // Add observer to listen for app lifecycle changes
     WidgetsBinding.instance.addObserver(this);
+
+    // Start periodic background refresh of products so kasir keeps getting
+    // the latest server data without manual action.
+    _productRefreshTimer = Timer.periodic(_productRefreshInterval, (_) {
+      _refreshProductsIfIdle(reason: 'periodic');
+    });
 
     // Debug: Check initial cart state
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -39,9 +57,22 @@ class _POSTransactionPageState extends State<POSTransactionPage>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Subscribe to route changes so we get notified when this page becomes
+    // visible again after a pushed page is popped (e.g. returning from Cart).
+    final route = ModalRoute.of(context);
+    if (route is ModalRoute<void>) {
+      appRouteObserver.subscribe(this, route);
+    }
+  }
+
+  @override
   void dispose() {
     // Remove observer
     WidgetsBinding.instance.removeObserver(this);
+    appRouteObserver.unsubscribe(this);
+    _productRefreshTimer?.cancel();
     // Save transaction before disposing
     _saveCurrentTransaction();
     super.dispose();
@@ -56,6 +87,43 @@ class _POSTransactionPageState extends State<POSTransactionPage>
         state == AppLifecycleState.detached) {
       _saveCurrentTransaction();
     }
+
+    // Refresh products when the app returns to the foreground — handles the
+    // common case of switching away for a while and coming back.
+    if (state == AppLifecycleState.resumed) {
+      _refreshProductsIfIdle(reason: 'app-resume');
+    }
+  }
+
+  @override
+  void didPopNext() {
+    // Called when the user returns to POS after popping a pushed page
+    // (e.g. closing Cart or a detail page). Server data may have changed
+    // while they were away.
+    _refreshProductsIfIdle(reason: 'route-popnext');
+  }
+
+  /// Refresh products if no other product load is in flight and the throttle
+  /// window has elapsed. User-initiated pull-to-refresh bypasses this and is
+  /// handled directly by `RefreshIndicator` in `ProductGrid`.
+  void _refreshProductsIfIdle({required String reason}) {
+    if (!mounted) return;
+    final now = DateTime.now();
+    if (_lastProductRefresh != null &&
+        now.difference(_lastProductRefresh!) < _productRefreshThrottle) {
+      return;
+    }
+    final productProvider = Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    );
+    if (productProvider.isLoading || productProvider.isSearching) {
+      // Don't clobber an in-flight search/filter result.
+      return;
+    }
+    _lastProductRefresh = now;
+    debugPrint('🔄 POS: refreshing products ($reason)');
+    productProvider.refreshProducts();
   }
 
   /// Debug method to check cart state

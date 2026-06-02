@@ -170,7 +170,7 @@ Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 3.2 List Products — search by name/SKU
-GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=1&search=roman
+GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&search=whis
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 

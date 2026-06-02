@@ -64,6 +64,10 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   late TextEditingController _discountController;
   bool _payWithCash = false; // Toggle untuk bayar tunai
 
+  // Harga hasil edit per item (itemId -> harga baru). Item tanpa entry di sini
+  // memakai harga asli dari produk.
+  final Map<int, double> _editedPrices = {};
+
   @override
   void initState() {
     super.initState();
@@ -97,10 +101,14 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
   String get customerPhone => _selectedCustomer?.phone ?? '';
   String get customerAddress => _selectedCustomer?.address ?? '';
 
+  /// Harga efektif satu item: harga hasil edit jika ada, jika tidak harga asli.
+  double _getEffectivePrice(CartItem item) =>
+      _editedPrices[item.id] ?? item.product.price;
+
   List<CartItem> get updatedCartItems => _cartItems.map((item) {
-    // Apply discount percentage to each item's price
-    final discountedPrice =
-        item.product.price * (1 - (_discountPercentage / 100));
+    // Pakai harga efektif (hasil edit) sebagai dasar, lalu terapkan diskon.
+    final basePrice = _getEffectivePrice(item);
+    final discountedPrice = basePrice * (1 - (_discountPercentage / 100));
     return item.copyWith(
       product: item.product.copyWith(price: discountedPrice),
     );
@@ -108,7 +116,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
 
   double get subtotal => _cartItems.fold(
     0.0,
-    (sum, item) => sum + (item.product.price * item.quantity),
+    (sum, item) => sum + (_getEffectivePrice(item) * item.quantity),
   );
 
   double get subtotalAfterDiscount => updatedCartItems.fold(
@@ -182,8 +190,7 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
     try {
       final bytes = await ReceiptPdfBuilder.buildPreview(
         previewDate: DateTime.now(),
-        items: _cartItems,
-        store: widget.store,
+        items: updatedCartItems,
         customerName: customerName.isNotEmpty ? customerName : null,
         customerPhone: customerPhone.isNotEmpty ? customerPhone : null,
         subtotal: subtotal,
@@ -431,6 +438,317 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
     }
   }
 
+  // Tampilkan dialog untuk mengedit harga per item.
+  void _showEditPriceDialog(BuildContext context, CartItem item) {
+    final priceController = TextEditingController();
+    final currentPrice = _getEffectivePrice(item);
+    priceController.text = _formatCurrency(currentPrice);
+
+    // Helper untuk menyimpan harga baru.
+    void updatePrice(double newPrice) {
+      setState(() {
+        _editedPrices[item.id] = newPrice;
+      });
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Harga berhasil diubah menjadi Rp ${_formatCurrency(newPrice)}',
+          ),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+
+    // Helper untuk mengembalikan harga ke harga asli produk.
+    void resetPrice() {
+      setState(() {
+        _editedPrices.remove(item.id);
+      });
+      Navigator.of(context).pop();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Harga dikembalikan ke harga asli'),
+          backgroundColor: Colors.blueGrey,
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade100,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(Icons.edit, color: Colors.blue.shade600, size: 20),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Edit Harga Item',
+                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Info produk
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.shopping_bag,
+                        color: Colors.grey,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.product.name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 14,
+                            ),
+                          ),
+                          Text(
+                            'Jumlah: ${item.quantity}x',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Input harga
+              const Text(
+                'Harga per Item',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: priceController,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                onChanged: (value) {
+                  // Format input dengan pemisah ribuan
+                  String cleanText = value.replaceAll(RegExp(r'[^\d]'), '');
+
+                  if (cleanText.isEmpty) {
+                    return;
+                  }
+
+                  double? parsedValue = double.tryParse(cleanText);
+                  if (parsedValue != null) {
+                    String formattedText = _formatCurrency(parsedValue);
+
+                    int cursorPosition = priceController.selection.baseOffset;
+                    int originalDotsBeforeCursor =
+                        value.substring(0, cursorPosition).split('.').length -
+                        1;
+                    int newDotsBeforeCursor =
+                        formattedText
+                            .substring(
+                              0,
+                              formattedText.length.clamp(0, cursorPosition),
+                            )
+                            .split('.')
+                            .length -
+                        1;
+                    int newCursorPosition =
+                        cursorPosition +
+                        (newDotsBeforeCursor - originalDotsBeforeCursor);
+
+                    priceController.value = TextEditingValue(
+                      text: formattedText,
+                      selection: TextSelection.collapsed(
+                        offset: newCursorPosition.clamp(
+                          0,
+                          formattedText.length,
+                        ),
+                      ),
+                    );
+                  }
+                },
+                decoration: InputDecoration(
+                  prefixText: 'Rp ',
+                  hintText: 'Masukkan harga baru',
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(
+                      color: Colors.blue.shade400,
+                      width: 2,
+                    ),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: Colors.red, width: 2),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 16,
+                  ),
+                ),
+                onSubmitted: (value) {
+                  final newPrice = double.tryParse(
+                    value.replaceAll('.', '').replaceAll(',', '.'),
+                  );
+                  if (newPrice != null && newPrice > 0) {
+                    updatePrice(newPrice);
+                  } else {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Harga harus lebih besar dari 0'),
+                        backgroundColor: Colors.red,
+                        duration: Duration(seconds: 3),
+                      ),
+                    );
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Perbandingan subtotal saat ini vs baru
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Subtotal saat ini:'),
+                        Text(
+                          'Rp ${_formatCurrency(currentPrice * item.quantity)}',
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text('Subtotal baru:'),
+                        ValueListenableBuilder<TextEditingValue>(
+                          valueListenable: priceController,
+                          builder: (context, value, child) {
+                            final newPrice =
+                                double.tryParse(
+                                  value.text
+                                      .replaceAll('.', '')
+                                      .replaceAll(',', '.'),
+                                ) ??
+                                currentPrice;
+                            return Text(
+                              'Rp ${_formatCurrency(newPrice * item.quantity)}',
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue.shade700,
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            if (_editedPrices.containsKey(item.id))
+              TextButton(
+                onPressed: resetPrice,
+                child: Text(
+                  'Reset',
+                  style: TextStyle(color: Colors.red.shade600),
+                ),
+              ),
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text(
+                'Batal',
+                style: TextStyle(color: Colors.grey.shade600),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                final newPrice = double.tryParse(
+                  priceController.text.replaceAll('.', '').replaceAll(',', '.'),
+                );
+
+                if (newPrice != null && newPrice > 0) {
+                  updatePrice(newPrice);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Harga harus lebih besar dari 0'),
+                      backgroundColor: Colors.red,
+                      duration: Duration(seconds: 3),
+                    ),
+                  );
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              child: const Text('Simpan'),
+            ),
+          ],
+        );
+      },
+    ).whenComplete(priceController.dispose);
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -625,56 +943,126 @@ class _OrderConfirmationPageState extends State<OrderConfirmationPage> {
                                         ),
                                       ),
                                       const SizedBox(width: 8),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 8,
-                                          vertical: 4,
-                                        ),
-                                        decoration: BoxDecoration(
-                                          color: Colors.green.shade50,
-                                          borderRadius: BorderRadius.circular(
-                                            6,
+                                      if (_editedPrices.containsKey(item.id))
+                                        Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Text(
+                                              'Rp ${_formatCurrency(item.product.price)}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: Colors.grey.shade500,
+                                                decoration: TextDecoration
+                                                    .lineThrough,
+                                              ),
+                                            ),
+                                            Text(
+                                              'Rp ${_formatCurrency(_getEffectivePrice(item))}',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                color: Colors.green.shade700,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                          ],
+                                        )
+                                      else
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
                                           ),
-                                          border: Border.all(
-                                            color: Colors.green.shade200,
+                                          decoration: BoxDecoration(
+                                            color: Colors.green.shade50,
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.green.shade200,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'Rp ${_formatCurrency(item.product.price)}',
+                                            style: TextStyle(
+                                              fontSize: 12,
+                                              color: Colors.green.shade700,
+                                              fontWeight: FontWeight.w600,
+                                            ),
                                           ),
                                         ),
-                                        child: Text(
-                                          'Rp ${_formatCurrency(item.product.price)}',
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.green.shade700,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
                                     ],
                                   ),
                                 ],
                               ),
                             ),
 
-                            // Subtotal
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.orange.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.orange.shade200,
+                            // Subtotal + tombol edit harga
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.orange.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.orange.shade200,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Rp ${_formatCurrency(updatedCartItems[index].product.price * item.quantity)}',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.orange.shade700,
+                                    ),
+                                  ),
                                 ),
-                              ),
-                              child: Text(
-                                'Rp ${_formatCurrency(updatedCartItems[index].product.price * item.quantity)}',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.orange.shade700,
+                                const SizedBox(height: 4),
+                                InkWell(
+                                  onTap: () =>
+                                      _showEditPriceDialog(context, item),
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.blue.shade50,
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(
+                                        color: Colors.blue.shade200,
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          Icons.edit,
+                                          size: 12,
+                                          color: Colors.blue.shade600,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Edit Harga',
+                                          style: TextStyle(
+                                            fontSize: 10,
+                                            color: Colors.blue.shade600,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
                           ],
                         );

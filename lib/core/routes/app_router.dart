@@ -18,6 +18,13 @@ import '../../features/transactions/presentation/pages/transaction_list_page.dar
 import '../../features/cash_flows/presentation/pages/cash_flows_page.dart';
 import '../../features/cash_flows/presentation/pages/add_cash_flow_page.dart';
 
+/// Global RouteObserver. Pages can implement `RouteAware` and subscribe to
+/// receive callbacks when they are pushed/popped/exposed (e.g.
+/// `didPopNext` fires when a page returns to the foreground after a pushed
+/// page is popped).
+final RouteObserver<ModalRoute<void>> appRouteObserver =
+    RouteObserver<ModalRoute<void>>();
+
 class AppRouter {
   static Store _getDefaultStore() {
     final now = DateTime.now();

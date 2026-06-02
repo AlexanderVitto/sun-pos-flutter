@@ -6,7 +6,6 @@ import 'package:pdf/widgets.dart' as pw;
 
 import '../../../../data/models/cart_item.dart';
 import '../../../transactions/data/models/payment_history.dart';
-import '../../../transactions/data/models/store.dart';
 import '../../../transactions/data/models/user.dart';
 
 class ReceiptPdfBuilder {
@@ -14,7 +13,6 @@ class ReceiptPdfBuilder {
     required String receiptId,
     required DateTime transactionDate,
     required List<CartItem> items,
-    required Store store,
     User? user,
     required double subtotal,
     required double discount,
@@ -226,7 +224,6 @@ class ReceiptPdfBuilder {
   static Future<Uint8List> buildPreview({
     required DateTime previewDate,
     required List<CartItem> items,
-    required Store store,
     String? customerName,
     String? customerPhone,
     required double subtotal,
@@ -382,31 +379,6 @@ class ReceiptPdfBuilder {
               ),
             ),
             pw.SizedBox(height: 12),
-
-            // Store header
-            pw.Center(
-              child: pw.Text(
-                store.name.toUpperCase(),
-                style: pw.TextStyle(
-                  fontSize: 14,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-            ),
-            pw.Center(
-              child: pw.Text(
-                store.address,
-                style: const pw.TextStyle(fontSize: 9),
-                textAlign: pw.TextAlign.center,
-              ),
-            ),
-            pw.Center(
-              child: pw.Text(
-                'Telp: ${store.phoneNumber}',
-                style: const pw.TextStyle(fontSize: 9),
-              ),
-            ),
-            pw.SizedBox(height: 8),
             pw.Divider(thickness: 0.8),
 
             // Date + customer block

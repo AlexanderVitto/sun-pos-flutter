@@ -1973,7 +1973,6 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         receiptId: transaction.transactionNumber,
         transactionDate: transaction.transactionDate,
         items: _buildReceiptCartItems(),
-        store: transaction.store,
         user: transaction.user,
         subtotal: transaction.totalAmount,
         discount: 0.0,

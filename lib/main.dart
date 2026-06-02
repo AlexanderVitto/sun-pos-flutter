@@ -183,6 +183,7 @@ class MyApp extends StatelessWidget {
         themeMode: ThemeMode.light,
         home: const SplashScreen(),
         onGenerateRoute: AppRouter.generateRoute,
+        navigatorObservers: [appRouteObserver],
         debugShowCheckedModeBanner: false,
       ),
     );
