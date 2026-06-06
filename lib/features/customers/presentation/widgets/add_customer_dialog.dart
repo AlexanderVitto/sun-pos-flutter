@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../data/models/customer_group.dart';
+import '../../../dashboard/providers/store_provider.dart';
 
 class AddCustomerDialog extends StatefulWidget {
   const AddCustomerDialog({super.key});
@@ -309,6 +310,10 @@ class _AddCustomerDialogState extends State<AddCustomerDialog> {
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
         customerGroupId: _selectedCustomerGroup?.id,
+        storeId: Provider.of<StoreProvider>(
+          context,
+          listen: false,
+        ).getSelectedStoreId(),
       );
 
       if (customer != null) {

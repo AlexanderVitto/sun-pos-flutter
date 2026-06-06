@@ -23,6 +23,16 @@ class BluetoothPrinterService {
   BluetoothCharacteristic? _writeCharacteristic;
   bool _isConnected = false;
 
+  /// Apakah karakteristik tulis terpilih mendukung write-without-response.
+  /// Jika false, kita harus memakai write-with-response; memaksa
+  /// `withoutResponse: true` pada karakteristik yang tidak mendukungnya
+  /// akan dilempar exception oleh flutter_blue_plus.
+  bool _writeWithoutResponse = true;
+
+  /// MTU hasil negosiasi. Default BLE = 23 (≈20 byte usable). Tanpa
+  /// menaikkan MTU, mengirim chunk besar bisa gagal/terpotong.
+  int _mtu = 23;
+
   bool get isConnected => _isConnected;
   BluetoothDevice? get connectedDevice => _connectedDevice;
 
@@ -252,6 +262,17 @@ class BluetoothPrinterService {
       await targetDevice.connect();
       debugPrint('Device connected successfully');
 
+      // Naikkan MTU agar bisa mengirim chunk besar (Android). iOS mengatur
+      // MTU otomatis & requestMtu tidak didukung — abaikan errornya.
+      try {
+        final negotiated = await targetDevice.requestMtu(247);
+        _mtu = negotiated > 0 ? negotiated : targetDevice.mtuNow;
+        debugPrint('Negotiated MTU: $_mtu');
+      } catch (e) {
+        _mtu = targetDevice.mtuNow;
+        debugPrint('requestMtu unsupported/failed, using mtuNow=$_mtu ($e)');
+      }
+
       // Discover services
       debugPrint('Discovering services...');
       final services = await targetDevice.discoverServices();
@@ -270,18 +291,29 @@ class BluetoothPrinterService {
 
           if (characteristic.properties.write ||
               characteristic.properties.writeWithoutResponse) {
-            writeChar = characteristic;
-            debugPrint('  -> Selected for writing');
-            break;
+            // Prefer write-without-response (lebih cepat), tapi terima
+            // write-with-response bila itu satu-satunya yang tersedia.
+            if (writeChar == null ||
+                characteristic.properties.writeWithoutResponse) {
+              writeChar = characteristic;
+              debugPrint('  -> Selected for writing');
+            }
+            if (characteristic.properties.writeWithoutResponse) break;
           }
         }
-        if (writeChar != null) break;
+        if (writeChar != null &&
+            writeChar.properties.writeWithoutResponse) {
+          break;
+        }
       }
 
       if (writeChar != null) {
         _connectedDevice = targetDevice;
         _writeCharacteristic = writeChar;
+        // Pakai mode tulis sesuai kemampuan karakteristik terpilih.
+        _writeWithoutResponse = writeChar.properties.writeWithoutResponse;
         _isConnected = true;
+        debugPrint('Write mode: withoutResponse=$_writeWithoutResponse');
 
         debugPrint('Successfully connected to Bluetooth printer');
         return true;
@@ -363,8 +395,8 @@ class BluetoothPrinterService {
       bytes += generator.feed(2);
       bytes += generator.cut();
 
-      // Send to printer via characteristic
-      await _writeCharacteristic!.write(bytes, withoutResponse: true);
+      // Send to printer via characteristic (chunked, mode sesuai kemampuan)
+      await printRawData(bytes);
 
       debugPrint('Bluetooth test print sent successfully');
       return true;
@@ -382,15 +414,22 @@ class BluetoothPrinterService {
     }
 
     try {
-      // Split data into chunks if too large (BLE has MTU limits)
-      const chunkSize = 185; // Safe chunk size for most BLE implementations
+      // Ukuran chunk dari MTU hasil negosiasi (3 byte untuk ATT header).
+      // Clamp ke minimal 20 byte (worst-case default BLE).
+      final chunkSize = (_mtu - 3).clamp(20, 512);
       for (int i = 0; i < data.length; i += chunkSize) {
         final end = (i + chunkSize < data.length) ? i + chunkSize : data.length;
         final chunk = data.sublist(i, end);
-        await _writeCharacteristic!.write(chunk, withoutResponse: true);
+        await _writeCharacteristic!.write(
+          chunk,
+          withoutResponse: _writeWithoutResponse,
+        );
 
-        // Small delay between chunks
-        await Future.delayed(const Duration(milliseconds: 50));
+        // Jeda kecil hanya perlu pada write-without-response (tanpa ack)
+        // agar buffer printer tidak overflow.
+        if (_writeWithoutResponse) {
+          await Future.delayed(const Duration(milliseconds: 20));
+        }
       }
 
       debugPrint('Bluetooth print data sent successfully');

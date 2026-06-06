@@ -1,5 +1,6 @@
 import '../../../../core/network/auth_http_client.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/services/selected_store_holder.dart';
 import '../models/product_response.dart';
 import '../models/product_detail_response.dart';
 import '../models/category_response.dart';
@@ -37,6 +38,12 @@ class ProductApiService {
         'customer_id': customerId.toString(),
         'active_only': activeOnly.toString(),
       };
+
+      // Sisipkan store_id dari toko yang sedang dipilih (bila ada).
+      final storeId = SelectedStoreHolder.instance.storeId;
+      if (storeId != null) {
+        queryParams['store_id'] = storeId.toString();
+      }
 
       if (search != null && search.isNotEmpty) {
         queryParams['search'] = search;
@@ -83,9 +90,19 @@ class ProductApiService {
     required int customerId,
   }) async {
     try {
-      final uri = Uri.parse('$baseUrl/products/$productId').replace(
-        queryParameters: {'customer_id': customerId.toString()},
-      );
+      final queryParams = <String, String>{
+        'customer_id': customerId.toString(),
+      };
+
+      // Sisipkan store_id dari toko yang sedang dipilih (bila ada).
+      final storeId = SelectedStoreHolder.instance.storeId;
+      if (storeId != null) {
+        queryParams['store_id'] = storeId.toString();
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/products/$productId',
+      ).replace(queryParameters: queryParams);
 
       final response = await _httpClient.get(
         uri.toString(),

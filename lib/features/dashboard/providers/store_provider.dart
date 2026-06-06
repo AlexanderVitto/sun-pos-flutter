@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 import '../../transactions/data/models/store.dart';
+import '../../../core/services/selected_store_holder.dart';
 
 class StoreProvider extends ChangeNotifier {
   Store? _selectedStore;
@@ -21,6 +22,7 @@ class StoreProvider extends ChangeNotifier {
   /// Set the currently selected store
   void setSelectedStore(Store store) {
     _selectedStore = store;
+    SelectedStoreHolder.instance.storeId = store.id;
     notifyListeners();
     debugPrint('🏪 Store selected: ${store.name} (ID: ${store.id})');
 
@@ -42,6 +44,7 @@ class StoreProvider extends ChangeNotifier {
   void initializeWithStores(List<Store> stores) {
     if (stores.isNotEmpty && _selectedStore == null) {
       _selectedStore = stores.first;
+      SelectedStoreHolder.instance.storeId = _selectedStore!.id;
       debugPrint(
         '🏪 Store initialized: ${_selectedStore!.name} (ID: ${_selectedStore!.id})',
       );
@@ -63,6 +66,7 @@ class StoreProvider extends ChangeNotifier {
   /// Clear selected store
   void clearSelectedStore() {
     _selectedStore = null;
+    SelectedStoreHolder.instance.clear();
     notifyListeners();
     debugPrint('🏪 Store selection cleared');
   }

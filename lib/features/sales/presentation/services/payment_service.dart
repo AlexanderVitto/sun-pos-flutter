@@ -35,30 +35,33 @@ class PaymentService {
 
   // Get storeId from selected store in StoreProvider, fallback to user profile
   static int _getStoreIdFromUser(BuildContext context) {
+    // 1. Toko yang sedang dipilih di StoreProvider (jika ada).
+    //    Pakai `selectedStore` (nullable), BUKAN getSelectedStoreId() yang
+    //    sudah menelan kasus null jadi `1` sehingga fallback di bawah tidak
+    //    pernah tercapai saat belum ada toko terpilih.
     try {
-      // First try to get selected store from StoreProvider
       final storeProvider = Provider.of<StoreProvider>(context, listen: false);
-      final selectedStoreId = storeProvider.getSelectedStoreId();
-
-      // StoreProvider has a default fallback value, so use it directly
-      return selectedStoreId;
+      final selected = storeProvider.selectedStore;
+      if (selected != null) {
+        return selected.id;
+      }
     } catch (e) {
       debugPrint('Error getting storeId from StoreProvider: $e');
-
-      // Fallback to first store from user profile
-      try {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final user = authProvider.user;
-
-        if (user != null && user.stores.isNotEmpty) {
-          return user.stores.first.id;
-        }
-      } catch (e2) {
-        debugPrint('Error getting storeId from user profile: $e2');
-      }
     }
 
-    // Default fallback storeId
+    // 2. Fallback: toko pertama dari profil user.
+    try {
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+
+      if (user != null && user.stores.isNotEmpty) {
+        return user.stores.first.id;
+      }
+    } catch (e2) {
+      debugPrint('Error getting storeId from user profile: $e2');
+    }
+
+    // 3. Default terakhir.
     return 1;
   }
 
@@ -157,6 +160,38 @@ class PaymentService {
     required CartProvider cartProvider,
   }) async {
     if (cartProvider.items.isEmpty) {
+      // Jika keranjang dikosongkan tapi masih ada draft tersimpan,
+      // hapus draft-nya di server (DELETE /transactions/{id}).
+      if (cartProvider.hasExistingDraftTransaction) {
+        final draftId = cartProvider.draftTransactionId!;
+        try {
+          final transactionProvider = Provider.of<TransactionProvider>(
+            context,
+            listen: false,
+          );
+          final deleted = await transactionProvider.deleteTransaction(draftId);
+          if (deleted) {
+            cartProvider.setDraftTransactionId(null);
+            debugPrint(
+              '🗑️ Draft transaction $draftId dihapus (keranjang kosong)',
+            );
+          } else if (context.mounted) {
+            PosUIHelpers.showErrorSnackbar(
+              context,
+              transactionProvider.errorMessage ??
+                  'Gagal menghapus draft transaksi',
+            );
+          }
+        } catch (e) {
+          debugPrint('Failed to delete draft transaction: ${e.toString()}');
+          if (context.mounted) {
+            PosUIHelpers.showErrorSnackbar(
+              context,
+              'Gagal menghapus draft transaksi: ${e.toString()}',
+            );
+          }
+        }
+      }
       return; // No items to process
     }
 

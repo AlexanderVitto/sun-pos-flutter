@@ -15,20 +15,20 @@
 
 ### Variabel global -----------------------------------------------------
 
-# @baseUrl = https://stg.sfxsys.com/api/v1
-@baseUrl = https://sfxsys.com/api/v1
+@baseUrl = https://stg.sfxsys.com/api/v1
+# @baseUrl = https://sfxsys.com/api/v1
 
 # Token didapat dari endpoint Login. Update manual atau pakai chaining
 # dgn {{login.response.body.data.token}} (lihat contoh di bawah).
-@token = 104|WYuzmYwdLdtWSFlqFwt53zkwtYSnKKlvg8Ib5P7ia251610d
+@token = 134|akKNW44FXXpzAlboiQOy7PnOmAvqbJZv5g6ALlZSb4357d0a
 
 # IDs untuk testing — sesuaikan dengan data di server
-@storeId = 7
-@customerId = 59
+@storeId = 2
+@customerId = 9
 @customerGroupId = 1
-@productId = 1037
+@productId = 1096
 @productVariantId = 1
-@transactionId = 162
+@transactionId = 199
 @refundId = 1
 @categoryId = 1
 
@@ -101,17 +101,17 @@ Accept: {{accept}}
 ### =====================================================================
 
 ### 2.1 List Customers (paginated + search)
-GET {{baseUrl}}/customers?page=1&per_page=15
+GET {{baseUrl}}/customers?page=1&per_page=15&store_id={{storeId}}
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 2.2 List Customers — search
-GET {{baseUrl}}/customers?page=1&per_page=15&search=budi
+GET {{baseUrl}}/customers?page=1&per_page=15&search=budi&store_id={{storeId}}
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 2.3 List Customers — outstanding only (utang)
-GET {{baseUrl}}/customers?page=1&per_page=15&outstanding_only=true&sort_direction=asc
+GET {{baseUrl}}/customers?page=1&per_page=15&outstanding_only=true&sort_direction=asc&store_id={{storeId}}
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
@@ -130,7 +130,8 @@ Accept: {{accept}}
   "name": "Budi Santoso",
   "phone": "081234567890",
   "address": "Jl. Mawar No. 10, Jakarta",
-  "customer_group_id": {{customerGroupId}}
+  "customer_group_id": {{customerGroupId}},
+  "store_id": {{storeId}}
 }
 
 ### 2.6 Update Customer
@@ -143,7 +144,8 @@ Accept: {{accept}}
   "name": "Budi Santoso (Updated)",
   "phone": "081234567891",
   "address": "Jl. Mawar No. 12, Jakarta",
-  "customer_group_id": {{customerGroupId}}
+  "customer_group_id": {{customerGroupId}},
+  "store_id": {{storeId}}
 }
 
 ### 2.7 Delete Customer
@@ -165,12 +167,12 @@ Accept: {{accept}}
 ### =====================================================================
 
 ### 3.1 List Products (default)
-GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&active_only=true
+GET {{baseUrl}}/products?customer_id={{customerId}}&store_id={{storeId}}&page=1&per_page=5&active_only=true
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 3.2 List Products — search by name/SKU
-GET {{baseUrl}}/products?customer_id={{customerId}}&page=1&per_page=20&search=whis
+GET {{baseUrl}}/products?customer_id={{customerId}}&store_id={{storeId}}&page=1&per_page=20&search=ambon
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
@@ -215,7 +217,7 @@ Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 4.3 List Pending (Draft) Transactions
-GET {{baseUrl}}/transactions?page=1&per_page=50&status=draft&sort_by=created_at&sort_direction=desc&store_id={{storeId}}
+GET {{baseUrl}}/transactions?page=1&per_page=50&status=pending&sort_by=created_at&sort_direction=desc&store_id={{storeId}}
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
@@ -334,7 +336,7 @@ Accept: {{accept}}
   "store_id": {{storeId}},
   "customer_name": "Budi Santoso",
   "customer_phone": "081234567890",
-  "status": "completed",
+  "status": "draft",
   "notes": "Resumed dari draft",
   "transaction_date": "2026-05-04T10:30:00.000Z",
   "payments": [
@@ -565,23 +567,38 @@ Accept: {{accept}}
 
 
 ### =====================================================================
-### 8. CONTOH CHAINING — login → pakai token-nya otomatis
+### 8. STORES
+### =====================================================================
+
+### 8.1 List Stores
+GET {{baseUrl}}/stores
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+### 8.2 Get Single Store
+GET {{baseUrl}}/stores/{{storeId}}
+Authorization: Bearer {{token}}
+Accept: {{accept}}
+
+
+### =====================================================================
+### 9. CONTOH CHAINING — login → pakai token-nya otomatis
 ### =====================================================================
 ### Setelah jalankan request di bawah, request berikutnya bisa pakai
 ### {{loginChain.response.body.data.token}} tanpa perlu copy-paste.
 
-### 8.1 Login (chained)
+### 9.1 Login (chained)
 # @name loginChain
 POST {{baseUrl}}/auth/login
 Content-Type: {{contentType}}
 Accept: {{accept}}
 
 {
-  "email": "cashier@sunfirework.com",
+  "email": "staff@sunfirework.com",
   "password": "password"
 }
 
-### 8.2 Auto pakai token dari response 8.1
+### 9.2 Auto pakai token dari response 9.1
 GET {{baseUrl}}/auth/profile
 Authorization: Bearer {{loginChain.response.body.data.token}}
 Accept: {{accept}}

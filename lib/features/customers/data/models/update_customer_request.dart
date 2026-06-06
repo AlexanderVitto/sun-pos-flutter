@@ -3,16 +3,22 @@ class UpdateCustomerRequest {
   final String phone;
   final String? address;
   final int? customerGroupId;
+  final int storeId;
 
   const UpdateCustomerRequest({
     required this.name,
     required this.phone,
     this.address,
     this.customerGroupId,
+    required this.storeId,
   });
 
   Map<String, dynamic> toJson() {
-    final json = <String, dynamic>{'name': name, 'phone': phone};
+    final json = <String, dynamic>{
+      'name': name,
+      'phone': phone,
+      'store_id': storeId,
+    };
 
     if (address != null) {
       json['address'] = address!;
@@ -27,6 +33,6 @@ class UpdateCustomerRequest {
 
   @override
   String toString() {
-    return 'UpdateCustomerRequest(name: $name, phone: $phone, address: $address, customerGroupId: $customerGroupId)';
+    return 'UpdateCustomerRequest(name: $name, phone: $phone, address: $address, customerGroupId: $customerGroupId, storeId: $storeId)';
   }
 }

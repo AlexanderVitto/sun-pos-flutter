@@ -5,6 +5,9 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../providers/customer_provider.dart';
 import '../../data/models/customer.dart';
 import '../../data/models/customer_group.dart';
+import '../../../dashboard/providers/store_provider.dart';
+import '../../../transactions/data/models/store.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 class UpdateCustomerPage extends StatefulWidget {
   final Customer customer;
@@ -26,7 +29,9 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
   late final TextEditingController _phoneController;
   late final TextEditingController _addressController;
   CustomerGroup? _selectedGroup;
+  Store? _selectedStore;
   bool _isSubmitting = false;
+  bool _isLoadingStores = false;
 
   @override
   void initState() {
@@ -45,6 +50,13 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
       );
       customerProvider.loadCustomerGroups();
 
+      // Pre-select toko yang sedang aktif (jika ada)
+      _selectedStore = Provider.of<StoreProvider>(
+        context,
+        listen: false,
+      ).selectedStore;
+      _loadStoresFromProfile();
+
       // Set initial selected group if customer has one
       if (widget.customer.customerGroupId != null) {
         final groups = customerProvider.customerGroups;
@@ -59,6 +71,24 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
           );
         }
       }
+    });
+  }
+
+  /// Ambil daftar toko dari endpoint /auth/profile (AuthProvider.user.stores).
+  Future<void> _loadStoresFromProfile() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    if (authProvider.user?.stores.isEmpty ?? true) {
+      setState(() => _isLoadingStores = true);
+    }
+
+    await authProvider.fetchUserProfile();
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingStores = false;
+      final stores = authProvider.user?.stores ?? [];
+      _selectedStore ??= stores.isNotEmpty ? stores.first : null;
     });
   }
 
@@ -78,6 +108,23 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
   }
 
   Future<void> _handleSubmit() async {
+    // Validate store selection
+    if (_selectedStore == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Row(
+            children: [
+              Icon(LucideIcons.alertCircle, color: Colors.white),
+              SizedBox(width: 8),
+              Text('Pilih toko terlebih dahulu'),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     // Validate customer group if required
     if (widget.requiresCustomerGroup && _selectedGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -113,6 +160,7 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
             ? _addressController.text.trim()
             : null,
         customerGroupId: _selectedGroup?.id,
+        storeId: _selectedStore!.id,
       );
 
       if (updatedCustomer != null && mounted) {
@@ -501,6 +549,31 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
                           maxLines: 3,
                           textCapitalization: TextCapitalization.sentences,
                         ),
+
+                        const SizedBox(height: 24),
+
+                        // Store Section
+                        const Text(
+                          'Toko',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF1E293B),
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        const Text(
+                          'Pilih toko untuk customer ini',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Color(0xFF6B7280),
+                            fontWeight: FontWeight.w500,
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        _buildStoreSection(),
 
                         const SizedBox(height: 24),
 
@@ -1000,6 +1073,193 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
           );
         },
       ),
+    );
+  }
+
+  Widget _buildStoreSection() {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final stores = authProvider.user?.stores ?? [];
+
+        if (_isLoadingStores && stores.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (stores.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: const Column(
+              children: [
+                Icon(LucideIcons.store, size: 40, color: Color(0xFF9CA3AF)),
+                SizedBox(height: 12),
+                Text(
+                  'Tidak ada toko tersedia',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF6B7280),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Column(
+          children: stores.map((store) {
+            final isSelected = _selectedStore?.id == store.id;
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: isSelected ? const Color(0xFFEFF6FF) : Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: isSelected
+                      ? const Color(0xFF3B82F6)
+                      : const Color(0xFFD1D5DB),
+                  width: isSelected ? 2.5 : 1.5,
+                ),
+                boxShadow: isSelected
+                    ? [
+                        BoxShadow(
+                          color: const Color(0xFF3B82F6).withValues(alpha: 0.25),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ]
+                    : [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.04),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    setState(() {
+                      _selectedStore = store;
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(18),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: isSelected
+                                  ? const Color(0xFF3B82F6)
+                                  : const Color(0xFF9CA3AF),
+                              width: 2.5,
+                            ),
+                            color: isSelected
+                                ? const Color(0xFF3B82F6)
+                                : Colors.white,
+                          ),
+                          child: isSelected
+                              ? const Icon(
+                                  LucideIcons.check,
+                                  size: 18,
+                                  color: Colors.white,
+                                )
+                              : null,
+                        ),
+                        const SizedBox(width: 16),
+                        Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: isSelected
+                                ? const Color(0xFF3B82F6)
+                                : const Color(0xFF6B7280),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            LucideIcons.store,
+                            size: 18,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                store.name,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w700,
+                                  color: isSelected
+                                      ? const Color(0xFF1E40AF)
+                                      : const Color(0xFF111827),
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              if (store.address.isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 4),
+                                  child: Text(
+                                    store.address,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: isSelected
+                                          ? const Color(0xFF4B5563)
+                                          : const Color(0xFF6B7280),
+                                      height: 1.4,
+                                    ),
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                        if (!store.isActive)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Text(
+                              'Nonaktif',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Color(0xFF6B7280),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        );
+      },
     );
   }
 

@@ -62,6 +62,7 @@ class CustomerProvider extends ChangeNotifier {
     required String phone,
     String? address,
     int? customerGroupId,
+    required int storeId,
   }) async {
     _isCreating = true;
     _errorMessage = null;
@@ -73,6 +74,7 @@ class CustomerProvider extends ChangeNotifier {
         phone: phone.trim(),
         address: address,
         customerGroupId: customerGroupId,
+        storeId: storeId,
       );
 
       final response = await _apiService.createCustomer(request);
@@ -174,6 +176,11 @@ class CustomerProvider extends ChangeNotifier {
 
     _isLoading = true;
     _errorMessage = null;
+    // Buang data lama saat refresh agar list dari layar sebelumnya tidak
+    // sempat tampil sebelum hasil baru datang (provider ini di-share global).
+    if (refresh) {
+      _customers = [];
+    }
     notifyListeners();
 
     try {
@@ -273,6 +280,7 @@ class CustomerProvider extends ChangeNotifier {
     required String phone,
     String? address,
     int? customerGroupId,
+    required int storeId,
   }) async {
     _isUpdating = true;
     _errorMessage = null;
@@ -284,6 +292,7 @@ class CustomerProvider extends ChangeNotifier {
         phone: phone.trim(),
         address: address,
         customerGroupId: customerGroupId,
+        storeId: storeId,
       );
 
       final response = await _apiService.updateCustomer(customerId, request);

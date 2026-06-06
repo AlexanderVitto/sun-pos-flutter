@@ -201,11 +201,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Store Header
-                    _buildStoreHeader(),
-
-                    const Divider(height: 32, thickness: 2),
-
                     // Transaction Info
                     _buildTransactionInfo(),
 
@@ -316,50 +311,6 @@ class _ReceiptPageState extends State<ReceiptPage> {
     );
   }
 
-  Widget _buildStoreHeader() {
-    return Column(
-      children: [
-        // Store Logo
-        Container(
-          width: 80,
-          height: 80,
-          decoration: BoxDecoration(
-            color: Colors.blue[600],
-            borderRadius: BorderRadius.circular(40),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.blue.withValues(alpha: 0.3),
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: const Icon(Icons.store, size: 40, color: Colors.white),
-        ),
-        const SizedBox(height: 16),
-
-        // Store Name
-        Text(
-          widget.store.name,
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 8),
-
-        // Store Address
-        Text(
-          '${widget.store.address}\nTelp: ${widget.store.phoneNumber}',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-
   Widget _buildTransactionInfo() {
     return Column(
       children: [
@@ -402,7 +353,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
           children: [
             Text('Kasir:', style: TextStyle(color: Colors.grey[600])),
             Text(
-              widget.user?.name ?? 'Admin POS',
+              _toInitials(widget.user?.name ?? 'Admin POS'),
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
           ],
@@ -881,7 +832,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
   String _shareSubject() => 'Struk ${widget.receiptId}';
 
   String _shareCaption() {
-    return '${widget.store.name} — Struk ${widget.receiptId}\n'
+    return 'Struk ${widget.receiptId}\n'
         'Total: Rp ${_formatPrice(widget.total)}';
   }
 
@@ -1209,20 +1160,25 @@ class _ReceiptPageState extends State<ReceiptPage> {
     }
   }
 
+  /// Ubah nama menjadi inisial huruf besar. "Agus Louis" -> "AL".
+  String _toInitials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed
+        .split(RegExp(r'\s+'))
+        .map((part) => part.isNotEmpty ? part[0].toUpperCase() : '')
+        .join();
+  }
+
   String _generateReceiptText() {
     final buffer = StringBuffer();
 
     buffer.writeln('=================================');
-    buffer.writeln('     ${widget.store.name.toUpperCase()}');
-    buffer.writeln('  ${widget.store.address}');
-    buffer.writeln('       Telp: ${widget.store.phoneNumber}');
-    buffer.writeln('=================================');
-    buffer.writeln();
     buffer.writeln('STRUK PEMBAYARAN');
     buffer.writeln();
     buffer.writeln('No. Transaksi: ${widget.receiptId}');
     buffer.writeln('Tanggal: ${_formatDateTime(widget.transactionDate)}');
-    buffer.writeln('Kasir: ${widget.user?.name ?? 'Admin POS'}');
+    buffer.writeln('Kasir: ${_toInitials(widget.user?.name ?? 'Admin POS')}');
 
     final histories = widget.paymentHistories;
     if (histories != null && histories.length > 1) {

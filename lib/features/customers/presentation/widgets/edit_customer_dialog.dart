@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../providers/customer_provider.dart';
 import '../../data/models/customer.dart';
+import '../../../dashboard/providers/store_provider.dart';
 
 class EditCustomerDialog extends StatefulWidget {
   final Customer customer;
@@ -361,6 +362,10 @@ class _EditCustomerDialogState extends State<EditCustomerDialog> {
         customerId: widget.customer.id,
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
+        storeId: Provider.of<StoreProvider>(
+          context,
+          listen: false,
+        ).getSelectedStoreId(),
       );
 
       if (updatedCustomer != null) {

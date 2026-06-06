@@ -26,7 +26,14 @@ class _ProductCardState extends State<ProductCard> {
   Widget build(BuildContext context) {
     return Consumer<CartProvider>(
       builder: (context, cartProvider, child) {
-        final existingItem = cartProvider.getItemByProductId(widget.product.id);
+        // Cocokkan berdasarkan productVariantId lebih dulu (kunci paling andal,
+        // tetap bekerja saat resume draft di mana product_id bisa null/0),
+        // lalu fallback ke product.id untuk kompatibilitas.
+        final existingItem =
+            cartProvider.getItemByProductVariantId(
+              widget.product.productVariantId,
+            ) ??
+            cartProvider.getItemByProductId(widget.product.id);
         final isProductInCart = existingItem != null;
 
         return Container(

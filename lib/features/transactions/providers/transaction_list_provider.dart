@@ -210,6 +210,11 @@ class TransactionListProvider with ChangeNotifier {
     if (_status != status) {
       _status = status;
       _currentPage = 1;
+      // Buang data dari filter sebelumnya agar tidak sempat tampil (mis. data
+      // Beranda yang status-nya null) sebelum hasil terfilter datang.
+      _transactions = [];
+      _meta = null;
+      _links = null;
       notifyListeners();
     }
   }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -6,6 +8,8 @@ import 'package:sun_pos/data/models/product.dart';
 import 'package:sun_pos/features/products/providers/product_provider.dart';
 import '../../../customers/presentation/pages/update_customer_page.dart';
 import '../../providers/pending_transaction_provider.dart';
+import '../../../dashboard/providers/store_provider.dart';
+import '../../../../core/events/transaction_events.dart';
 import '../../data/models/pending_transaction_api_models.dart';
 import 'customer_selection_page.dart';
 import '../../providers/cart_provider.dart';
@@ -21,6 +25,8 @@ class PendingTransactionListPage extends StatefulWidget {
 
 class _PendingTransactionListPageState
     extends State<PendingTransactionListPage> {
+  StreamSubscription<TransactionEvent>? _transactionEventSubscription;
+
   @override
   void initState() {
     super.initState();
@@ -30,8 +36,34 @@ class _PendingTransactionListPageState
         context,
         listen: false,
       );
-      pendingProvider.loadPendingTransactions();
+      final storeId = context
+          .read<StoreProvider>()
+          .selectedStore
+          ?.id;
+      pendingProvider.loadPendingTransactions(storeId: storeId);
     });
+
+    // Refresh daftar draft saat ada transaksi dibuat / diupdate / dihapus.
+    _listenToTransactionEvents();
+  }
+
+  /// Dengarkan event transaksi (create/update/delete) untuk auto-refresh
+  /// daftar draft secara real-time.
+  void _listenToTransactionEvents() {
+    _transactionEventSubscription = TransactionEvents.instance.stream.listen((
+      event,
+    ) {
+      if (!mounted) return;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _refreshTransactions();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _transactionEventSubscription?.cancel();
+    super.dispose();
   }
 
   Future<void> _refreshTransactions() async {
@@ -39,7 +71,8 @@ class _PendingTransactionListPageState
       context,
       listen: false,
     );
-    await pendingProvider.loadPendingTransactions();
+    final storeId = context.read<StoreProvider>().selectedStore?.id;
+    await pendingProvider.loadPendingTransactions(storeId: storeId);
   }
 
   void _resumeTransaction(dynamic transaction) async {
@@ -167,8 +200,14 @@ class _PendingTransactionListPageState
               ? '${item.productName} ${variant.name}'
               : item.productName;
 
+          // Gunakan id dari objek product yang ter-embed bila tersedia.
+          // Field datar `product_id` pada detail bisa 0/null (saat simpan draft
+          // dulu hanya product_variant_id yang dikirim), sehingga cart item
+          // ber-id 0 dan tidak match dengan kartu di grid → produk tidak
+          // tertandai "sudah di keranjang". Embedded product.id selalu base id
+          // yang sama dengan id produk di grid.
           final product = Product(
-            id: item.productId,
+            id: embeddedProduct?.id ?? item.productId,
             productVariantId: item.productVariantId,
             name: productName,
             code: item.productSku,

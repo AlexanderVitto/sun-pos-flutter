@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../customers/providers/customer_provider.dart';
 import '../../../customers/data/models/customer.dart';
+import '../../../dashboard/providers/store_provider.dart';
 
 class CustomerSelectorWidget extends StatefulWidget {
   final Function(Customer?) onCustomerSelected;
@@ -113,6 +114,10 @@ class _CustomerSelectorWidgetState extends State<CustomerSelectorWidget> {
       final newCustomer = await customerProvider.createCustomer(
         name: name.trim(),
         phone: phone.trim(),
+        storeId: Provider.of<StoreProvider>(
+          context,
+          listen: false,
+        ).getSelectedStoreId(),
       );
 
       if (newCustomer != null && mounted) {

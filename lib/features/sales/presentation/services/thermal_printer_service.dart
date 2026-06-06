@@ -249,40 +249,32 @@ class ThermalPrinterService {
     }
 
     try {
+      // Satu sumber kebenaran: bangun byte struk sekali, lalu kirim ke
+      // network atau bluetooth. Menghindari struk yang berbeda antar jalur.
+      final bytes = await _buildReceiptBytes(
+        receiptId: receiptId,
+        transactionDate: transactionDate,
+        items: items,
+        store: store,
+        user: user,
+        subtotal: subtotal,
+        discount: discount,
+        total: total,
+        paymentMethod: paymentMethod,
+        paymentHistories: paymentHistories,
+        notes: notes,
+        status: status,
+        dueDate: dueDate,
+      );
+
       if (_connectionType == PrinterConnectionType.network &&
           _printer != null) {
-        return await _printReceiptNetwork(
-          receiptId: receiptId,
-          transactionDate: transactionDate,
-          items: items,
-          store: store,
-          user: user,
-          subtotal: subtotal,
-          discount: discount,
-          total: total,
-          paymentMethod: paymentMethod,
-          paymentHistories: paymentHistories,
-          notes: notes,
-          status: status,
-          dueDate: dueDate,
-        );
+        _printer!.rawBytes(bytes);
+        debugPrint('Receipt printed successfully (network)');
+        return true;
       } else if (_connectionType == PrinterConnectionType.bluetooth &&
           _bluetoothPrinter != null) {
-        return await _printReceiptBluetooth(
-          receiptId: receiptId,
-          transactionDate: transactionDate,
-          items: items,
-          store: store,
-          user: user,
-          subtotal: subtotal,
-          discount: discount,
-          total: total,
-          paymentMethod: paymentMethod,
-          paymentHistories: paymentHistories,
-          notes: notes,
-          status: status,
-          dueDate: dueDate,
-        );
+        return await _bluetoothPrinter!.printRawData(bytes);
       }
 
       return false;
@@ -313,8 +305,9 @@ class ThermalPrinterService {
     }
   }
 
-  /// Mencetak receipt dengan network printer
-  Future<bool> _printReceiptNetwork({
+  /// Membangun byte ESC/POS struk. Dipakai bersama oleh network & bluetooth
+  /// agar isi struk selalu identik di kedua jalur (item, diskon, jatuh tempo).
+  Future<List<int>> _buildReceiptBytes({
     required String receiptId,
     required DateTime transactionDate,
     required List<CartItem> items,
@@ -329,228 +322,197 @@ class ThermalPrinterService {
     String? status,
     DateTime? dueDate,
   }) async {
-    if (_printer == null) return false;
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm58, profile);
+    List<int> bytes = [];
 
-    try {
-      // Header dengan nama toko
-      _printer!.text(
-        store.name,
+    // Header toko dihapus sesuai requirement
+    bytes += generator.text('================================');
+    bytes += generator.text(
+      'STRUK PEMBAYARAN',
+      styles: const PosStyles(align: PosAlign.center, bold: true),
+    );
+    bytes += generator.text('================================');
+    bytes += generator.feed(1);
+
+    // Info transaksi
+    bytes += generator.row([
+      PosColumn(
+        text: 'No. Transaksi',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+      PosColumn(
+        text: ': $receiptId',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+    ]);
+    bytes += generator.row([
+      PosColumn(
+        text: 'Tanggal',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+      PosColumn(
+        text: ': ${_formatDateTime(transactionDate)}',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+    ]);
+    bytes += generator.row([
+      PosColumn(
+        text: 'Kasir',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+      PosColumn(
+        text: ': ${_toInitials(user?.name ?? 'Admin POS')}',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+    ]);
+
+    // Pembayaran — multi-method bila histories > 1, selain itu satu baris
+    if (paymentHistories != null && paymentHistories.length > 1) {
+      bytes += generator.row([
+        PosColumn(
+          text: 'Pembayaran',
+          width: 6,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: ':',
+          width: 6,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+      ]);
+      for (final p in paymentHistories) {
+        bytes += generator.row([
+          PosColumn(
+            text: '  ${_formatPaymentMethodLabel(p.paymentMethod)}',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+          PosColumn(
+            text: 'Rp ${_formatPrice(p.amount)}',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.right),
+          ),
+        ]);
+      }
+    } else {
+      final label = paymentHistories != null && paymentHistories.isNotEmpty
+          ? _formatPaymentMethodLabel(paymentHistories.first.paymentMethod)
+          : paymentMethod;
+      bytes += generator.row([
+        PosColumn(
+          text: 'Pembayaran',
+          width: 6,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: ': $label',
+          width: 6,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+      ]);
+    }
+
+    // Status hutang + jatuh tempo
+    if (status != null && status.toLowerCase() == 'outstanding') {
+      bytes += generator.row([
+        PosColumn(
+          text: 'Status Pembayaran',
+          width: 6,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: ': Hutang',
+          width: 6,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+      ]);
+      if (dueDate != null) {
+        bytes += generator.row([
+          PosColumn(
+            text: 'Jatuh Tempo',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+          PosColumn(
+            text: ': ${_formatOutstandingDate(dueDate)}',
+            width: 6,
+            styles: const PosStyles(align: PosAlign.left),
+          ),
+        ]);
+      }
+    }
+
+    bytes += generator.feed(1);
+
+    // Detail pembelian
+    bytes += generator.text('--------------------------------');
+    bytes += generator.text(
+      'DETAIL PEMBELIAN',
+      styles: const PosStyles(bold: true),
+    );
+    bytes += generator.text('--------------------------------');
+    bytes += generator.row([
+      PosColumn(
+        text: 'Item',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.left, bold: true),
+      ),
+      PosColumn(
+        text: 'Subtotal',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.right, bold: true),
+      ),
+    ]);
+    bytes += generator.text('--------------------------------');
+
+    for (final item in items) {
+      final itemName = item.product.code.isNotEmpty
+          ? '${item.product.code} ${item.product.name}'
+          : item.product.name;
+      bytes += generator.text(
+        itemName,
         styles: const PosStyles(
-          align: PosAlign.center,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-          bold: true,
+          align: PosAlign.left,
+          height: PosTextSize.size1,
+          width: PosTextSize.size1,
         ),
       );
-      _printer!.feed(1);
-
-      // Alamat toko
-      _printer!.text(
-        store.address,
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.text(
-        'Telp: ${store.phoneNumber}',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.feed(1);
-
-      // Garis pemisah
-      _printer!.text('================================');
-      _printer!.text(
-        'STRUK PEMBAYARAN',
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-      );
-      _printer!.text('================================');
-      _printer!.feed(1);
-
-      // Informasi transaksi
-      _printer!.row([
+      bytes += generator.row([
         PosColumn(
-          text: 'No. Transaksi',
+          text: '${item.quantity}@ ${_formatPrice(item.product.price)}',
           width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-        PosColumn(
-          text: ': $receiptId',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-      ]);
-
-      _printer!.row([
-        PosColumn(
-          text: 'Tanggal',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-        PosColumn(
-          text: ': ${_formatDateTime(transactionDate)}',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-      ]);
-
-      _printer!.row([
-        PosColumn(
-          text: 'Kasir',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-        PosColumn(
-          text: ': ${user?.name ?? 'Admin POS'}',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-      ]);
-
-      // Pembayaran — multi-method bila ada histories > 1, selain itu single line
-      if (paymentHistories != null && paymentHistories.length > 1) {
-        _printer!.row([
-          PosColumn(
-            text: 'Pembayaran',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-          PosColumn(
-            text: ':',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-        ]);
-        for (final p in paymentHistories) {
-          _printer!.row([
-            PosColumn(
-              text: '  ${_formatPaymentMethodLabel(p.paymentMethod)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-            PosColumn(
-              text: 'Rp ${_formatPrice(p.amount)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right),
-            ),
-          ]);
-        }
-      } else {
-        final label = paymentHistories != null && paymentHistories.isNotEmpty
-            ? _formatPaymentMethodLabel(paymentHistories.first.paymentMethod)
-            : paymentMethod;
-        _printer!.row([
-          PosColumn(
-            text: 'Pembayaran',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-          PosColumn(
-            text: ': $label',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-        ]);
-      }
-
-      // Tambahkan informasi outstanding jika status adalah outstanding
-      if (status != null && status.toLowerCase() == 'outstanding') {
-        _printer!.row([
-          PosColumn(
-            text: 'Status Pembayaran',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-          PosColumn(
-            text: ': Hutang',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-        ]);
-
-        // Tampilkan tanggal jatuh tempo jika ada
-        // if (dueDate != null) {
-        //   _printer!.row([
-        //     PosColumn(
-        //       text: 'Jatuh Tempo',
-        //       width: 6,
-        //       styles: const PosStyles(align: PosAlign.left),
-        //     ),
-        //     PosColumn(
-        //       text: ': ${_formatOutstandingDate(dueDate)}',
-        //       width: 6,
-        //       styles: const PosStyles(align: PosAlign.left),
-        //     ),
-        //   ]);
-        // }
-      }
-
-      _printer!.feed(1);
-
-      // Detail pembelian
-      _printer!.text('--------------------------------');
-      _printer!.text('DETAIL PEMBELIAN', styles: const PosStyles(bold: true));
-      _printer!.text('--------------------------------');
-
-      // Header tabel
-      _printer!.row([
-        PosColumn(
-          text: 'Item',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left, bold: true),
-        ),
-        PosColumn(
-          text: 'Subtotal',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.right, bold: true),
-        ),
-      ]);
-      _printer!.text('--------------------------------');
-
-      // Item-item dengan format baru: nama item di baris pertama, qty@harga | subtotal di baris kedua
-      for (final item in items) {
-        final itemName = item.product.name;
-
-        // Baris pertama: Nama item (font normal, tidak bold)
-        _printer!.text(
-          itemName,
           styles: const PosStyles(
             align: PosAlign.left,
             height: PosTextSize.size1,
             width: PosTextSize.size1,
           ),
-        );
-
-        // Baris kedua: Quantity@harga (kiri) dan subtotal (kanan) dengan font lebih kecil
-        _printer!.row([
-          PosColumn(
-            text: '${item.quantity}@ ${_formatPrice(item.product.price)}',
-            width: 6,
-            styles: const PosStyles(
-              align: PosAlign.left,
-              height: PosTextSize.size1,
-              width: PosTextSize.size1,
-            ),
+        ),
+        PosColumn(
+          text: 'Rp ${_formatPrice(item.subtotal)}',
+          width: 6,
+          styles: const PosStyles(
+            align: PosAlign.right,
+            height: PosTextSize.size1,
+            width: PosTextSize.size1,
+            bold: true,
           ),
-          PosColumn(
-            text: 'Rp ${_formatPrice(item.subtotal)}',
-            width: 6,
-            styles: const PosStyles(
-              align: PosAlign.right,
-              height: PosTextSize.size1,
-              width: PosTextSize.size1,
-              bold: true,
-            ),
-          ),
-        ]);
-
-        // Spasi kecil antar item untuk kejelasan
-        if (items.last != item) {
-          _printer!.text('');
-        }
+        ),
+      ]);
+      if (items.last != item) {
+        bytes += generator.text('');
       }
+    }
 
-      _printer!.text('--------------------------------');
-
-      // Total
-      _printer!.row([
+    // Subtotal & diskon hanya ditampilkan bila ada diskon
+    if (discount > 0) {
+      bytes += generator.row([
         PosColumn(
           text: 'Subtotal',
           width: 8,
@@ -562,497 +524,103 @@ class ThermalPrinterService {
           styles: const PosStyles(align: PosAlign.right),
         ),
       ]);
-
-      if (discount > 0) {
-        _printer!.row([
-          PosColumn(
-            text: 'Diskon',
-            width: 8,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-          PosColumn(
-            text: 'Rp ${_formatPrice(discount)}',
-            width: 4,
-            styles: const PosStyles(align: PosAlign.right),
-          ),
-        ]);
-      }
-
-      _printer!.text('================================');
-      _printer!.row([
+      bytes += generator.row([
         PosColumn(
-          text: 'TOTAL',
-          width: 4,
-          styles: const PosStyles(
-            align: PosAlign.left,
-            bold: true,
-            height: PosTextSize.size1,
-          ),
-        ),
-        PosColumn(
-          text: 'Rp ${_formatPrice(total)}',
+          text: 'Diskon',
           width: 8,
-          styles: const PosStyles(
-            align: PosAlign.right,
-            bold: true,
-            height: PosTextSize.size1,
-          ),
-        ),
-      ]);
-      _printer!.text('================================');
-      _printer!.feed(1);
-
-      // Catatan jika ada
-      if (notes != null && notes.trim().isNotEmpty) {
-        _printer!.text('CATATAN:', styles: const PosStyles(bold: true));
-        _printer!.text(notes);
-        _printer!.feed(1);
-      }
-
-      // Footer
-      _printer!.text(
-        'TERIMA KASIH',
-        styles: const PosStyles(
-          align: PosAlign.center,
-          bold: true,
-          height: PosTextSize.size2,
-        ),
-      );
-      _printer!.text(
-        'Atas kunjungan Anda',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.feed(1);
-
-      _printer!.text(
-        'Barang yang sudah dibeli tidak dapat',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.text(
-        'ditukar kembali kecuali ada kerusakan',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.text(
-        'dari pihak toko',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.feed(2);
-
-      // Peringatan kembang api
-      _printer!.text(
-        'PERINGATAN',
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-      );
-      _printer!.text(
-        'Pengguna kembang api dimainkan mengikuti',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.text(
-        'aturan penggunaan yang tertera di setiap produk.',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.text(
-        'Setiap pembeli mengetahui dan mengerti aturan',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.text(
-        'untuk menjual/memakai produk kembang api ini.',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      _printer!.feed(2);
-
-      // QR Code untuk verifikasi (optional)
-      // _printer!.qrcode(receiptId);
-      // _printer!.feed(1);
-
-      _printer!.cut();
-
-      debugPrint('Receipt printed successfully');
-      return true;
-    } catch (e) {
-      debugPrint('Error printing receipt: $e');
-      return false;
-    }
-  }
-
-  /// Mencetak receipt dengan bluetooth printer
-  Future<bool> _printReceiptBluetooth({
-    required String receiptId,
-    required DateTime transactionDate,
-    required List<CartItem> items,
-    required Store store,
-    User? user,
-    required double subtotal,
-    required double discount,
-    required double total,
-    String paymentMethod = 'Tunai',
-    List<PaymentHistory>? paymentHistories,
-    String? notes,
-    String? status,
-    DateTime? dueDate,
-  }) async {
-    if (_bluetoothPrinter == null) return false;
-
-    try {
-      final profile = await CapabilityProfile.load();
-      final generator = Generator(PaperSize.mm58, profile);
-
-      List<int> bytes = [];
-
-      // Header dengan nama toko
-      bytes += generator.text(
-        store.name,
-        styles: const PosStyles(
-          align: PosAlign.center,
-          height: PosTextSize.size2,
-          width: PosTextSize.size2,
-          bold: true,
-        ),
-      );
-      bytes += generator.feed(1);
-
-      // Alamat toko
-      bytes += generator.text(
-        store.address,
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.text(
-        'Telp: ${store.phoneNumber}',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.feed(1);
-
-      // Garis pemisah
-      bytes += generator.text('================================');
-      bytes += generator.text(
-        'STRUK PEMBAYARAN',
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-      );
-      bytes += generator.text('================================');
-      bytes += generator.feed(1);
-
-      // Informasi transaksi
-      bytes += generator.row([
-        PosColumn(
-          text: 'No. Transaksi',
-          width: 6,
           styles: const PosStyles(align: PosAlign.left),
         ),
         PosColumn(
-          text: ': $receiptId',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-      ]);
-
-      bytes += generator.row([
-        PosColumn(
-          text: 'Tanggal',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-        PosColumn(
-          text: ': ${_formatDateTime(transactionDate)}',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-      ]);
-
-      bytes += generator.row([
-        PosColumn(
-          text: 'Kasir',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-        PosColumn(
-          text: ': ${user?.name ?? 'Admin POS'}',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left),
-        ),
-      ]);
-
-      // Pembayaran — multi-method bila ada histories > 1, selain itu single line
-      if (paymentHistories != null && paymentHistories.length > 1) {
-        bytes += generator.row([
-          PosColumn(
-            text: 'Pembayaran',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-          PosColumn(
-            text: ':',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-        ]);
-        for (final p in paymentHistories) {
-          bytes += generator.row([
-            PosColumn(
-              text: '  ${_formatPaymentMethodLabel(p.paymentMethod)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-            PosColumn(
-              text: 'Rp ${_formatPrice(p.amount)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.right),
-            ),
-          ]);
-        }
-      } else {
-        final label = paymentHistories != null && paymentHistories.isNotEmpty
-            ? _formatPaymentMethodLabel(paymentHistories.first.paymentMethod)
-            : paymentMethod;
-        bytes += generator.row([
-          PosColumn(
-            text: 'Pembayaran',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-          PosColumn(
-            text: ': $label',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-        ]);
-      }
-
-      // Tambahkan informasi outstanding jika status adalah outstanding
-      if (status != null && status.toLowerCase() == 'outstanding') {
-        bytes += generator.row([
-          PosColumn(
-            text: 'Status Pembayaran',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-          PosColumn(
-            text: ': Hutang',
-            width: 6,
-            styles: const PosStyles(align: PosAlign.left),
-          ),
-        ]);
-
-        // Tampilkan tanggal jatuh tempo jika ada
-        if (dueDate != null) {
-          bytes += generator.row([
-            PosColumn(
-              text: 'Jatuh Tempo',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-            PosColumn(
-              text: ': ${_formatOutstandingDate(dueDate)}',
-              width: 6,
-              styles: const PosStyles(align: PosAlign.left),
-            ),
-          ]);
-        }
-      }
-
-      bytes += generator.feed(1);
-
-      // Detail pembelian
-      bytes += generator.text('--------------------------------');
-      bytes += generator.text(
-        'DETAIL PEMBELIAN',
-        styles: const PosStyles(bold: true),
-      );
-      bytes += generator.text('--------------------------------');
-
-      // Header tabel
-      bytes += generator.row([
-        PosColumn(
-          text: 'Item',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.left, bold: true),
-        ),
-        PosColumn(
-          text: 'Subtotal',
-          width: 6,
-          styles: const PosStyles(align: PosAlign.right, bold: true),
-        ),
-      ]);
-      bytes += generator.text('--------------------------------');
-
-      // Item-item dengan format baru: nama item di baris pertama, qty@harga | subtotal di baris kedua
-      for (final item in items) {
-        final itemName = '${item.product.code} ${item.product.name}';
-
-        // Baris pertama: Nama item (font normal, tidak bold)
-        bytes += generator.text(
-          itemName,
-          styles: const PosStyles(
-            align: PosAlign.left,
-            height: PosTextSize.size1,
-            width: PosTextSize.size1,
-          ),
-        );
-
-        // Baris kedua: Quantity@harga (kiri) dan subtotal (kanan) dengan font lebih kecil
-        bytes += generator.row([
-          PosColumn(
-            text: '${item.quantity}@ ${_formatPrice(item.product.price)}',
-            width: 6,
-            styles: const PosStyles(
-              align: PosAlign.left,
-              height: PosTextSize.size1,
-              width: PosTextSize.size1,
-            ),
-          ),
-          PosColumn(
-            text: 'Rp ${_formatPrice(item.subtotal)}',
-            width: 6,
-            styles: const PosStyles(
-              align: PosAlign.right,
-              height: PosTextSize.size1,
-              width: PosTextSize.size1,
-              bold: true,
-            ),
-          ),
-        ]);
-
-        // Spasi kecil antar item untuk kejelasan
-        if (items.last != item) {
-          bytes += generator.text('');
-        }
-      }
-      // bytes += generator.text('--------------------------------');
-
-      // // Total
-      // bytes += generator.row([
-      //   PosColumn(
-      //     text: 'Subtotal',
-      //     width: 8,
-      //     styles: const PosStyles(align: PosAlign.left),
-      //   ),
-      //   PosColumn(
-      //     text: 'Rp ${_formatPrice(subtotal)}',
-      //     width: 4,
-      //     styles: const PosStyles(align: PosAlign.right),
-      //   ),
-      // ]);
-
-      // if (discount > 0) {
-      //   bytes += generator.row([
-      //     PosColumn(
-      //       text: 'Diskon',
-      //       width: 8,
-      //       styles: const PosStyles(align: PosAlign.left),
-      //     ),
-      //     PosColumn(
-      //       text: 'Rp ${_formatPrice(discount)}',
-      //       width: 4,
-      //       styles: const PosStyles(align: PosAlign.right),
-      //     ),
-      //   ]);
-      // }
-
-      bytes += generator.text('================================');
-      bytes += generator.row([
-        PosColumn(
-          text: 'TOTAL',
+          text: '- Rp ${_formatPrice(discount)}',
           width: 4,
-          styles: const PosStyles(
-            align: PosAlign.left,
-            bold: true,
-            height: PosTextSize.size1,
-          ),
-        ),
-        PosColumn(
-          text: 'Rp ${_formatPrice(total)}',
-          width: 8,
-          styles: const PosStyles(
-            align: PosAlign.right,
-            bold: true,
-            height: PosTextSize.size1,
-          ),
+          styles: const PosStyles(align: PosAlign.right),
         ),
       ]);
-      bytes += generator.text('================================');
-      bytes += generator.feed(1);
-
-      // Catatan jika ada
-      if (notes != null && notes.trim().isNotEmpty) {
-        bytes += generator.text(
-          'CATATAN:',
-          styles: const PosStyles(bold: true),
-        );
-        bytes += generator.text(notes);
-        bytes += generator.feed(1);
-      }
-
-      // Footer
-      bytes += generator.text(
-        'TERIMA KASIH',
-        styles: const PosStyles(
-          align: PosAlign.center,
-          bold: true,
-          height: PosTextSize.size2,
-        ),
-      );
-      bytes += generator.text(
-        'Atas kunjungan Anda',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.feed(1);
-
-      bytes += generator.text(
-        'Barang yang sudah dibeli tidak dapat',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.text(
-        'ditukar kembali kecuali ada kerusakan',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.text(
-        'dari pihak toko',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.feed(2);
-
-      // Peringatan kembang api
-      bytes += generator.text(
-        'PERINGATAN',
-        styles: const PosStyles(align: PosAlign.center, bold: true),
-      );
-      bytes += generator.text(
-        'Pengguna kembang api dimainkan mengikuti',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.text(
-        'aturan penggunaan yang tertera di setiap produk.',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.text(
-        'Setiap pembeli mengetahui dan mengerti aturan',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.text(
-        'untuk menjual/memakai produk kembang api ini.',
-        styles: const PosStyles(align: PosAlign.center),
-      );
-      bytes += generator.feed(2);
-
-      // QR Code untuk verifikasi (optional)
-      // bytes += generator.qrcode(receiptId);
-      // bytes += generator.feed(1);
-
-      bytes += generator.cut();
-
-      // Send to Bluetooth printer
-      final success = await _bluetoothPrinter!.printRawData(bytes);
-
-      if (success) {
-        debugPrint('Bluetooth receipt printed successfully');
-      } else {
-        debugPrint('Failed to print receipt via Bluetooth');
-      }
-
-      return success;
-    } catch (e) {
-      debugPrint('Error printing Bluetooth receipt: $e');
-      return false;
     }
+
+    bytes += generator.text('================================');
+    bytes += generator.row([
+      PosColumn(
+        text: 'TOTAL',
+        width: 4,
+        styles: const PosStyles(
+          align: PosAlign.left,
+          bold: true,
+          height: PosTextSize.size1,
+        ),
+      ),
+      PosColumn(
+        text: 'Rp ${_formatPrice(total)}',
+        width: 8,
+        styles: const PosStyles(
+          align: PosAlign.right,
+          bold: true,
+          height: PosTextSize.size1,
+        ),
+      ),
+    ]);
+    bytes += generator.text('================================');
+    bytes += generator.feed(1);
+
+    if (notes != null && notes.trim().isNotEmpty) {
+      bytes += generator.text('CATATAN:', styles: const PosStyles(bold: true));
+      bytes += generator.text(notes);
+      bytes += generator.feed(1);
+    }
+
+    // Footer
+    bytes += generator.text(
+      'TERIMA KASIH',
+      styles: const PosStyles(
+        align: PosAlign.center,
+        bold: true,
+        height: PosTextSize.size2,
+      ),
+    );
+    bytes += generator.text(
+      'Atas kunjungan Anda',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.feed(1);
+    bytes += generator.text(
+      'Barang yang sudah dibeli tidak dapat',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.text(
+      'ditukar kembali kecuali ada kerusakan',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.text(
+      'dari pihak toko',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.feed(2);
+
+    // Peringatan kembang api
+    bytes += generator.text(
+      'PERINGATAN',
+      styles: const PosStyles(align: PosAlign.center, bold: true),
+    );
+    bytes += generator.text(
+      'Pengguna kembang api dimainkan mengikuti',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.text(
+      'aturan penggunaan yang tertera di setiap produk.',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.text(
+      'Setiap pembeli mengetahui dan mengerti aturan',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.text(
+      'untuk menjual/memakai produk kembang api ini.',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.feed(2);
+
+    bytes += generator.cut();
+    return bytes;
   }
 
   /// Test print untuk cek koneksi
@@ -1096,6 +664,16 @@ class ThermalPrinterService {
       debugPrint('Error test printing: $e');
       return false;
     }
+  }
+
+  /// Ubah nama menjadi inisial huruf besar. "Agus Louis" -> "AL".
+  String _toInitials(String name) {
+    final trimmed = name.trim();
+    if (trimmed.isEmpty) return '';
+    return trimmed
+        .split(RegExp(r'\s+'))
+        .map((part) => part.isNotEmpty ? part[0].toUpperCase() : '')
+        .join();
   }
 
   String _formatPrice(double price) {

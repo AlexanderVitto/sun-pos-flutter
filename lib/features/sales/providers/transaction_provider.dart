@@ -18,6 +18,24 @@ class TransactionProvider extends ChangeNotifier {
   String? get lastTransactionNumber => _lastTransactionNumber;
   String? get errorMessage => _errorMessage;
 
+  /// Delete a transaction by ID.
+  /// Dipakai mis. untuk menghapus draft saat keranjang dikosongkan.
+  Future<bool> deleteTransaction(int transactionId) async {
+    try {
+      await _transactionService.deleteTransaction(transactionId);
+      _errorMessage = null;
+
+      // Emit transaction deleted event for real-time updates
+      TransactionEvents.instance.transactionDeleted(transactionId.toString());
+
+      return true;
+    } catch (e) {
+      _errorMessage = 'Failed to delete transaction: ${e.toString()}';
+      debugPrint('❌ $_errorMessage');
+      return false;
+    }
+  }
+
   /// Process payment for the given cart items
   Future<CreateTransactionResponse?> processPayment({
     required List<CartItem> cartItems,
@@ -106,6 +124,7 @@ class TransactionProvider extends ChangeNotifier {
     // Convert cart items to transaction details
     final details = cartItems?.map((cartItem) {
       return TransactionDetail(
+        productId: cartItem.product.id,
         productVariantId: cartItem.product.productVariantId ?? 0,
         quantity: cartItem.quantity,
         // unitPrice already contains discounted price per item

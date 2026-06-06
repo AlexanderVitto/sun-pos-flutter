@@ -4,6 +4,9 @@ import 'package:provider/provider.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../providers/customer_provider.dart';
 import '../../data/models/customer_group.dart';
+import '../../../dashboard/providers/store_provider.dart';
+import '../../../transactions/data/models/store.dart';
+import '../../../auth/providers/auth_provider.dart';
 
 class AddCustomerPage extends StatefulWidget {
   const AddCustomerPage({super.key});
@@ -18,17 +21,46 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   bool _isSubmitting = false;
+  bool _isLoadingStores = false;
   CustomerGroup? _selectedCustomerGroup;
+  Store? _selectedStore;
 
   @override
   void initState() {
     super.initState();
-    // Load customer groups when page opens
+    // Load customer groups & stores when page opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Provider.of<CustomerProvider>(
         context,
         listen: false,
       ).loadCustomerGroups();
+
+      // Pre-select toko yang sedang aktif (jika ada)
+      _selectedStore = Provider.of<StoreProvider>(
+        context,
+        listen: false,
+      ).selectedStore;
+      _loadStoresFromProfile();
+    });
+  }
+
+  /// Ambil daftar toko dari endpoint /auth/profile (AuthProvider.user.stores).
+  Future<void> _loadStoresFromProfile() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+
+    // Tampilkan loading hanya bila belum ada data toko sama sekali.
+    if (authProvider.user?.stores.isEmpty ?? true) {
+      setState(() => _isLoadingStores = true);
+    }
+
+    await authProvider.fetchUserProfile();
+    if (!mounted) return;
+
+    setState(() {
+      _isLoadingStores = false;
+      // Bila belum ada toko terpilih, default ke toko pertama dari profil.
+      final stores = authProvider.user?.stores ?? [];
+      _selectedStore ??= stores.isNotEmpty ? stores.first : null;
     });
   }
 
@@ -345,6 +377,19 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                         ),
                         const SizedBox(height: 20),
 
+                        // Store Selection
+                        const Text(
+                          'Toko',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: Color(0xFF475569),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        _buildStoreSelector(),
+                        const SizedBox(height: 20),
+
                         // Customer Group Dropdown
                         const Text(
                           'Customer Group',
@@ -413,6 +458,38 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                     ),
                   ),
                   const SizedBox(height: 24),
+
+                  // Validation message for store
+                  if (_selectedStore == null)
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      margin: const EdgeInsets.only(bottom: 24),
+                      decoration: BoxDecoration(
+                        color: Colors.orange[50],
+                        border: Border.all(color: Colors.orange[200]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            LucideIcons.alertCircle,
+                            color: Colors.orange[700],
+                            size: 20,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Silakan pilih toko',
+                              style: TextStyle(
+                                color: Colors.orange[700],
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
 
                   // Validation message for customer group
                   if (_selectedCustomerGroup == null &&
@@ -487,6 +564,184 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildStoreSelector() {
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final stores = authProvider.user?.stores ?? [];
+
+        if (_isLoadingStores && stores.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: const Row(
+              children: [
+                SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+                SizedBox(width: 12),
+                Text('Memuat daftar toko...'),
+              ],
+            ),
+          );
+        }
+
+        if (stores.isEmpty) {
+          return Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.orange[50],
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.orange[200]!),
+            ),
+            child: Row(
+              children: [
+                Icon(LucideIcons.info, size: 20, color: Colors.orange[700]),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Tidak ada toko tersedia',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.orange[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return Container(
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+          ),
+          child: Column(
+            children: stores.asMap().entries.map((entry) {
+              final index = entry.key;
+              final store = entry.value;
+              final isSelected = _selectedStore?.id == store.id;
+
+              return Column(
+                children: [
+                  if (index > 0) const Divider(height: 1),
+                  _buildStoreOption(
+                    isSelected: isSelected,
+                    name: store.name,
+                    address: store.address,
+                    isActive: store.isActive,
+                    onTap: () {
+                      setState(() {
+                        _selectedStore = store;
+                      });
+                    },
+                  ),
+                ],
+              );
+            }).toList(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildStoreOption({
+    required bool isSelected,
+    required String name,
+    String? address,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? const Color(0xFF3B82F6).withValues(alpha: 0.1)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              isSelected ? LucideIcons.checkCircle2 : LucideIcons.circle,
+              size: 20,
+              color: isSelected
+                  ? const Color(0xFF3B82F6)
+                  : const Color(0xFF94A3B8),
+            ),
+            const SizedBox(width: 12),
+            Icon(
+              LucideIcons.store,
+              size: 18,
+              color: isSelected
+                  ? const Color(0xFF3B82F6)
+                  : const Color(0xFF64748B),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: isSelected
+                          ? const Color(0xFF1E293B)
+                          : const Color(0xFF475569),
+                    ),
+                  ),
+                  if (address != null && address.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      address,
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (!isActive) ...[
+              const SizedBox(width: 12),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 6,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.grey.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+                ),
+                child: Text(
+                  'Nonaktif',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -699,6 +954,37 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
+    // Validate store selection
+    if (_selectedStore == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(
+                LucideIcons.alertCircle,
+                color: Colors.white,
+                size: 20,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
+                  'Silakan pilih toko terlebih dahulu',
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.orange,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+      return;
+    }
+
     // Validate customer group selection
     if (_selectedCustomerGroup == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -748,6 +1034,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
             ? _addressController.text.trim()
             : null,
         customerGroupId: _selectedCustomerGroup?.id,
+        storeId: _selectedStore!.id,
       );
 
       if (customer != null) {

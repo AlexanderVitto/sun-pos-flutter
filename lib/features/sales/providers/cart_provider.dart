@@ -321,6 +321,21 @@ class CartProvider extends ChangeNotifier {
     }
   }
 
+  // Get item by product variant ID.
+  // Variant id adalah kunci paling andal untuk mencocokkan produk grid dengan
+  // item di cart — terutama saat resume draft, di mana `product_id` & objek
+  // `product` bisa null sehingga product.id cart item jadi 0.
+  CartItem? getItemByProductVariantId(int? productVariantId) {
+    if (productVariantId == null) return null;
+    try {
+      return _items.firstWhere(
+        (item) => item.product.productVariantId == productVariantId,
+      );
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Check if product is in cart (supports both int and String for backward compatibility)
   bool isProductInCart(dynamic productId) {
     return _items.any(

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/routes/app_router.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/pending_transaction_provider.dart';
+import '../../../dashboard/providers/store_provider.dart';
 import '../../../products/providers/product_provider.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../../data/models/product.dart';
@@ -332,7 +333,8 @@ class _POSTransactionView extends StatelessWidget {
         context,
         listen: false,
       );
-      pendingProvider.loadPendingTransactions();
+      final storeId = context.read<StoreProvider>().selectedStore?.id;
+      pendingProvider.loadPendingTransactions(storeId: storeId);
 
       // Load transaction list if provider is available
       try {

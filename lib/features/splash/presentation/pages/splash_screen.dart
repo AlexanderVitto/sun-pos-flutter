@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../auth/providers/auth_provider.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../sales/providers/pending_transaction_provider.dart';
+import '../../../dashboard/providers/store_provider.dart';
 import '../../../products/providers/product_provider.dart';
 import '../../../customers/providers/customer_provider.dart';
 import '../../../../core/routes/app_routes.dart';
@@ -86,9 +87,11 @@ class _SplashScreenState extends State<SplashScreen> {
       final pendingTransactionProvider =
           Provider.of<PendingTransactionProvider>(context, listen: false);
 
+      final storeId = context.read<StoreProvider>().selectedStore?.id;
+
       await Future.wait([
         transactionListProvider.refreshTransactions(),
-        pendingTransactionProvider.loadPendingTransactions(),
+        pendingTransactionProvider.loadPendingTransactions(storeId: storeId),
       ]);
 
       if (!mounted) return;

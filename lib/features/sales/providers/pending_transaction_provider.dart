@@ -60,15 +60,18 @@ class PendingTransactionProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
 
-  /// Load all pending transactions from API
-  Future<void> loadPendingTransactions() async {
+  /// Load all pending transactions from API.
+  /// [storeId] memfilter draft sesuai toko yang sedang dipilih.
+  Future<void> loadPendingTransactions({int? storeId}) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
       // Try to load from API first
-      final response = await _apiService.getPendingTransactions();
+      final response = await _apiService.getPendingTransactions(
+        storeId: storeId,
+      );
 
       if (response.status == 'success') {
         _apiPendingTransactions = response.data.data;

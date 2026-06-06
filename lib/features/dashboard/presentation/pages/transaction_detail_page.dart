@@ -15,6 +15,7 @@ import '../../../sales/presentation/services/receipt_pdf_builder.dart';
 import '../../../../shared/utils/receipt_share_helper.dart';
 import '../../../../shared/widgets/payment_method_widgets.dart';
 import '../../../auth/providers/auth_provider.dart';
+import '../../providers/store_provider.dart';
 import '../../../../core/utils/role_permissions.dart';
 import '../../../sales/providers/transaction_provider.dart';
 import '../../../transactions/data/models/payment_history.dart';
@@ -77,8 +78,20 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
   String? _errorMessage;
   final GlobalKey _detailBoundaryKey = GlobalKey();
 
-  // Get storeId from user profile
+  // Get storeId from selected store in StoreProvider, fallback to user profile
   int _getStoreIdFromUser(BuildContext context) {
+    // 1. Toko yang sedang dipilih di StoreProvider (jika ada).
+    try {
+      final storeProvider = Provider.of<StoreProvider>(context, listen: false);
+      final selected = storeProvider.selectedStore;
+      if (selected != null) {
+        return selected.id;
+      }
+    } catch (e) {
+      debugPrint('Error getting storeId from StoreProvider: $e');
+    }
+
+    // 2. Fallback: toko pertama dari profil user.
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final user = authProvider.user;
@@ -86,11 +99,11 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       if (user != null && user.stores.isNotEmpty) {
         return user.stores.first.id;
       }
-    } catch (e) {
-      debugPrint('Error getting storeId from user profile: $e');
+    } catch (e2) {
+      debugPrint('Error getting storeId from user profile: $e2');
     }
 
-    // Default fallback storeId
+    // 3. Default terakhir.
     return 1;
   }
 
@@ -1943,7 +1956,7 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
       symbol: 'Rp ',
       decimalDigits: 0,
     );
-    return '${transaction.store.name} — ${transaction.transactionNumber}\n'
+    return 'Transaksi ${transaction.transactionNumber}\n'
         'Total: ${f.format(transaction.totalAmount)}';
   }
 

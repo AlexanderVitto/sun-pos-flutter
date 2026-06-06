@@ -1,5 +1,6 @@
 import '../../../../core/network/auth_http_client.dart';
 import '../../../../core/config/app_config.dart';
+import '../../../../core/services/selected_store_holder.dart';
 import '../models/create_customer_request.dart';
 import '../models/create_customer_response.dart';
 import '../models/update_customer_request.dart';
@@ -47,6 +48,11 @@ class CustomerApiService {
         'per_page': perPage.toString(),
       };
 
+      final storeId = SelectedStoreHolder.instance.storeId;
+      if (storeId != null) {
+        queryParams['store_id'] = storeId.toString();
+      }
+
       if (search != null && search.isNotEmpty) {
         queryParams['search'] = search;
       }
@@ -80,6 +86,11 @@ class CustomerApiService {
         'page': page.toString(),
         'per_page': perPage.toString(),
       };
+
+      final storeId = SelectedStoreHolder.instance.storeId;
+      if (storeId != null) {
+        queryParams['store_id'] = storeId.toString();
+      }
 
       if (search != null && search.isNotEmpty) {
         queryParams['search'] = search;
@@ -202,6 +213,11 @@ class CustomerApiService {
         'sort_direction': sortDirection,
         'outstanding_only': 'true',
       };
+
+      final storeId = SelectedStoreHolder.instance.storeId;
+      if (storeId != null) {
+        queryParams['store_id'] = storeId.toString();
+      }
 
       if (search != null && search.isNotEmpty) {
         queryParams['search'] = search;
