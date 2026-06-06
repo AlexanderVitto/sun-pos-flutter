@@ -28,7 +28,7 @@
 @customerGroupId = 1
 @productId = 1096
 @productVariantId = 1
-@transactionId = 199
+@transactionId = 204
 @refundId = 1
 @categoryId = 1
 
@@ -217,7 +217,7 @@ Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 4.3 List Pending (Draft) Transactions
-GET {{baseUrl}}/transactions?page=1&per_page=50&status=pending&sort_by=created_at&sort_direction=desc&store_id={{storeId}}
+GET {{baseUrl}}/transactions?page=1&per_page=50&status=draft&sort_by=created_at&sort_direction=desc&store_id={{storeId}}
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 

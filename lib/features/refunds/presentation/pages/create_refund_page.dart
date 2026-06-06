@@ -794,7 +794,7 @@ class _CreateRefundPageState extends State<CreateRefundPage> {
       notes: _notesController.text.trim().isEmpty
           ? null
           : _notesController.text.trim(),
-      refundDate: DateFormat('yyyy-MM-dd').format(_refundDate),
+      refundDate: _refundDate.toUtc().toIso8601String(),
       details: details,
     );
 

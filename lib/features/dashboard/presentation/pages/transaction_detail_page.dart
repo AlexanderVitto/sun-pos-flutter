@@ -197,8 +197,8 @@ class _TransactionDetailPageState extends State<TransactionDetailPage> {
         _cartItems = items.map((item) {
           // Create a mock product based on transaction item
           final product = Product(
-            id: item.product?['id'] ?? item.id,
-            name: item.product?['name'] ?? item.productName,
+            id: item.productId,
+            name: item.productName,
             price: item.unitPrice,
             productVariantId: item.productVariantId ?? 0,
 
