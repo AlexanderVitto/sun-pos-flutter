@@ -4,7 +4,6 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../../../customers/providers/customer_provider.dart';
 import '../../../customers/data/models/customer.dart' as api_customer;
 import '../../../customers/presentation/pages/add_customer_page.dart';
-import '../../../customers/presentation/pages/update_customer_page.dart';
 import '../../../products/providers/product_provider.dart';
 import 'pos_transaction_page.dart';
 import '../../providers/pending_transaction_provider.dart';
@@ -115,64 +114,6 @@ class _CustomerSelectionPageState extends State<CustomerSelectionPage> {
       context,
       listen: false,
     );
-
-    // Check if customer has customer group ID
-    if (customer.customerGroupId == null) {
-      // Show dialog to update customer
-      final shouldUpdate = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: const Row(
-            children: [
-              Icon(LucideIcons.alertCircle, color: Colors.orange),
-              SizedBox(width: 12),
-              Text('Customer Group Belum Diisi'),
-            ],
-          ),
-          content: Text(
-            'Customer "${customer.name}" belum memiliki customer group. '
-            'Customer group diperlukan untuk mendapatkan harga produk yang sesuai.\n\n'
-            'Apakah Anda ingin mengisi customer group sekarang?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF3B82F6),
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Isi Customer Group'),
-            ),
-          ],
-        ),
-      );
-
-      if (shouldUpdate == true && mounted) {
-        // Navigate to update customer page
-        final updatedCustomer = await Navigator.push<api_customer.Customer>(
-          context,
-          MaterialPageRoute(
-            builder: (context) => UpdateCustomerPage(
-              customer: customer,
-              requiresCustomerGroup: true,
-            ),
-          ),
-        );
-
-        // If customer was updated, use the updated data
-        if (updatedCustomer != null && mounted) {
-          _selectCustomer(updatedCustomer);
-        }
-      }
-      return;
-    }
 
     // Set customer ID to product provider for pricing
 

@@ -25,8 +25,8 @@ class ProductDetailPage extends StatelessWidget {
       listen: false,
     );
 
-    // Customer ID required for customer-specific pricing
-    final customerId = productProvider.customerId ?? 0;
+    // Customer ID opsional — untuk harga spesifik customer/grup. Null → base.
+    final customerId = productProvider.customerId;
 
     // Create ProductDetailViewModel locally with ChangeNotifierProxyProvider
     // This avoids the StackOverflowError caused by global provider

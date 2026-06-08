@@ -54,7 +54,40 @@ class _POSTransactionPageState extends State<POSTransactionPage>
     // Debug: Check initial cart state
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _debugCartState();
+      // Reset pencarian/filter produk setiap kali halaman POS dibuka, supaya
+      // query lama tidak terbawa ketika user keluar-masuk halaman ini.
+      _resetProductSearch();
+      // Pastikan grid produk terisi walau belum ada customer terpilih.
+      _ensureProductsLoaded();
     });
+  }
+
+  /// Bersihkan query pencarian & filter kategori produk yang tersimpan di
+  /// ViewModel + ProductProvider (keduanya long-lived sehingga state-nya
+  /// bertahan antar kunjungan halaman).
+  void _resetProductSearch() {
+    if (!mounted) return;
+    final viewModel = Provider.of<POSTransactionViewModel>(
+      context,
+      listen: false,
+    );
+    if (viewModel.searchQuery.isNotEmpty ||
+        viewModel.selectedCategory.isNotEmpty) {
+      viewModel.clearSearch();
+    }
+  }
+
+  /// Muat produk kalau list masih kosong & tidak sedang loading — produk kini
+  /// bisa dimuat tanpa customerId, jadi grid tidak perlu menunggu customer.
+  void _ensureProductsLoaded() {
+    if (!mounted) return;
+    final productProvider = Provider.of<ProductProvider>(
+      context,
+      listen: false,
+    );
+    if (productProvider.products.isEmpty && !productProvider.isLoading) {
+      productProvider.loadProducts();
+    }
   }
 
   @override
@@ -124,7 +157,10 @@ class _POSTransactionPageState extends State<POSTransactionPage>
     }
     _lastProductRefresh = now;
     debugPrint('🔄 POS: refreshing products ($reason)');
-    productProvider.refreshProducts();
+    // Refresh senyap: pertahankan halaman yang sudah dimuat & posisi scroll
+    // user (refreshProducts biasa akan reset ke page 1 dan menarik scroll ke
+    // atas saat user sudah load-more).
+    productProvider.silentRefreshProducts();
   }
 
   /// Debug method to check cart state

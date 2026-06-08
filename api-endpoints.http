@@ -20,11 +20,11 @@
 
 # Token didapat dari endpoint Login. Update manual atau pakai chaining
 # dgn {{login.response.body.data.token}} (lihat contoh di bawah).
-@token = 134|akKNW44FXXpzAlboiQOy7PnOmAvqbJZv5g6ALlZSb4357d0a
+@token = 161|X3yD3BSQdxpfCE1LY49sP7AraWO0Qc2FbaNZS7xg085d40c5
 
 # IDs untuk testing — sesuaikan dengan data di server
-@storeId = 2
-@customerId = 9
+@storeId = 1
+@customerId = 
 @customerGroupId = 1
 @productId = 1096
 @productVariantId = 1
@@ -121,7 +121,7 @@ Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 2.5 Create Customer
-POST {{baseUrl}}/customers
+POST {{baseUrl}}/customers?store_id={{storeId}}
 Authorization: Bearer {{token}}
 Content-Type: {{contentType}}
 Accept: {{accept}}
@@ -154,7 +154,7 @@ Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 2.8 List Customer Groups
-GET {{baseUrl}}/customer-groups
+GET {{baseUrl}}/customer-groups?store_id={{storeId}}
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
@@ -167,12 +167,12 @@ Accept: {{accept}}
 ### =====================================================================
 
 ### 3.1 List Products (default)
-GET {{baseUrl}}/products?customer_id={{customerId}}&store_id={{storeId}}&page=1&per_page=5&active_only=true
+GET {{baseUrl}}/products?customer_id={{customerId}}&store_id={{storeId}}&page=1&per_page=10&active_only=true
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
 ### 3.2 List Products — search by name/SKU
-GET {{baseUrl}}/products?customer_id={{customerId}}&store_id={{storeId}}&page=1&per_page=20&search=ambon
+GET {{baseUrl}}/products?customer_id={{customerId}}&store_id={{storeId}}&page=1&per_page=20&search=roda
 Authorization: Bearer {{token}}
 Accept: {{accept}}
 
@@ -594,7 +594,7 @@ Content-Type: {{contentType}}
 Accept: {{accept}}
 
 {
-  "email": "staff@sunfirework.com",
+  "email": "cashier@sunfirework.com",
   "password": "password"
 }
 

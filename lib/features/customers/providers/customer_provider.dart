@@ -369,13 +369,17 @@ class CustomerProvider extends ChangeNotifier {
   }
 
   /// Load customer groups
-  Future<void> loadCustomerGroups() async {
+  ///
+  /// [storeId] opsional: bila diisi, grup pelanggan difilter untuk toko
+  /// tersebut. Halaman create/update customer mengirim id toko yang dipilih
+  /// di form. Bila null, service memakai toko terpilih global.
+  Future<void> loadCustomerGroups({int? storeId}) async {
     _isLoadingGroups = true;
     _groupsErrorMessage = null;
     notifyListeners();
 
     try {
-      final response = await _apiService.getCustomerGroups();
+      final response = await _apiService.getCustomerGroups(storeId: storeId);
 
       if (response.isSuccess) {
         _customerGroups = response.data;

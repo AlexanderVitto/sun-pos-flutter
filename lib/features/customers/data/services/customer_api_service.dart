@@ -184,12 +184,29 @@ class CustomerApiService {
   }
 
   /// Get customer groups list
-  /// GET {{base_url}}/api/v1/customer-groups
-  Future<CustomerGroupListResponse> getCustomerGroups() async {
+  /// GET {{base_url}}/api/v1/customer-groups?store_id={{storeId}}
+  ///
+  /// [storeId] opsional: bila tidak diisi, memakai toko terpilih global
+  /// dari [SelectedStoreHolder]. Halaman create/update customer mengirim
+  /// id toko yang sedang dipilih di form agar grup pelanggan sesuai toko.
+  Future<CustomerGroupListResponse> getCustomerGroups({int? storeId}) async {
     try {
-      final url = '$baseUrl/customer-groups';
+      final Map<String, String> queryParams = {};
 
-      final response = await _httpClient.get(url, requireAuth: true);
+      final effectiveStoreId = storeId ?? SelectedStoreHolder.instance.storeId;
+      if (effectiveStoreId != null) {
+        queryParams['store_id'] = effectiveStoreId.toString();
+      }
+
+      final uri = Uri.parse('$baseUrl/customer-groups');
+      final finalUri = uri.replace(
+        queryParameters: queryParams.isEmpty ? null : queryParams,
+      );
+
+      final response = await _httpClient.get(
+        finalUri.toString(),
+        requireAuth: true,
+      );
 
       final responseData = _httpClient.parseJsonResponse(response);
       return CustomerGroupListResponse.fromJson(responseData);

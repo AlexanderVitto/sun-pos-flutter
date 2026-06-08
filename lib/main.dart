@@ -172,7 +172,20 @@ class MyApp extends StatelessWidget {
             return newProvider;
           },
         ),
-        ChangeNotifierProvider(create: (_) => CustomerProvider()),
+        ChangeNotifierProxyProvider<StoreProvider, CustomerProvider>(
+          // Daftarkan callback store-change di create() saja agar tidak
+          // terakumulasi setiap kali update() dipanggil oleh proxy.
+          create: (context) {
+            final storeProvider = context.read<StoreProvider>();
+            final provider = CustomerProvider();
+            storeProvider.addOnStoreChangedCallback(() {
+              // Toko global berubah → muat ulang grup pelanggan toko itu.
+              provider.loadCustomerGroups();
+            });
+            return provider;
+          },
+          update: (_, __, customerProvider) => customerProvider!,
+        ),
         ChangeNotifierProvider(create: (_) => CashFlowProvider()),
         ChangeNotifierProvider(create: (_) => ReportsProvider()),
       ],

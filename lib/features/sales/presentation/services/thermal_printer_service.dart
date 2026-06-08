@@ -6,6 +6,7 @@ import '../../../../data/models/cart_item.dart';
 import '../../../transactions/data/models/store.dart';
 import '../../../transactions/data/models/user.dart';
 import '../../../transactions/data/models/payment_history.dart';
+import '../../../customers/data/models/payment_receipt_item.dart';
 import 'bluetooth_printer_service.dart';
 import 'printer_preferences_service.dart';
 
@@ -619,6 +620,290 @@ class ThermalPrinterService {
     );
     bytes += generator.feed(2);
 
+    bytes += generator.cut();
+    return bytes;
+  }
+
+  /// Mencetak struk pembayaran hutang pelanggan.
+  Future<bool> printPaymentReceipt({
+    required String customerName,
+    String? customerPhone,
+    required String paymentMethod,
+    required List<PaymentReceiptItem> paidTransactions,
+    required double totalPaid,
+    required double changeAmount,
+    required DateTime paymentDate,
+    String? notes,
+  }) async {
+    if (!_isConnected) {
+      debugPrint('Printer not connected');
+      return false;
+    }
+
+    try {
+      final bytes = await _buildPaymentReceiptBytes(
+        customerName: customerName,
+        customerPhone: customerPhone,
+        paymentMethod: paymentMethod,
+        paidTransactions: paidTransactions,
+        totalPaid: totalPaid,
+        changeAmount: changeAmount,
+        paymentDate: paymentDate,
+        notes: notes,
+      );
+
+      if (_connectionType == PrinterConnectionType.network &&
+          _printer != null) {
+        _printer!.rawBytes(bytes);
+        debugPrint('Payment receipt printed successfully (network)');
+        return true;
+      } else if (_connectionType == PrinterConnectionType.bluetooth &&
+          _bluetoothPrinter != null) {
+        return await _bluetoothPrinter!.printRawData(bytes);
+      }
+
+      return false;
+    } catch (e) {
+      debugPrint('Error printing payment receipt: $e');
+      return false;
+    }
+  }
+
+  /// Membangun byte ESC/POS struk pembayaran hutang. Dipakai bersama oleh
+  /// network & bluetooth agar isi struk selalu identik di kedua jalur.
+  Future<List<int>> _buildPaymentReceiptBytes({
+    required String customerName,
+    String? customerPhone,
+    required String paymentMethod,
+    required List<PaymentReceiptItem> paidTransactions,
+    required double totalPaid,
+    required double changeAmount,
+    required DateTime paymentDate,
+    String? notes,
+  }) async {
+    final profile = await CapabilityProfile.load();
+    final generator = Generator(PaperSize.mm58, profile);
+    List<int> bytes = [];
+
+    bytes += generator.text('================================');
+    bytes += generator.text(
+      'STRUK PEMBAYARAN HUTANG',
+      styles: const PosStyles(align: PosAlign.center, bold: true),
+    );
+    bytes += generator.text('================================');
+    bytes += generator.feed(1);
+
+    // Info pelanggan & pembayaran
+    bytes += generator.row([
+      PosColumn(
+        text: 'Customer',
+        width: 5,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+      PosColumn(
+        text: ': $customerName',
+        width: 7,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+    ]);
+    if (customerPhone != null && customerPhone.trim().isNotEmpty) {
+      bytes += generator.row([
+        PosColumn(
+          text: 'Telepon',
+          width: 5,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: ': $customerPhone',
+          width: 7,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+      ]);
+    }
+    bytes += generator.row([
+      PosColumn(
+        text: 'Tanggal',
+        width: 5,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+      PosColumn(
+        text: ': ${_formatDateTime(paymentDate)}',
+        width: 7,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+    ]);
+    bytes += generator.row([
+      PosColumn(
+        text: 'Metode',
+        width: 5,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+      PosColumn(
+        text: ': ${_formatPaymentMethodLabel(paymentMethod)}',
+        width: 7,
+        styles: const PosStyles(align: PosAlign.left),
+      ),
+    ]);
+    bytes += generator.feed(1);
+
+    // Daftar transaksi yang dibayar
+    bytes += generator.text('--------------------------------');
+    bytes += generator.text(
+      'TRANSAKSI YANG DIBAYAR',
+      styles: const PosStyles(bold: true),
+    );
+    bytes += generator.text('--------------------------------');
+
+    for (var i = 0; i < paidTransactions.length; i++) {
+      final item = paidTransactions[i];
+      bytes += generator.text(
+        '${i + 1}. ${item.receiptNumber}',
+        styles: const PosStyles(bold: true),
+      );
+      bytes += generator.text(
+        _formatDateTime(item.transactionDate),
+        styles: const PosStyles(align: PosAlign.left),
+      );
+
+      // Detail item bila tersedia
+      final details = item.transactionDetails;
+      if (details != null && details.isNotEmpty) {
+        for (final detail in details) {
+          bytes += generator.text(
+            detail.productName,
+            styles: const PosStyles(align: PosAlign.left),
+          );
+          bytes += generator.row([
+            PosColumn(
+              text:
+                  '  ${detail.quantity}@ ${_formatPrice(detail.unitPrice)}',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.left),
+            ),
+            PosColumn(
+              text: 'Rp ${_formatPrice(detail.totalAmount)}',
+              width: 6,
+              styles: const PosStyles(align: PosAlign.right),
+            ),
+          ]);
+        }
+      }
+
+      bytes += generator.row([
+        PosColumn(
+          text: 'Total Transaksi',
+          width: 7,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: 'Rp ${_formatPrice(item.originalAmount)}',
+          width: 5,
+          styles: const PosStyles(align: PosAlign.right),
+        ),
+      ]);
+      bytes += generator.row([
+        PosColumn(
+          text: 'Hutang Sebelumnya',
+          width: 7,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: 'Rp ${_formatPrice(item.previousOutstanding)}',
+          width: 5,
+          styles: const PosStyles(align: PosAlign.right),
+        ),
+      ]);
+      bytes += generator.row([
+        PosColumn(
+          text: 'Dibayar',
+          width: 7,
+          styles: const PosStyles(align: PosAlign.left, bold: true),
+        ),
+        PosColumn(
+          text: 'Rp ${_formatPrice(item.paymentAmount)}',
+          width: 5,
+          styles: const PosStyles(align: PosAlign.right, bold: true),
+        ),
+      ]);
+      bytes += generator.row([
+        PosColumn(
+          text: 'Sisa Hutang',
+          width: 7,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: 'Rp ${_formatPrice(item.remainingOutstanding)}',
+          width: 5,
+          styles: const PosStyles(align: PosAlign.right),
+        ),
+      ]);
+      bytes += generator.row([
+        PosColumn(
+          text: 'Status',
+          width: 7,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: item.isFullyPaid ? 'LUNAS' : 'SEBAGIAN',
+          width: 5,
+          styles: const PosStyles(align: PosAlign.right),
+        ),
+      ]);
+      if (i != paidTransactions.length - 1) {
+        bytes += generator.text('--------------------------------');
+      }
+    }
+
+    bytes += generator.text('================================');
+    bytes += generator.row([
+      PosColumn(
+        text: 'TOTAL DIBAYAR',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.left, bold: true),
+      ),
+      PosColumn(
+        text: 'Rp ${_formatPrice(totalPaid)}',
+        width: 6,
+        styles: const PosStyles(align: PosAlign.right, bold: true),
+      ),
+    ]);
+    if (changeAmount > 0) {
+      bytes += generator.row([
+        PosColumn(
+          text: 'Kembalian',
+          width: 6,
+          styles: const PosStyles(align: PosAlign.left),
+        ),
+        PosColumn(
+          text: 'Rp ${_formatPrice(changeAmount)}',
+          width: 6,
+          styles: const PosStyles(align: PosAlign.right),
+        ),
+      ]);
+    }
+    bytes += generator.text('================================');
+    bytes += generator.feed(1);
+
+    if (notes != null && notes.trim().isNotEmpty) {
+      bytes += generator.text('CATATAN:', styles: const PosStyles(bold: true));
+      bytes += generator.text(notes);
+      bytes += generator.feed(1);
+    }
+
+    // Footer
+    bytes += generator.text(
+      'TERIMA KASIH',
+      styles: const PosStyles(
+        align: PosAlign.center,
+        bold: true,
+        height: PosTextSize.size2,
+      ),
+    );
+    bytes += generator.text(
+      'Atas pembayaran Anda',
+      styles: const PosStyles(align: PosAlign.center),
+    );
+    bytes += generator.feed(2);
     bytes += generator.cut();
     return bytes;
   }

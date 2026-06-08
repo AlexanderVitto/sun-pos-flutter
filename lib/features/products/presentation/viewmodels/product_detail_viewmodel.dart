@@ -11,12 +11,12 @@ class ProductDetailViewModel extends ChangeNotifier {
   CartProvider? _cartProvider;
   ProductProvider? _productProvider;
   int _productId;
-  final int _customerId;
+  final int? _customerId;
   bool _disposed = false;
 
   ProductDetailViewModel({
     required int productId,
-    required int customerId,
+    int? customerId,
     required ProductApiService apiService,
   }) : _productId = productId,
        _customerId = customerId,

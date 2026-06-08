@@ -19,7 +19,8 @@ class ProductProvider extends ChangeNotifier {
   int? _customerId; // Customer ID for pricing
   Timer? _searchDebounceTimer; // Timer for search debouncing
   int _searchSequence = 0; // Sequence number to prevent race conditions
-  int _loadSequence = 0; // Token untuk drop respons stale di _loadProductsFromApi
+  int _loadSequence =
+      0; // Token untuk drop respons stale di _loadProductsFromApi
 
   // Pagination state
   int _currentPage = 1;
@@ -29,6 +30,11 @@ class ProductProvider extends ChangeNotifier {
   // Search configuration
   static const int minSearchLength = 2; // Minimum characters before search
   static const int searchDebounceMs = 500; // Debounce duration in milliseconds
+
+  // Jumlah item per halaman untuk pagination produk. Dipakai konsisten di
+  // load awal, loadMore, dan silent refresh.
+  static const int _pageSize = 20;
+  int _totalLoadedPageSize = 0;
 
   // Getters
   // Products are already filtered by backend, no need for client-side filtering
@@ -62,22 +68,26 @@ class ProductProvider extends ChangeNotifier {
     // Products will be loaded after customer is selected
   }
 
-  /// Set customer ID for product pricing
+  /// Set customer ID for product pricing.
+  /// customerId boleh null — produk tetap dimuat (harga base).
   void setCustomerId(int? customerId) {
     if (_customerId != customerId) {
       _customerId = customerId;
-      if (customerId != null) {
-        // Load both categories and products when customer is set
-        _loadCategoriesFromApi();
-        _loadProductsFromApi();
-      } else {
-        _products.clear();
-        _categories.clear();
-        _selectedCategoryId = null;
-        _selectedCategory = '';
-        notifyListeners();
-      }
+      // Muat kategori & produk untuk customerId apa pun (termasuk null).
+      _loadCategoriesFromApi();
+      _loadProductsFromApi();
     }
+  }
+
+  /// Muat produk dengan customerId saat ini (boleh null → tanpa pricing
+  /// khusus). Dipakai untuk memastikan grid terisi walau belum ada customer.
+  Future<void> loadProducts() async {
+    _currentPage = 1;
+    _totalLoadedPageSize = 0;
+    if (_categories.isEmpty) {
+      _loadCategoriesFromApi();
+    }
+    await _loadProductsFromApi(page: 1);
   }
 
   // Load products from API
@@ -85,13 +95,10 @@ class ProductProvider extends ChangeNotifier {
     int? categoryId,
     String? search,
     int page = 1,
+    int perPage = 20,
     bool append = false,
   }) async {
-    if (_customerId == null) {
-      _errorMessage = 'Customer ID is required to load products';
-      notifyListeners();
-      return;
-    }
+    // customerId opsional: produk tetap dimuat tanpa customer (harga base).
 
     // Increment sequence untuk full-replace load. Append ikut sequence
     // yang sama supaya bila ada full-replace baru di tengah-tengah,
@@ -114,9 +121,9 @@ class ProductProvider extends ChangeNotifier {
     try {
       // Get products from API with customer ID and optional filters
       final response = await _apiService.getProducts(
-        customerId: _customerId!,
+        customerId: _customerId,
         page: page,
-        perPage: 20, // Load 20 items per page for pagination
+        perPage: perPage, // Load items per page for pagination
         activeOnly: true,
         categoryId:
             categoryId ??
@@ -136,6 +143,7 @@ class ProductProvider extends ChangeNotifier {
         _currentPage = response.data.meta.currentPage;
         _totalPages = response.data.meta.lastPage;
         _hasMore = _currentPage < _totalPages;
+        _totalLoadedPageSize = _products.isEmpty ? _pageSize : _products.length;
 
         // Convert API products to local Product model
         final newProducts = response.data.data
@@ -282,6 +290,7 @@ class ProductProvider extends ChangeNotifier {
     _isSearching = false;
     _searchDebounceTimer?.cancel(); // Cancel pending search
     _searchSequence++; // Invalidate any in-flight searches
+    _totalLoadedPageSize = 0;
 
     notifyListeners();
     // Reload all products without filters
@@ -300,12 +309,11 @@ class ProductProvider extends ChangeNotifier {
     _isSearching = false;
     _searchDebounceTimer?.cancel();
     _searchSequence++;
+    _totalLoadedPageSize = 0;
 
     notifyListeners();
 
-    if (_customerId != null) {
-      await _loadProductsFromApi(search: '', page: 1);
-    }
+    await _loadProductsFromApi(search: '', page: 1);
   }
 
   // Category filter - Server-side filtering
@@ -316,6 +324,7 @@ class ProductProvider extends ChangeNotifier {
       _selectedCategory = '';
       _selectedCategoryId = null;
       _currentPage = 1; // Reset pagination
+      _totalLoadedPageSize = 0;
       await _loadProductsFromApi(
         categoryId: null,
         search: _searchQuery, // Maintain search query
@@ -440,13 +449,76 @@ class ProductProvider extends ChangeNotifier {
   // Retry loading products from API
   Future<void> retryLoadProducts() async {
     _currentPage = 1; // Reset pagination
-    await _loadProductsFromApi(page: 1);
+    await _loadProductsFromApi(
+      page: 1,
+      perPage: _totalLoadedPageSize > 0 ? _totalLoadedPageSize : _pageSize,
+    );
   }
 
   // Refresh products
   Future<void> refreshProducts() async {
     _currentPage = 1; // Reset pagination
-    await _loadProductsFromApi(page: 1);
+    await _loadProductsFromApi(
+      page: 1,
+      perPage: _totalLoadedPageSize > 0 ? _totalLoadedPageSize : _pageSize,
+    );
+  }
+
+  /// Refresh produk di latar belakang TANPA mengubah jumlah item yang sudah
+  /// tampil. Memuat ulang semua produk yang sedang ditampilkan dalam SATU
+  /// panggilan (`page=1`, `per_page = _pageSize * currentPage`), lalu mengganti
+  /// list sekaligus — panjang list (dan posisi scroll user) tetap terjaga.
+  ///
+  /// Dipakai untuk refresh otomatis (periodik, kembali dari halaman lain, app
+  /// resume). Pull-to-refresh tetap memakai [refreshProducts] (reset ke page 1).
+  Future<void> silentRefreshProducts() async {
+    // Jangan bentrok dengan load primary / pagination / search yang berjalan.
+    if (_isLoading || _isLoadingMore || _isSearching) return;
+
+    // Muat ulang persis sebanyak item yang SEDANG tampil — bukan
+    // _pageSize * currentPage (yang mengasumsikan tiap halaman penuh &
+    // per-page = _pageSize default). _products.length selalu akurat.
+    final refreshSize = _products.isEmpty ? _pageSize : _products.length;
+
+    // Ikut sequence full-replace supaya load lain yang lebih baru bisa
+    // membatalkan refresh ini (dan sebaliknya).
+    _loadSequence++;
+    final mySequence = _loadSequence;
+
+    try {
+      final response = await _apiService.getProducts(
+        customerId: _customerId,
+        page: 1,
+        perPage: refreshSize, // muat ulang semua item yang sedang tampil
+        activeOnly: true,
+        categoryId: _selectedCategoryId,
+        search: _searchQuery,
+      );
+
+      // Ada load lebih baru → buang hasil refresh ini.
+      if (mySequence != _loadSequence) return;
+      if (response.status != 'success') return; // background: diamkan
+
+      final refreshed = response.data.data
+          .map(_convertApiProductToLocalProduct)
+          .toList();
+      final total = response.data.meta.total;
+
+      _products
+        ..clear()
+        ..addAll(refreshed);
+
+      // Hitung ulang state pagination dalam satuan halaman _pageSize (bukan
+      // satuan refreshSize dari respons), supaya loadMore berikutnya tetap
+      // mengambil halaman yang benar.
+      _currentPage = (_products.length / _pageSize).ceil().clamp(1, 1 << 30);
+      _totalPages = (total / _pageSize).ceil().clamp(1, 1 << 30);
+      _hasMore = _products.length < total;
+      notifyListeners();
+    } catch (e) {
+      // Refresh latar belakang: jangan ganggu UI dengan pesan error.
+      debugPrint('⚠️ silentRefreshProducts gagal: $e');
+    }
   }
 
   // Load more products for infinite scroll
@@ -459,6 +531,7 @@ class ProductProvider extends ChangeNotifier {
     }
 
     final nextPage = _currentPage + 1;
+
     await _loadProductsFromApi(
       categoryId: _selectedCategoryId,
       search: _searchQuery, // Maintain search query

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:provider/provider.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/transaction_provider.dart';
 import '../../../products/providers/product_provider.dart';
 import '../../../../data/models/cart_item.dart';
 import '../utils/pos_ui_helpers.dart';
@@ -768,17 +769,43 @@ class _CartPageState extends State<CartPage> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
-              final cartProvider = Provider.of<CartProvider>(
-                context,
-                listen: false,
-              );
+            onPressed: () async {
+              final cartProvider = context.read<CartProvider>();
+              final transactionProvider = context.read<TransactionProvider>();
+              final messenger = ScaffoldMessenger.of(context);
+              final navigator = Navigator.of(context);
+
+              // Tangkap draft transaction ID sebelum cart di-clear
+              final draftId = cartProvider.draftTransactionId;
+
+              navigator.pop(); // tutup dialog konfirmasi
+
+              // Jika ini transaksi pending/draft, hapus juga di server
+              if (draftId != null) {
+                final deleted = await transactionProvider.deleteTransaction(
+                  draftId,
+                );
+                if (!deleted) {
+                  messenger.showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        transactionProvider.errorMessage ??
+                            'Gagal menghapus transaksi di server',
+                      ),
+                      backgroundColor: const Color(0xFFef4444),
+                    ),
+                  );
+                  return;
+                }
+              }
+
               cartProvider.clearCart();
               // Note: Products will be refreshed automatically
-              Navigator.of(context).pop();
-              PosUIHelpers.showSuccessSnackbar(
-                context,
-                'Keranjang berhasil dikosongkan',
+              messenger.showSnackBar(
+                const SnackBar(
+                  content: Text('Keranjang berhasil dikosongkan'),
+                  backgroundColor: Color(0xFF22c55e),
+                ),
               );
             },
             style: ElevatedButton.styleFrom(

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart' show ScrollDirection;
 import 'package:provider/provider.dart';
 import '../../../products/providers/product_provider.dart';
 import 'product_card.dart';
@@ -42,6 +43,15 @@ class _ProductGridState extends State<ProductGrid> {
 
   void _onScroll() {
     if (!mounted) return;
+
+    // Hanya muat lebih banyak saat user benar-benar menggulir KE BAWAH (menuju
+    // konten baru). Tanpa cek arah ini, menggulir ke atas saat posisi masih
+    // dekat dasar (mis. setelah add-to-cart) ikut memicu loadMore.
+    if (_scrollController.position.userScrollDirection !=
+        ScrollDirection.reverse) {
+      return;
+    }
+
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       // Trigger load more when 200px from bottom

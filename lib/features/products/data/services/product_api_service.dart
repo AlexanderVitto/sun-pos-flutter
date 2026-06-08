@@ -22,7 +22,7 @@ class ProductApiService {
   Future<ProductResponse> getProducts({
     int page = 1,
     int perPage = 15,
-    required int customerId,
+    int? customerId,
     String? search,
     int? categoryId,
     int? unitId,
@@ -35,9 +35,15 @@ class ProductApiService {
       final Map<String, String> queryParams = {
         'page': page.toString(),
         'per_page': perPage.toString(),
-        'customer_id': customerId.toString(),
         'active_only': activeOnly.toString(),
       };
+
+      // customer_id opsional — hanya untuk harga spesifik customer/grup.
+      // Tanpa ini, API mengembalikan harga base sehingga produk tetap bisa
+      // dimuat walau belum ada customer terpilih.
+      if (customerId != null) {
+        queryParams['customer_id'] = customerId.toString();
+      }
 
       // Sisipkan store_id dari toko yang sedang dipilih (bila ada).
       final storeId = SelectedStoreHolder.instance.storeId;
@@ -84,15 +90,19 @@ class ProductApiService {
 
   /// Get single product by ID
   /// [productId] - Product ID
-  /// [customerId] - Customer ID for customer-specific pricing (REQUIRED)
+  /// [customerId] - Customer ID for customer-specific pricing (opsional;
+  /// tanpa ini API mengembalikan harga base)
   Future<ProductDetailResponse> getProduct(
     int productId, {
-    required int customerId,
+    int? customerId,
   }) async {
     try {
-      final queryParams = <String, String>{
-        'customer_id': customerId.toString(),
-      };
+      final queryParams = <String, String>{};
+
+      // customer_id opsional — hanya untuk harga spesifik customer/grup.
+      if (customerId != null) {
+        queryParams['customer_id'] = customerId.toString();
+      }
 
       // Sisipkan store_id dari toko yang sedang dipilih (bila ada).
       final storeId = SelectedStoreHolder.instance.storeId;

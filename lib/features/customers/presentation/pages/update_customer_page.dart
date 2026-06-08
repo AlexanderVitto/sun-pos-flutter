@@ -48,13 +48,16 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
         context,
         listen: false,
       );
-      customerProvider.loadCustomerGroups();
 
       // Pre-select toko yang sedang aktif (jika ada)
       _selectedStore = Provider.of<StoreProvider>(
         context,
         listen: false,
       ).selectedStore;
+
+      // Muat grup pelanggan untuk toko terpilih awal.
+      _loadGroupsForSelectedStore();
+
       _loadStoresFromProfile();
 
       // Set initial selected group if customer has one
@@ -74,6 +77,14 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
     });
   }
 
+  /// Muat ulang grup pelanggan sesuai toko yang sedang dipilih di form.
+  void _loadGroupsForSelectedStore() {
+    Provider.of<CustomerProvider>(
+      context,
+      listen: false,
+    ).loadCustomerGroups(storeId: _selectedStore?.id);
+  }
+
   /// Ambil daftar toko dari endpoint /auth/profile (AuthProvider.user.stores).
   Future<void> _loadStoresFromProfile() async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -85,11 +96,17 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
     await authProvider.fetchUserProfile();
     if (!mounted) return;
 
+    final previousStoreId = _selectedStore?.id;
     setState(() {
       _isLoadingStores = false;
       final stores = authProvider.user?.stores ?? [];
       _selectedStore ??= stores.isNotEmpty ? stores.first : null;
     });
+
+    // Bila toko default baru ter-set, muat ulang grup sesuai toko tersebut.
+    if (_selectedStore?.id != previousStoreId) {
+      _loadGroupsForSelectedStore();
+    }
   }
 
   @override
@@ -1150,9 +1167,12 @@ class _UpdateCustomerPageState extends State<UpdateCustomerPage> {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(16),
                   onTap: () {
+                    if (_selectedStore?.id == store.id) return;
                     setState(() {
                       _selectedStore = store;
                     });
+                    // Toko berubah → muat ulang grup pelanggan toko ini.
+                    _loadGroupsForSelectedStore();
                   },
                   child: Padding(
                     padding: const EdgeInsets.all(18),

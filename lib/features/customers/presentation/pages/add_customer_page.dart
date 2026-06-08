@@ -30,18 +30,25 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     super.initState();
     // Load customer groups & stores when page opens
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<CustomerProvider>(
-        context,
-        listen: false,
-      ).loadCustomerGroups();
-
       // Pre-select toko yang sedang aktif (jika ada)
       _selectedStore = Provider.of<StoreProvider>(
         context,
         listen: false,
       ).selectedStore;
+
+      // Muat grup pelanggan untuk toko terpilih awal.
+      _loadGroupsForSelectedStore();
+
       _loadStoresFromProfile();
     });
+  }
+
+  /// Muat ulang grup pelanggan sesuai toko yang sedang dipilih di form.
+  void _loadGroupsForSelectedStore() {
+    Provider.of<CustomerProvider>(
+      context,
+      listen: false,
+    ).loadCustomerGroups(storeId: _selectedStore?.id);
   }
 
   /// Ambil daftar toko dari endpoint /auth/profile (AuthProvider.user.stores).
@@ -56,12 +63,18 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
     await authProvider.fetchUserProfile();
     if (!mounted) return;
 
+    final previousStoreId = _selectedStore?.id;
     setState(() {
       _isLoadingStores = false;
       // Bila belum ada toko terpilih, default ke toko pertama dari profil.
       final stores = authProvider.user?.stores ?? [];
       _selectedStore ??= stores.isNotEmpty ? stores.first : null;
     });
+
+    // Bila toko default baru ter-set, muat ulang grup sesuai toko tersebut.
+    if (_selectedStore?.id != previousStoreId) {
+      _loadGroupsForSelectedStore();
+    }
   }
 
   @override
@@ -392,7 +405,7 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
 
                         // Customer Group Dropdown
                         const Text(
-                          'Customer Group',
+                          'Customer Group (Opsional)',
                           style: TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -481,39 +494,6 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                           Expanded(
                             child: Text(
                               'Silakan pilih toko',
-                              style: TextStyle(
-                                color: Colors.orange[700],
-                                fontSize: 14,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                  // Validation message for customer group
-                  if (_selectedCustomerGroup == null &&
-                      customerProvider.customerGroups.isNotEmpty)
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      margin: const EdgeInsets.only(bottom: 24),
-                      decoration: BoxDecoration(
-                        color: Colors.orange[50],
-                        border: Border.all(color: Colors.orange[200]!),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            LucideIcons.alertCircle,
-                            color: Colors.orange[700],
-                            size: 20,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              'Silakan pilih customer group',
                               style: TextStyle(
                                 color: Colors.orange[700],
                                 fontSize: 14,
@@ -642,9 +622,12 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                     address: store.address,
                     isActive: store.isActive,
                     onTap: () {
+                      if (_selectedStore?.id == store.id) return;
                       setState(() {
                         _selectedStore = store;
                       });
+                      // Toko berubah → muat ulang grup pelanggan toko ini.
+                      _loadGroupsForSelectedStore();
                     },
                   ),
                 ],
@@ -775,7 +758,8 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
                   discountColor: Colors.green,
                   onTap: () {
                     setState(() {
-                      _selectedCustomerGroup = group;
+                      // Toggle: tap grup yang sama untuk membatalkan pilihan
+                      _selectedCustomerGroup = isSelected ? null : group;
                     });
                   },
                 ),
@@ -969,37 +953,6 @@ class _AddCustomerPageState extends State<AddCustomerPage> {
               const Expanded(
                 child: Text(
                   'Silakan pilih toko terlebih dahulu',
-                  style: TextStyle(fontSize: 14),
-                ),
-              ),
-            ],
-          ),
-          backgroundColor: Colors.orange,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
-      return;
-    }
-
-    // Validate customer group selection
-    if (_selectedCustomerGroup == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              const Icon(
-                LucideIcons.alertCircle,
-                color: Colors.white,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Text(
-                  'Silakan pilih customer group terlebih dahulu',
                   style: TextStyle(fontSize: 14),
                 ),
               ),

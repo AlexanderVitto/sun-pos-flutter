@@ -1151,12 +1151,20 @@ class _CustomerPaymentReceiptPageState
     );
 
     try {
-      // Print summary receipt untuk pembayaran hutang
+      // Print struk pembayaran hutang
       bool success = false;
 
-      // Kirim ke printer (gunakan test print)
       if (_connectedPrinter != null) {
-        success = await _connectedPrinter!.testPrint();
+        success = await _connectedPrinter!.printPaymentReceipt(
+          customerName: widget.customer.name,
+          customerPhone: widget.customer.phone,
+          paymentMethod: widget.paymentMethod,
+          paidTransactions: widget.paidTransactions,
+          totalPaid: widget.totalPaid,
+          changeAmount: widget.changeAmount,
+          paymentDate: widget.paymentDate,
+          notes: widget.notes,
+        );
       }
 
       if (context.mounted) {

@@ -35,6 +35,18 @@ class _ProductCardState extends State<ProductCard> {
             ) ??
             cartProvider.getItemByProductId(widget.product.id);
         final isProductInCart = existingItem != null;
+        final canAdd = widget.product.stock > 0;
+
+        // Label tombol: status "di keranjang" diprioritaskan agar flag tetap
+        // terlihat walau stok habis.
+        final String addButtonLabel;
+        if (isProductInCart) {
+          addButtonLabel = canAdd
+              ? '+ Tambah (${existingItem.quantity})'
+              : 'Di Keranjang (${existingItem.quantity})';
+        } else {
+          addButtonLabel = canAdd ? '+ Keranjang' : 'Stok Habis';
+        }
 
         return Container(
           padding: const EdgeInsets.all(12),
@@ -287,7 +299,7 @@ class _ProductCardState extends State<ProductCard> {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
                       boxShadow:
-                          widget.product.stock > 0
+                          (canAdd || isProductInCart)
                               ? [
                                 BoxShadow(
                                   color:
@@ -303,20 +315,33 @@ class _ProductCardState extends State<ProductCard> {
                               : null,
                     ),
                     child: ElevatedButton(
+                      // Tetap nonaktif saat stok habis (tidak bisa tambah lagi),
+                      // walau item sudah ada di keranjang.
                       onPressed:
-                          widget.product.stock > 0
+                          canAdd
                               ? () => widget.onAddToCart(widget.product, 1)
                               : null,
                       style: ElevatedButton.styleFrom(
+                        // Status "di keranjang" diprioritaskan supaya flag tetap
+                        // terlihat meski stok habis.
                         backgroundColor:
-                            widget.product.stock > 0
-                                ? (isProductInCart
-                                    ? Colors.orange[600] // Orange if in cart
-                                    : Colors
-                                        .purple[600]) // Purple if not in cart
-                                : const Color(0xFFe5e7eb),
+                            isProductInCart
+                                ? Colors.orange[600] // Orange if in cart
+                                : (canAdd
+                                    ? Colors.purple[600] // Purple if not in cart
+                                    : const Color(0xFFe5e7eb)),
                         foregroundColor:
-                            widget.product.stock > 0
+                            (isProductInCart || canAdd)
+                                ? Colors.white
+                                : const Color(0xFF9ca3af),
+                        // Pastikan warna saat disabled tidak menimpa warna
+                        // "di keranjang" (orange) ketika stok habis.
+                        disabledBackgroundColor:
+                            isProductInCart
+                                ? Colors.orange[600]
+                                : const Color(0xFFe5e7eb),
+                        disabledForegroundColor:
+                            isProductInCart
                                 ? Colors.white
                                 : const Color(0xFF9ca3af),
                         padding: const EdgeInsets.symmetric(
@@ -332,20 +357,16 @@ class _ProductCardState extends State<ProductCard> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(
-                            widget.product.stock > 0
-                                ? (isProductInCart
-                                    ? Icons.add_shopping_cart_rounded
-                                    : Icons.shopping_cart_outlined)
-                                : Icons.remove_shopping_cart_outlined,
+                            isProductInCart
+                                ? Icons.add_shopping_cart_rounded
+                                : (canAdd
+                                    ? Icons.shopping_cart_outlined
+                                    : Icons.remove_shopping_cart_outlined),
                             size: 16,
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            widget.product.stock > 0
-                                ? (isProductInCart
-                                    ? '+ Tambah (${existingItem.quantity})'
-                                    : '+ Keranjang')
-                                : 'Stok Habis',
+                            addButtonLabel,
                             style: const TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
