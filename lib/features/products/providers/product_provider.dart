@@ -143,7 +143,6 @@ class ProductProvider extends ChangeNotifier {
         _currentPage = response.data.meta.currentPage;
         _totalPages = response.data.meta.lastPage;
         _hasMore = _currentPage < _totalPages;
-        _totalLoadedPageSize = _products.isEmpty ? _pageSize : _products.length;
 
         // Convert API products to local Product model
         final newProducts = response.data.data
@@ -160,6 +159,9 @@ class ProductProvider extends ChangeNotifier {
           _products.addAll(newProducts);
           _isLoading = false;
         }
+
+        _totalLoadedPageSize = _products.isEmpty ? _pageSize : _products.length;
+
         notifyListeners();
       } else {
         throw Exception(response.message);
