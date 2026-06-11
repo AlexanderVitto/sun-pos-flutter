@@ -26,6 +26,10 @@ class _PendingTransactionListPageState
     extends State<PendingTransactionListPage> {
   StreamSubscription<TransactionEvent>? _transactionEventSubscription;
 
+  /// Guard agar _resumeTransaction tidak berjalan dobel saat tombol ditekan
+  /// berkali-kali selagi proses load berlangsung.
+  bool _isResuming = false;
+
   @override
   void initState() {
     super.initState();
@@ -75,6 +79,25 @@ class _PendingTransactionListPageState
   }
 
   void _resumeTransaction(dynamic transaction) async {
+    // Cegah eksekusi dobel selagi proses load masih berjalan.
+    if (_isResuming) return;
+    setState(() => _isResuming = true);
+
+    // Tampilkan loader yang memblokir interaksi selama transaksi disiapkan.
+    bool loaderOpen = true;
+    void closeLoader() {
+      if (loaderOpen && mounted) {
+        Navigator.of(context, rootNavigator: true).pop();
+        loaderOpen = false;
+      }
+    }
+
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _buildResumeLoader(),
+    );
+
     final cartProvider = Provider.of<CartProvider>(context, listen: false);
     final pendingProvider = Provider.of<PendingTransactionProvider>(
       context,
@@ -242,6 +265,9 @@ class _PendingTransactionListPageState
         '🛒 Selected customer: ${cartProvider.selectedCustomer?.name}',
       );
 
+      // Tutup loader sebelum berpindah halaman agar tidak tertinggal di stack.
+      closeLoader();
+
       // Navigate to POS page dengan context yang sama untuk mempertahankan provider state
       if (mounted) {
         Navigator.of(context).push(
@@ -249,6 +275,7 @@ class _PendingTransactionListPageState
         );
       }
     } catch (e) {
+      closeLoader();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -258,7 +285,42 @@ class _PendingTransactionListPageState
         );
       }
       debugPrint('❌ Error resuming transaction: $e');
+    } finally {
+      // Pengaman: pastikan loader tertutup & guard di-reset apa pun yang terjadi.
+      closeLoader();
+      if (mounted) setState(() => _isResuming = false);
     }
+  }
+
+  /// Loader modal yang ditampilkan selagi transaksi pending disiapkan.
+  Widget _buildResumeLoader() {
+    return PopScope(
+      canPop: false,
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(color: Color(0xFF3B82F6)),
+              SizedBox(height: 16),
+              Text(
+                'Menyiapkan transaksi…',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Color(0xFF1E3A8A),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _createNewTransaction() {
@@ -1075,7 +1137,9 @@ class _PendingTransactionListPageState
               child: SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: () => _resumeTransaction(transaction),
+                  onPressed: _isResuming
+                      ? null
+                      : () => _resumeTransaction(transaction),
                   icon: const Icon(LucideIcons.play, size: 18),
                   label: const Text(
                     'Lanjutkan Transaksi',
