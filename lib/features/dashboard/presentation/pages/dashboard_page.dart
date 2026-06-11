@@ -8,6 +8,8 @@ import '../../../auth/data/models/user.dart';
 import '../../../transactions/providers/transaction_list_provider.dart';
 import '../../../../core/routes/app_routes.dart';
 import '../../../../core/utils/role_permissions.dart';
+import '../../../../core/network/connectivity_provider.dart';
+import '../../../../core/widgets/connection_status_indicator.dart';
 import '../../../products/providers/product_provider.dart';
 // import '../../../products/presentation/pages/products_page_modern.dart'; // Hidden per user request
 // import '../../../reports/presentation/pages/reports_page.dart'; // Hidden per user request
@@ -749,24 +751,29 @@ class _DashboardPageState extends State<DashboardPage>
                                 fontWeight: FontWeight.w500,
                               ),
                             ),
-                            Text(
-                              'Sistem aktif dan berjalan dengan baik',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.7),
-                                fontSize: 12,
-                              ),
+                            Consumer<ConnectivityProvider>(
+                              builder: (context, connectivity, child) {
+                                final text = switch (connectivity.status) {
+                                  ConnectionStatus.online =>
+                                    'Sistem aktif dan berjalan dengan baik',
+                                  ConnectionStatus.offline =>
+                                    'Tidak ada koneksi internet',
+                                  ConnectionStatus.checking =>
+                                    'Memeriksa koneksi…',
+                                };
+                                return Text(
+                                  text,
+                                  style: TextStyle(
+                                    color: Colors.white.withValues(alpha: 0.7),
+                                    fontSize: 12,
+                                  ),
+                                );
+                              },
                             ),
                           ],
                         ),
                       ),
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF10b981), // Green
-                          shape: BoxShape.circle,
-                        ),
-                      ),
+                      const ConnectionStatusIndicator(),
                     ],
                   ),
 
@@ -1754,9 +1761,16 @@ class _DashboardPageState extends State<DashboardPage>
 
         return Scaffold(
           backgroundColor: const Color(0xFFf8fafc),
-          body: availablePages.isNotEmpty
-              ? availablePages[_selectedIndex]
-              : const Center(child: Text('No accessible features')),
+          body: Column(
+            children: [
+              const OfflineBanner(),
+              Expanded(
+                child: availablePages.isNotEmpty
+                    ? availablePages[_selectedIndex]
+                    : const Center(child: Text('No accessible features')),
+              ),
+            ],
+          ),
           bottomNavigationBar: availableNavItems.isNotEmpty
               ? Container(
                   decoration: BoxDecoration(

@@ -5,6 +5,7 @@ import 'core/themes/app_theme.dart';
 import 'core/routes/app_router.dart';
 import 'core/constants/app_strings.dart';
 import 'core/utils/app_info_helper.dart';
+import 'core/network/connectivity_provider.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/products/providers/product_provider.dart';
 import 'features/products/providers/api_product_provider.dart';
@@ -50,6 +51,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => ConnectivityProvider()),
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => StoreProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),

@@ -36,6 +36,16 @@ class AppConfig {
     }
   }
 
+  // Host untuk verifikasi reachability internet (tanpa path/scheme).
+  static String get probeHost {
+    switch (environment) {
+      case Environment.production:
+        return 'sfxsys.com';
+      case Environment.staging:
+        return 'stg.sfxsys.com';
+    }
+  }
+
   // Keep in sync with pubspec.yaml `version:`. Prefer
   // [AppInfoHelper.appVersion] (runtime via package_info_plus) for new code.
   static const String appVersion = '1.0.33';
