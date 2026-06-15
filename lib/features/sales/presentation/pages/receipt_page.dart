@@ -534,6 +534,16 @@ class _ReceiptPageState extends State<ReceiptPage> {
     );
   }
 
+  /// Menghapus akhiran ukuran pada nama produk, mis. "Roda - Roda Gila - 80/12/10"
+  /// menjadi "Roda - Roda Gila". Yang dibuang hanya segmen setelah " - " terakhir
+  /// yang berupa angka berpemisah '/' atau 'x' (mis. 80/12/10, 500/300/20").
+  String _stripSizeSuffix(String name) {
+    return name.replaceAll(
+      RegExp(r'\s*-\s*\d+(?:\s*[\/xX]\s*\d+)+\s*"?\s*$'),
+      '',
+    );
+  }
+
   Widget _buildItemRow(CartItem item) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -542,7 +552,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
         children: [
           // Baris pertama: Nama item (bisa multi-line)
           Text(
-            '${item.product.code} ${item.product.name}',
+            '${item.product.code} ${_stripSizeSuffix(item.product.name)}',
             style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
           ),
           const SizedBox(height: 4),
