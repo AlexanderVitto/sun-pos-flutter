@@ -4,6 +4,7 @@ import '../../../../data/models/product.dart';
 import '../../../sales/providers/cart_provider.dart';
 import '../../../../core/utils/format_helper.dart';
 import '../../../../core/constants/app_icons.dart';
+import '../../../../shared/utils/stock_status.dart';
 
 class ProductCard extends StatelessWidget {
   final Product product;
@@ -23,6 +24,7 @@ class ProductCard extends StatelessWidget {
       builder: (context, cartProvider, child) {
         final isInCart = cartProvider.isProductInCart(product.id);
         final cartQuantity = cartProvider.getProductQuantity(product.id);
+        final stockStatus = StockStatus.of(product.stock, product.minStock);
 
         return Card(
           elevation: 2,
@@ -56,7 +58,7 @@ class ProductCard extends StatelessWidget {
                           ),
                         ),
 
-                        // Stock badge
+                        // Stock badge — label status + jumlah stok
                         Positioned(
                           top: 8,
                           right: 8,
@@ -66,11 +68,13 @@ class ProductCard extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: _getStockBadgeColor(),
+                              color: stockStatus.color,
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              '${product.stock}',
+                              stockStatus.isOut
+                                  ? stockStatus.label
+                                  : '${stockStatus.label} · ${product.stock}',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -149,12 +153,11 @@ class ProductCard extends StatelessWidget {
                             Expanded(
                               child: Text(
                                 FormatHelper.formatCurrency(product.price),
-                                style: Theme.of(
-                                  context,
-                                ).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).primaryColor,
-                                ),
+                                style: Theme.of(context).textTheme.titleMedium
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.bold,
+                                      color: Theme.of(context).primaryColor,
+                                    ),
                               ),
                             ),
 
@@ -163,23 +166,22 @@ class ProductCard extends StatelessWidget {
                               width: 32,
                               height: 32,
                               child: IconButton(
-                                onPressed:
-                                    product.stock > 0 ? onAddToCart : null,
+                                onPressed: product.stock > 0
+                                    ? onAddToCart
+                                    : null,
                                 icon: Icon(
                                   AppIcons.add,
                                   size: 16,
-                                  color:
-                                      product.stock > 0
-                                          ? Theme.of(context).primaryColor
-                                          : Colors.grey,
+                                  color: product.stock > 0
+                                      ? Theme.of(context).primaryColor
+                                      : Colors.grey,
                                 ),
                                 style: IconButton.styleFrom(
-                                  backgroundColor:
-                                      product.stock > 0
-                                          ? Theme.of(
-                                            context,
-                                          ).primaryColor.withValues(alpha: 0.1)
-                                          : Colors.grey[200],
+                                  backgroundColor: product.stock > 0
+                                      ? Theme.of(
+                                          context,
+                                        ).primaryColor.withValues(alpha: 0.1)
+                                      : Colors.grey[200],
                                   padding: EdgeInsets.zero,
                                 ),
                               ),
@@ -196,15 +198,5 @@ class ProductCard extends StatelessWidget {
         );
       },
     );
-  }
-
-  Color _getStockBadgeColor() {
-    if (product.stock <= 0) {
-      return Colors.red;
-    } else if (product.stock <= 5) {
-      return Colors.orange;
-    } else {
-      return Colors.green;
-    }
   }
 }

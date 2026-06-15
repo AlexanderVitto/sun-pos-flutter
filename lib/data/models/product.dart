@@ -5,6 +5,7 @@ class Product {
   final String description;
   final double price;
   final int stock;
+  final int minStock;
   final String category;
   final String? imagePath;
   final int? productVariantId;
@@ -18,6 +19,7 @@ class Product {
     this.description = '',
     this.price = 0.0,
     this.stock = 0,
+    this.minStock = 0,
     this.category = 'General',
     this.imagePath,
     this.productVariantId,
@@ -33,6 +35,7 @@ class Product {
     String? description,
     double? price,
     int? stock,
+    int? minStock,
     String? category,
     String? imagePath,
     int? productVariantId,
@@ -46,6 +49,7 @@ class Product {
       description: description ?? this.description,
       price: price ?? this.price,
       stock: stock ?? this.stock,
+      minStock: minStock ?? this.minStock,
       category: category ?? this.category,
       imagePath: imagePath ?? this.imagePath,
       productVariantId: productVariantId ?? this.productVariantId,

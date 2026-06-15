@@ -123,7 +123,7 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
   Widget _buildVariantCard(ProductVariant variant) {
     final isSelected = _selectedVariant?.id == variant.id;
     final isAvailable = variant.isActive && variant.stock > 0;
-    final isLowStock = variant.stock > 0 && variant.stock <= 5;
+    final isLowStock = variant.stock > 0 && variant.stock <= variant.minStock;
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -136,14 +136,13 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
         ),
       ),
       child: InkWell(
-        onTap:
-            isAvailable
-                ? () {
-                  setState(() {
-                    _selectedVariant = variant;
-                  });
-                }
-                : null,
+        onTap: isAvailable
+            ? () {
+                setState(() {
+                  _selectedVariant = variant;
+                });
+              }
+            : null,
         borderRadius: BorderRadius.circular(12),
         child: Opacity(
           opacity: isAvailable ? 1.0 : 0.5,
@@ -161,25 +160,22 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color:
-                              isSelected
-                                  ? const Color(0xFF6366f1)
-                                  : Colors.grey.shade400,
+                          color: isSelected
+                              ? const Color(0xFF6366f1)
+                              : Colors.grey.shade400,
                           width: 2,
                         ),
-                        color:
-                            isSelected
-                                ? const Color(0xFF6366f1)
-                                : Colors.transparent,
+                        color: isSelected
+                            ? const Color(0xFF6366f1)
+                            : Colors.transparent,
                       ),
-                      child:
-                          isSelected
-                              ? const Icon(
-                                Icons.check,
-                                size: 16,
-                                color: Colors.white,
-                              )
-                              : null,
+                      child: isSelected
+                          ? const Icon(
+                              Icons.check,
+                              size: 16,
+                              color: Colors.white,
+                            )
+                          : null,
                     ),
                     const SizedBox(width: 12),
                     // Variant name
@@ -188,12 +184,12 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
                         variant.name,
                         style: TextStyle(
                           fontSize: 16,
-                          fontWeight:
-                              isSelected ? FontWeight.bold : FontWeight.w600,
-                          color:
-                              isAvailable
-                                  ? Colors.black87
-                                  : Colors.grey.shade600,
+                          fontWeight: isSelected
+                              ? FontWeight.bold
+                              : FontWeight.w600,
+                          color: isAvailable
+                              ? Colors.black87
+                              : Colors.grey.shade600,
                         ),
                       ),
                     ),
@@ -203,10 +199,9 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color:
-                            isSelected
-                                ? const Color(0xFF6366f1)
-                                : Colors.black87,
+                        color: isSelected
+                            ? const Color(0xFF6366f1)
+                            : Colors.black87,
                       ),
                     ),
                   ],
@@ -217,27 +212,26 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
                   Wrap(
                     spacing: 8,
                     runSpacing: 8,
-                    children:
-                        variant.attributes.entries.map((entry) {
-                          return Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 4,
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.grey.shade100,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(color: Colors.grey.shade300),
-                            ),
-                            child: Text(
-                              '${entry.key}: ${entry.value}',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey.shade700,
-                              ),
-                            ),
-                          );
-                        }).toList(),
+                    children: variant.attributes.entries.map((entry) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: Colors.grey.shade300),
+                        ),
+                        child: Text(
+                          '${entry.key}: ${entry.value}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                   const SizedBox(height: 8),
                 ],
@@ -247,22 +241,21 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
                     Icon(
                       Icons.inventory_2_outlined,
                       size: 16,
-                      color:
-                          isLowStock
-                              ? Colors.orange.shade700
-                              : Colors.grey.shade600,
+                      color: isLowStock
+                          ? Colors.orange.shade700
+                          : Colors.grey.shade600,
                     ),
                     const SizedBox(width: 4),
                     Text(
                       'Stok: ${variant.stock}',
                       style: TextStyle(
                         fontSize: 13,
-                        color:
-                            isLowStock
-                                ? Colors.orange.shade700
-                                : Colors.grey.shade600,
-                        fontWeight:
-                            isLowStock ? FontWeight.w600 : FontWeight.normal,
+                        color: isLowStock
+                            ? Colors.orange.shade700
+                            : Colors.grey.shade600,
+                        fontWeight: isLowStock
+                            ? FontWeight.w600
+                            : FontWeight.normal,
                       ),
                     ),
                     if (isLowStock) ...[
@@ -365,13 +358,12 @@ class _VariantSelectionDialogState extends State<VariantSelectionDialog> {
           Expanded(
             flex: 2,
             child: ElevatedButton(
-              onPressed:
-                  canAddToCart
-                      ? () {
-                        widget.onVariantSelected(_selectedVariant!);
-                        Navigator.of(context).pop();
-                      }
-                      : null,
+              onPressed: canAddToCart
+                  ? () {
+                      widget.onVariantSelected(_selectedVariant!);
+                      Navigator.of(context).pop();
+                    }
+                  : null,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF6366f1),
                 foregroundColor: Colors.white,

@@ -137,6 +137,7 @@ class ProductVariant {
   final double price;
   final double costPrice;
   final int stock;
+  final int minStock;
   final Map<String, dynamic> attributes;
   final String? image;
   final bool isActive;
@@ -155,6 +156,7 @@ class ProductVariant {
     required this.price,
     required this.costPrice,
     required this.stock,
+    this.minStock = 0,
     required this.attributes,
     this.image,
     required this.isActive,
@@ -184,6 +186,7 @@ class ProductVariant {
       price: (json['price'] ?? 0).toDouble(),
       costPrice: (json['cost_price'] ?? 0).toDouble(),
       stock: json['stock'] ?? 0,
+      minStock: json['min_stock'] ?? 0,
       attributes: attributes,
       image: json['image'],
       isActive: json['is_active'] ?? false,

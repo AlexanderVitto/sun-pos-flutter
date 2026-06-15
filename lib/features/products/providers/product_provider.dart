@@ -60,7 +60,7 @@ class ProductProvider extends ChangeNotifier {
   }
 
   int get totalProducts => _products.length;
-  int get lowStockCount => _products.where((p) => p.stock <= 5).length;
+  int get lowStockCount => _products.where((p) => p.stock <= p.minStock).length;
   int? get customerId => _customerId;
 
   ProductProvider() {
@@ -213,6 +213,7 @@ class ProductProvider extends ChangeNotifier {
       // Fallback ke base price kalau pricing_info tidak ada.
       price: firstVariant.finalPrice,
       stock: firstVariant.stock,
+      minStock: firstVariant.minStock,
       category: apiProduct.category.name,
       imagePath: apiProduct.image,
       createdAt: apiProduct.createdAt,
@@ -439,7 +440,9 @@ class ProductProvider extends ChangeNotifier {
 
   // Get low stock products
   List<Product> getLowStockProducts() {
-    return _products.where((product) => product.stock <= 5).toList();
+    return _products
+        .where((product) => product.stock <= product.minStock)
+        .toList();
   }
 
   // Clear error message

@@ -112,7 +112,13 @@ class _VariantCard extends StatelessWidget {
         // Calculate remaining stock
         final remainingStock = variant.stock;
         final isOutOfStock = remainingStock <= 0;
-        final isLowStock = remainingStock > 0 && remainingStock <= 10;
+        final isLowStock =
+            remainingStock > 0 && remainingStock <= variant.minStock;
+        final stockLabel = isOutOfStock
+            ? 'Habis'
+            : isLowStock
+            ? 'Menipis'
+            : 'Aman';
 
         return Container(
           padding: const EdgeInsets.all(20),
@@ -197,7 +203,7 @@ class _VariantCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Stok: $remainingStock',
+                          'Stok: $remainingStock · $stockLabel',
                           style: TextStyle(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,

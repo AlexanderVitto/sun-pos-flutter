@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../data/models/product.dart';
 import '../../../sales/providers/cart_provider.dart';
+import '../../../../shared/utils/stock_status.dart';
 
 class ProductCard extends StatefulWidget {
   final Product product;
@@ -64,9 +65,8 @@ class _ProductCardState extends State<ProductCard> {
             ],
           ),
           child: InkWell(
-            onTap:
-                widget
-                    .onTap, // Use onTap for product details instead of onAddToCart
+            onTap: widget
+                .onTap, // Use onTap for product details instead of onAddToCart
             borderRadius: BorderRadius.circular(16),
             splashColor: _getCategoryColor(
               widget.product.category,
@@ -186,16 +186,19 @@ class _ProductCardState extends State<ProductCard> {
                 Consumer<CartProvider>(
                   builder: (context, cartProvider, child) {
                     final remainingStock = widget.product.stock;
+                    final status = StockStatus.of(
+                      remainingStock,
+                      widget.product.minStock,
+                    );
 
                     return Text(
-                      'Stok: $remainingStock',
+                      status.isOut
+                          ? 'Stok habis'
+                          : 'Stok: $remainingStock · ${status.label}',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w500,
-                        color:
-                            remainingStock < 10
-                                ? const Color(0xFFef4444)
-                                : const Color(0xFF6b7280),
+                        color: status.color,
                         letterSpacing: 0.1,
                       ),
                     );
@@ -298,52 +301,43 @@ class _ProductCardState extends State<ProductCard> {
                   child: Container(
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(10),
-                      boxShadow:
-                          (canAdd || isProductInCart)
-                              ? [
-                                BoxShadow(
-                                  color:
-                                      isProductInCart
-                                          ? Colors.orange.withValues(alpha: 0.2)
-                                          : Colors.purple.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ]
-                              : null,
+                      boxShadow: (canAdd || isProductInCart)
+                          ? [
+                              BoxShadow(
+                                color: isProductInCart
+                                    ? Colors.orange.withValues(alpha: 0.2)
+                                    : Colors.purple.withValues(alpha: 0.2),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: ElevatedButton(
                       // Tetap nonaktif saat stok habis (tidak bisa tambah lagi),
                       // walau item sudah ada di keranjang.
-                      onPressed:
-                          canAdd
-                              ? () => widget.onAddToCart(widget.product, 1)
-                              : null,
+                      onPressed: canAdd
+                          ? () => widget.onAddToCart(widget.product, 1)
+                          : null,
                       style: ElevatedButton.styleFrom(
                         // Status "di keranjang" diprioritaskan supaya flag tetap
                         // terlihat meski stok habis.
-                        backgroundColor:
-                            isProductInCart
-                                ? Colors.orange[600] // Orange if in cart
-                                : (canAdd
-                                    ? Colors.purple[600] // Purple if not in cart
-                                    : const Color(0xFFe5e7eb)),
-                        foregroundColor:
-                            (isProductInCart || canAdd)
-                                ? Colors.white
-                                : const Color(0xFF9ca3af),
+                        backgroundColor: isProductInCart
+                            ? Colors.orange[600] // Orange if in cart
+                            : (canAdd
+                                  ? Colors.purple[600] // Purple if not in cart
+                                  : const Color(0xFFe5e7eb)),
+                        foregroundColor: (isProductInCart || canAdd)
+                            ? Colors.white
+                            : const Color(0xFF9ca3af),
                         // Pastikan warna saat disabled tidak menimpa warna
                         // "di keranjang" (orange) ketika stok habis.
-                        disabledBackgroundColor:
-                            isProductInCart
-                                ? Colors.orange[600]
-                                : const Color(0xFFe5e7eb),
-                        disabledForegroundColor:
-                            isProductInCart
-                                ? Colors.white
-                                : const Color(0xFF9ca3af),
+                        disabledBackgroundColor: isProductInCart
+                            ? Colors.orange[600]
+                            : const Color(0xFFe5e7eb),
+                        disabledForegroundColor: isProductInCart
+                            ? Colors.white
+                            : const Color(0xFF9ca3af),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
                           vertical: 8,
@@ -360,8 +354,8 @@ class _ProductCardState extends State<ProductCard> {
                             isProductInCart
                                 ? Icons.add_shopping_cart_rounded
                                 : (canAdd
-                                    ? Icons.shopping_cart_outlined
-                                    : Icons.remove_shopping_cart_outlined),
+                                      ? Icons.shopping_cart_outlined
+                                      : Icons.remove_shopping_cart_outlined),
                             size: 16,
                           ),
                           const SizedBox(width: 6),
