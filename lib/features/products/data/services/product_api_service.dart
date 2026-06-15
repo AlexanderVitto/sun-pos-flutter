@@ -1,6 +1,7 @@
 import '../../../../core/network/auth_http_client.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/services/selected_store_holder.dart';
+import '../models/product.dart';
 import '../models/product_response.dart';
 import '../models/product_detail_response.dart';
 import '../models/category_response.dart';
@@ -85,6 +86,41 @@ class ProductApiService {
       return ProductResponse.fromJson(responseData);
     } catch (e) {
       throw Exception('Failed to get products: ${e.toString()}');
+    }
+  }
+
+  /// Ambil SELURUH produk aktif untuk satu toko (tanpa pagination) dengan
+  /// HARGA BASE — dipakai untuk membangun snapshot cache offline.
+  ///
+  /// Endpoint: `GET /products?store_id=..&active_only=true`
+  /// Berbeda dengan [getProducts] yang dipaginasi & bisa pakai harga grup.
+  Future<List<Product>> getProductsSnapshot({
+    int? storeId,
+    bool activeOnly = true,
+  }) async {
+    try {
+      final queryParams = <String, String>{
+        'active_only': activeOnly.toString(),
+      };
+
+      final resolvedStoreId = storeId ?? SelectedStoreHolder.instance.storeId;
+      if (resolvedStoreId != null) {
+        queryParams['store_id'] = resolvedStoreId.toString();
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/products',
+      ).replace(queryParameters: queryParams);
+
+      final response = await _httpClient.get(
+        uri.toString(),
+        requireAuth: true,
+      );
+
+      final responseData = _httpClient.parseJsonResponse(response);
+      return ProductResponse.fromJson(responseData).data.data;
+    } catch (e) {
+      throw Exception('Failed to get all products: ${e.toString()}');
     }
   }
 

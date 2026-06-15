@@ -9,6 +9,7 @@ import 'core/network/connectivity_provider.dart';
 import 'features/auth/providers/auth_provider.dart';
 import 'features/products/providers/product_provider.dart';
 import 'features/products/providers/api_product_provider.dart';
+import 'features/products/providers/product_snapshot_provider.dart';
 import 'features/sales/providers/cart_provider.dart';
 import 'features/sales/providers/transaction_provider.dart';
 import 'features/sales/providers/pending_transaction_provider.dart';
@@ -56,6 +57,41 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => StoreProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ApiProductProvider()),
+        // Snapshot produk offline: auto-sync saat ganti toko & saat kembali
+        // online. Membaca StoreProvider + ConnectivityProvider (didaftarkan
+        // di atas) untuk menentukan kapan harus menarik data.
+        ChangeNotifierProvider(
+          create: (context) {
+            final snapshot = ProductSnapshotProvider();
+            final storeProvider = context.read<StoreProvider>();
+            final connectivity = context.read<ConnectivityProvider>();
+
+            void syncCurrentStore() {
+              final storeId = storeProvider.selectedStore?.id;
+              if (storeId == null) return;
+              if (connectivity.isOnline) {
+                snapshot.sync(storeId: storeId);
+              } else {
+                // Offline → cukup refresh metadata cache yang sudah ada.
+                snapshot.refreshMeta(storeId);
+              }
+            }
+
+            // Sync ulang setiap kali toko aktif berubah.
+            storeProvider.addOnStoreChangedCallback(syncCurrentStore);
+
+            // Saat koneksi kembali online, sync snapshot toko aktif.
+            connectivity.addListener(() {
+              if (connectivity.isOnline && !snapshot.isSyncing) {
+                syncCurrentStore();
+              }
+            });
+
+            // Sync awal bila toko sudah terpilih saat app dibuka.
+            syncCurrentStore();
+            return snapshot;
+          },
+        ),
         ChangeNotifierProvider(create: (_) => TransactionProvider()),
         ChangeNotifierProvider(create: (_) => PendingTransactionProvider()),
         ChangeNotifierProxyProvider<AuthProvider, CartProvider>(
