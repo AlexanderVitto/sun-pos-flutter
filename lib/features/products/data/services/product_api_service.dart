@@ -2,6 +2,7 @@ import '../../../../core/network/auth_http_client.dart';
 import '../../../../core/config/app_config.dart';
 import '../../../../core/services/selected_store_holder.dart';
 import '../models/product.dart';
+import '../models/low_stock_product.dart';
 import '../models/product_response.dart';
 import '../models/product_detail_response.dart';
 import '../models/category_response.dart';
@@ -86,6 +87,37 @@ class ProductApiService {
       return ProductResponse.fromJson(responseData);
     } catch (e) {
       throw Exception('Failed to get products: ${e.toString()}');
+    }
+  }
+
+  /// Ambil daftar produk dengan stok menipis/habis untuk satu toko.
+  ///
+  /// Endpoint: `GET /products/low-stock?store_id=..&per_page=..`
+  Future<LowStockResponse> getLowStockProducts({
+    int? storeId,
+    int perPage = 15,
+  }) async {
+    try {
+      final queryParams = <String, String>{'per_page': perPage.toString()};
+
+      final resolvedStoreId = storeId ?? SelectedStoreHolder.instance.storeId;
+      if (resolvedStoreId != null) {
+        queryParams['store_id'] = resolvedStoreId.toString();
+      }
+
+      final uri = Uri.parse(
+        '$baseUrl/products/low-stock',
+      ).replace(queryParameters: queryParams);
+
+      final response = await _httpClient.get(
+        uri.toString(),
+        requireAuth: true,
+      );
+
+      final responseData = _httpClient.parseJsonResponse(response);
+      return LowStockResponse.fromJson(responseData);
+    } catch (e) {
+      throw Exception('Failed to get low stock products: ${e.toString()}');
     }
   }
 

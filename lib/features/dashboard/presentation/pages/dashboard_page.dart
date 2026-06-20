@@ -21,6 +21,7 @@ import '../../../sales/presentation/pages/pending_transaction_list_page.dart';
 import '../widgets/transaction_tab_page.dart';
 import '../../providers/store_provider.dart';
 import '../../../customers/presentation/pages/outstanding_customers_page.dart';
+import '../../../products/presentation/widgets/low_stock_notification_button.dart';
 
 class DashboardPage extends StatefulWidget {
   final int initialIndex;
@@ -655,6 +656,11 @@ class _DashboardPageState extends State<DashboardPage>
                 // Profile avatar and logout
                 Row(
                   children: [
+                    // Notifikasi stok menipis
+                    const LowStockNotificationButton(),
+
+                    const SizedBox(width: 12),
+
                     // Profile avatar
                     Container(
                       padding: const EdgeInsets.all(3),

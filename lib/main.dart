@@ -10,6 +10,7 @@ import 'features/auth/providers/auth_provider.dart';
 import 'features/products/providers/product_provider.dart';
 import 'features/products/providers/api_product_provider.dart';
 import 'features/products/providers/product_snapshot_provider.dart';
+import 'features/products/providers/low_stock_provider.dart';
 import 'features/sales/providers/cart_provider.dart';
 import 'features/sales/providers/transaction_provider.dart';
 import 'features/sales/providers/pending_transaction_provider.dart';
@@ -57,6 +58,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => StoreProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ApiProductProvider()),
+        ChangeNotifierProvider(create: (_) => LowStockProvider()),
         // Snapshot produk offline: auto-sync saat ganti toko & saat kembali
         // online. Membaca StoreProvider + ConnectivityProvider (didaftarkan
         // di atas) untuk menentukan kapan harus menarik data.

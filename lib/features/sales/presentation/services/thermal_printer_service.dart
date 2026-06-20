@@ -217,6 +217,54 @@ class ThermalPrinterService {
     }
   }
 
+  /// Pastikan terhubung ke printer yang tersimpan, dengan retry.
+  ///
+  /// Inti pola "koneksi sesaat" untuk printer BERBAGI: connect tepat sebelum
+  /// mencetak bila belum terhubung. Retry menangani kasus printer sedang
+  /// dipakai kasir lain (BLE hanya melayani satu koneksi pada satu waktu).
+  Future<bool> ensureConnectedToSavedPrinter({int retries = 3}) async {
+    if (_isConnected) return true;
+
+    final saved = await PrinterPreferencesService.instance
+        .getLastConnectedPrinter();
+    if (saved == null) {
+      debugPrint('ensureConnected: tidak ada printer tersimpan');
+      return false;
+    }
+
+    for (var attempt = 1; attempt <= retries; attempt++) {
+      bool ok = false;
+      if (saved.type == SavedPrinterType.network && saved.ipAddress != null) {
+        ok = await connectToPrinter(saved.ipAddress!, port: saved.port ?? 9100);
+      } else if (saved.type == SavedPrinterType.bluetooth &&
+          saved.bluetoothAddress != null) {
+        ok = await connectToBluetoothPrinter(
+          saved.bluetoothAddress!,
+          deviceName: saved.bluetoothName,
+        );
+      }
+      if (ok) return true;
+
+      // Gagal — printer mungkin sedang dipakai kasir lain. Tunggu lalu ulang.
+      if (attempt < retries) {
+        debugPrint('ensureConnected: gagal (percobaan $attempt), retry...');
+        await Future.delayed(Duration(milliseconds: 700 * attempt));
+      }
+    }
+    return false;
+  }
+
+  /// Lepas koneksi Bluetooth setelah mencetak agar kasir lain bisa memakai
+  /// printer yang sama. Network printer TIDAK dilepas (mendukung multi-koneksi).
+  Future<void> _releaseBluetoothAfterPrint() async {
+    if (_connectionType == PrinterConnectionType.bluetooth) {
+      // Jeda agar data ter-flush ke printer sebelum link diputus.
+      await Future.delayed(const Duration(milliseconds: 1000));
+      disconnect();
+      debugPrint('Bluetooth printer dilepas setelah cetak (mode berbagi)');
+    }
+  }
+
   /// Cek apakah sudah ada printer tersimpan
   Future<bool> hasSavedPrinter() async {
     return await PrinterPreferencesService.instance.hasSavedPrinter();
@@ -244,9 +292,13 @@ class ThermalPrinterService {
     String? status,
     DateTime? dueDate,
   }) async {
+    // Pola koneksi sesaat: connect ke printer tersimpan tepat sebelum cetak.
     if (!_isConnected) {
-      debugPrint('Printer not connected');
-      return false;
+      final ok = await ensureConnectedToSavedPrinter();
+      if (!ok) {
+        debugPrint('Printer not connected and auto-connect failed');
+        return false;
+      }
     }
 
     try {
@@ -282,6 +334,9 @@ class ThermalPrinterService {
     } catch (e) {
       debugPrint('Error printing receipt: $e');
       return false;
+    } finally {
+      // Lepas printer Bluetooth agar bisa dipakai kasir lain bergantian.
+      await _releaseBluetoothAfterPrint();
     }
   }
 
@@ -910,8 +965,10 @@ class ThermalPrinterService {
 
   /// Test print untuk cek koneksi
   Future<bool> testPrint() async {
+    // Pola koneksi sesaat: connect ke printer tersimpan bila belum terhubung.
     if (!_isConnected) {
-      return false;
+      final ok = await ensureConnectedToSavedPrinter();
+      if (!ok) return false;
     }
 
     try {
@@ -948,6 +1005,8 @@ class ThermalPrinterService {
     } catch (e) {
       debugPrint('Error test printing: $e');
       return false;
+    } finally {
+      await _releaseBluetoothAfterPrint();
     }
   }
 

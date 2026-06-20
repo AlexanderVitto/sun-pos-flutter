@@ -49,6 +49,10 @@ class ReceiptPage extends StatefulWidget {
 
 class _ReceiptPageState extends State<ReceiptPage> {
   ThermalPrinterService? _connectedPrinter;
+  // True bila ADA printer tersimpan (bukan "sedang terhubung"). Dengan pola
+  // koneksi-sesaat untuk printer berbagi, app tidak menahan koneksi; UI cetak
+  // ditampilkan selama printer sudah dikonfigurasi.
+  bool _hasPrinter = false;
   bool _isInitializingPrinter = true;
   final GlobalKey _receiptBoundaryKey = GlobalKey();
 
@@ -60,22 +64,15 @@ class _ReceiptPageState extends State<ReceiptPage> {
 
   Future<void> _initializePrinter() async {
     try {
-      // Coba buat instance printer dan cek apakah ada printer tersimpan
+      // Pola koneksi-sesaat: JANGAN auto-connect & tahan koneksi (mem-blok
+      // kasir lain). Cukup siapkan instance & cek apakah ada printer tersimpan;
+      // koneksi dibuat sesaat saat mencetak lalu dilepas lagi.
       final printer = ThermalPrinterService();
-
-      // Cek apakah sudah ada printer yang tersimpan
-      final hasSaved = await printer.hasSavedPrinter();
-
-      if (hasSaved) {
-        // Coba auto-reconnect ke printer terakhir yang tersimpan
-        final success = await printer.autoReconnectToLastPrinter();
-        if (success) {
-          _connectedPrinter = printer;
-        }
-      }
+      _connectedPrinter = printer;
+      _hasPrinter = await printer.hasSavedPrinter();
     } catch (e) {
       debugPrint('Error initializing printer: $e');
-      _connectedPrinter = null;
+      _hasPrinter = false;
     }
 
     if (mounted) {
@@ -110,11 +107,11 @@ class _ReceiptPageState extends State<ReceiptPage> {
                       ),
                     )
                     : Icon(
-                      _connectedPrinter?.isConnected == true
+                      _hasPrinter
                           ? Icons.print
                           : Icons.print_disabled,
                       color:
-                          _connectedPrinter?.isConnected == true
+                          _hasPrinter
                               ? Colors.white
                               : Colors.white70,
                     ),
@@ -144,13 +141,13 @@ class _ReceiptPageState extends State<ReceiptPage> {
                         Icon(
                           Icons.print,
                           color:
-                              _connectedPrinter?.isConnected == true
+                              _hasPrinter
                                   ? Colors.green
                                   : Colors.grey,
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          _connectedPrinter?.isConnected == true
+                          _hasPrinter
                               ? 'Cetak Struk'
                               : 'Cetak Struk (Setup Required)',
                         ),
@@ -167,7 +164,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
                       ],
                     ),
                   ),
-                  if (_connectedPrinter?.isConnected == true)
+                  if (_hasPrinter)
                     const PopupMenuItem<String>(
                       value: 'test',
                       child: Row(
@@ -241,7 +238,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             // Tombol Cetak Struk (jika printer tersedia)
-            if (_connectedPrinter?.isConnected == true &&
+            if (_hasPrinter &&
                 !_isInitializingPrinter) ...[
               SizedBox(
                 width: double.infinity,
@@ -700,7 +697,7 @@ class _ReceiptPageState extends State<ReceiptPage> {
   }
 
   Widget _buildPrinterStatus() {
-    if (_connectedPrinter?.isConnected == true) {
+    if (_hasPrinter) {
       return Container(
         margin: const EdgeInsets.only(top: 16),
         padding: const EdgeInsets.all(12),
@@ -903,70 +900,23 @@ class _ReceiptPageState extends State<ReceiptPage> {
   }
 
   void _printReceipt(BuildContext context) async {
-    // Jika belum ada printer atau tidak terkoneksi, coba reconnect dulu
-    if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
-      // Show loading dialog
-      showDialog(
+    // Pastikan ADA printer terkonfigurasi. Jika belum, tampilkan setup.
+    // Koneksi tidak ditahan di sini — printReceipt() akan connect sesaat lalu
+    // melepas printer agar bisa dipakai kasir lain bergantian.
+    _connectedPrinter ??= ThermalPrinterService();
+    if (!_hasPrinter) {
+      if (!context.mounted) return;
+      final printer = await showDialog<ThermalPrinterService>(
         context: context,
-        barrierDismissible: false,
-        builder:
-            (context) => const AlertDialog(
-              content: Row(
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(width: 16),
-                  Text('Menghubungkan printer...'),
-                ],
-              ),
-            ),
+        builder: (context) => const PrinterSettingsDialog(),
       );
-
-      try {
-        // Coba reconnect ke printer tersimpan
-        final printer = ThermalPrinterService();
-        final hasSaved = await printer.hasSavedPrinter();
-
-        if (hasSaved) {
-          final success = await printer.autoReconnectToLastPrinter();
-          if (success) {
-            _connectedPrinter = printer;
-          }
-        }
-
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Close loading dialog
-        }
-
-        // Jika masih tidak bisa connect, tampilkan dialog setup
-        if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
-          if (!context.mounted) return;
-          final printer = await showDialog<ThermalPrinterService>(
-            context: context,
-            builder: (context) => const PrinterSettingsDialog(),
-          );
-
-          if (printer != null) {
-            setState(() {
-              _connectedPrinter = printer;
-            });
-          } else {
-            // User cancelled printer setup
-            return;
-          }
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Close loading dialog
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error menghubungkan printer: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
+      if (printer == null) return; // user batal setup
+      // Lepas koneksi yang dibuat dialog (mode berbagi).
+      printer.disconnect();
+      setState(() {
+        _connectedPrinter = printer;
+        _hasPrinter = true;
+      });
     }
 
     // Show printing dialog
@@ -1074,8 +1024,12 @@ class _ReceiptPageState extends State<ReceiptPage> {
     );
 
     if (printer != null) {
+      // Dialog setup terhubung & menyimpan printer. Lepas koneksinya agar tidak
+      // menahan printer (mode berbagi); cetak nanti connect sesaat sendiri.
+      printer.disconnect();
       setState(() {
         _connectedPrinter = printer;
+        _hasPrinter = true;
       });
 
       if (context.mounted) {
@@ -1090,11 +1044,11 @@ class _ReceiptPageState extends State<ReceiptPage> {
   }
 
   Future<void> _testPrinter(BuildContext context) async {
-    if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
+    if (!_hasPrinter || _connectedPrinter == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Printer belum terhubung'),
+            content: Text('Printer belum dikonfigurasi'),
             backgroundColor: Colors.red,
           ),
         );
