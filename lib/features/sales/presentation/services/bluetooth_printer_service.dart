@@ -415,31 +415,48 @@ class BluetoothPrinterService {
       return false;
     }
 
-    try {
-      // Ukuran chunk dari MTU hasil negosiasi (3 byte untuk ATT header).
-      // Clamp ke minimal 20 byte (worst-case default BLE).
-      final chunkSize = (_mtu - 3).clamp(20, 512);
-      for (int i = 0; i < data.length; i += chunkSize) {
-        final end = (i + chunkSize < data.length) ? i + chunkSize : data.length;
-        final chunk = data.sublist(i, end);
-        await _writeCharacteristic!.write(
-          chunk,
-          withoutResponse: _writeWithoutResponse,
-        );
+    // Ukuran chunk dari MTU hasil negosiasi (3 byte untuk ATT header).
+    // Clamp ke minimal 20 byte (worst-case default BLE).
+    final chunkSize = (_mtu - 3).clamp(20, 512);
+    for (int i = 0; i < data.length; i += chunkSize) {
+      final end = (i + chunkSize < data.length) ? i + chunkSize : data.length;
+      final chunk = data.sublist(i, end);
 
-        // Jeda kecil hanya perlu pada write-without-response (tanpa ack)
-        // agar buffer printer tidak overflow.
-        if (_writeWithoutResponse) {
-          await Future.delayed(const Duration(milliseconds: 20));
+      // Retry per-chunk: pada writeWithoutResponse (tanpa ACK), satu write bisa
+      // gagal sesaat saat buffer BLE/printer penuh. Dulu kegagalan sekali pun
+      // membuat seluruh cetak dilaporkan GAGAL — padahal isi struk sudah
+      // terkirim & tercetak. Sekarang chunk yang gagal diulang dulu.
+      var written = false;
+      Object? lastError;
+      for (var attempt = 1; attempt <= 4 && !written; attempt++) {
+        try {
+          await _writeCharacteristic!.write(
+            chunk,
+            withoutResponse: _writeWithoutResponse,
+          );
+          written = true;
+        } catch (e) {
+          lastError = e;
+          debugPrint('Write chunk gagal (percobaan $attempt): $e');
+          // Beri jeda agar buffer sempat kosong sebelum mengulang.
+          await Future.delayed(Duration(milliseconds: 80 * attempt));
         }
       }
 
-      debugPrint('Bluetooth print data sent successfully');
-      return true;
-    } catch (e) {
-      debugPrint('Error printing to Bluetooth printer: $e');
-      return false;
+      if (!written) {
+        debugPrint('Bluetooth print gagal: chunk tak bisa ditulis ($lastError)');
+        return false;
+      }
+
+      // Jeda kecil hanya perlu pada write-without-response (tanpa ack)
+      // agar buffer printer tidak overflow.
+      if (_writeWithoutResponse) {
+        await Future.delayed(const Duration(milliseconds: 20));
+      }
     }
+
+    debugPrint('Bluetooth print data sent successfully');
+    return true;
   }
 
   /// Debug method untuk troubleshooting - tampilkan semua device bluetooth
