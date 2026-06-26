@@ -49,15 +49,10 @@ class _CustomerPaymentReceiptPageState
 
   Future<void> _initializePrinter() async {
     try {
-      final printer = ThermalPrinterService();
-      final hasSaved = await printer.hasSavedPrinter();
-
-      if (hasSaved) {
-        final success = await printer.autoReconnectToLastPrinter();
-        if (success) {
-          _connectedPrinter = printer;
-        }
-      }
+      // Pola koneksi-sesaat: JANGAN auto-connect & tahan koneksi (mem-blok
+      // kasir lain). Cukup siapkan instance; koneksi dibuat sesaat saat
+      // mencetak lalu dilepas lagi (printPaymentReceipt).
+      _connectedPrinter = ThermalPrinterService();
     } catch (e) {
       debugPrint('Error initializing printer: $e');
       _connectedPrinter = null;
@@ -1070,68 +1065,22 @@ class _CustomerPaymentReceiptPageState
   }
 
   Future<void> _printReceipt(BuildContext context) async {
-    // Jika belum ada printer atau tidak terkoneksi, coba reconnect dulu
-    if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
-      // Show loading dialog
+    // Pastikan instance ada & printer sudah dikonfigurasi. Koneksi TIDAK
+    // ditahan di sini — printPaymentReceipt() connect sesaat lalu melepas
+    // printer agar bisa dipakai kasir lain bergantian.
+    _connectedPrinter ??= ThermalPrinterService();
+    final hasSaved = await _connectedPrinter!.hasSavedPrinter();
+    if (!hasSaved) {
       if (!context.mounted) return;
-      showDialog(
+      final printer = await showDialog<ThermalPrinterService>(
         context: context,
-        barrierDismissible: false,
-        builder: (context) => const AlertDialog(
-          content: Row(
-            children: [
-              CircularProgressIndicator(),
-              SizedBox(width: 20),
-              Text('Menghubungkan printer...'),
-            ],
-          ),
-        ),
+        builder: (context) => const PrinterSettingsDialog(),
       );
-
-      try {
-        final printer = ThermalPrinterService();
-        final hasSaved = await printer.hasSavedPrinter();
-
-        if (hasSaved) {
-          final success = await printer.autoReconnectToLastPrinter();
-          if (success) {
-            _connectedPrinter = printer;
-          }
-        }
-
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Close loading dialog
-        }
-
-        // Jika masih tidak bisa connect, tampilkan dialog setup
-        if (_connectedPrinter == null || !_connectedPrinter!.isConnected) {
-          if (!context.mounted) return;
-          final printer = await showDialog<ThermalPrinterService>(
-            context: context,
-            builder: (context) => const PrinterSettingsDialog(),
-          );
-
-          if (printer != null) {
-            setState(() {
-              _connectedPrinter = printer;
-            });
-          } else {
-            return; // User cancelled
-          }
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // Close loading dialog
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
+      if (printer == null) return; // user batal setup
+      printer.disconnect(); // lepas koneksi dialog (mode berbagi)
+      setState(() {
+        _connectedPrinter = printer;
+      });
     }
 
     // Show printing dialog

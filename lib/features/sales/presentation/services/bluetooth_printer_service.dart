@@ -257,9 +257,11 @@ class BluetoothPrinterService {
 
       debugPrint('Target device found: ${targetDevice.platformName}');
 
-      // Connect to device
+      // Connect to device. Timeout pendek agar saat printer sedang dipakai HP
+      // lain, percobaan gagal cepat sehingga retry lebih responsif — bukan
+      // menunggu default 35 detik.
       debugPrint('Connecting to device...');
-      await targetDevice.connect();
+      await targetDevice.connect(timeout: const Duration(seconds: 10));
       debugPrint('Device connected successfully');
 
       // Naikkan MTU agar bisa mengirim chunk besar (Android). iOS mengatur

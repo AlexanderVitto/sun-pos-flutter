@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:esc_pos_printer/esc_pos_printer.dart';
 import 'package:esc_pos_utils/esc_pos_utils.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +29,26 @@ class ThermalPrinterService {
   BluetoothPrinterService get bluetoothPrinter {
     _bluetoothPrinter ??= BluetoothPrinterService();
     return _bluetoothPrinter!;
+  }
+
+  // ── Antrean cetak SE-DEVICE ────────────────────────────────────────────
+  // Semua job cetak (struk penjualan, pembayaran, test) dari instance mana pun
+  // di HP ini dijalankan BERURUTAN. Mencegah dua job di perangkat yang sama
+  // saling bentrok memakai printer & adapter BLE yang sama (mis. double-tap
+  // atau cetak penjualan + pembayaran hampir bersamaan).
+  static Future<void> _devicePrintGate = Future<void>.value();
+
+  /// Antrekan [job] agar berjalan setelah job cetak sebelumnya selesai.
+  static Future<T> _enqueuePrint<T>(Future<T> Function() job) {
+    final completer = Completer<T>();
+    _devicePrintGate = _devicePrintGate.then((_) async {
+      try {
+        completer.complete(await job());
+      } catch (e, st) {
+        completer.completeError(e, st);
+      }
+    });
+    return completer.future;
   }
 
   /// Mencari printer di jaringan lokal (simplified version)
@@ -222,7 +244,9 @@ class ThermalPrinterService {
   /// Inti pola "koneksi sesaat" untuk printer BERBAGI: connect tepat sebelum
   /// mencetak bila belum terhubung. Retry menangani kasus printer sedang
   /// dipakai kasir lain (BLE hanya melayani satu koneksi pada satu waktu).
-  Future<bool> ensureConnectedToSavedPrinter({int retries = 3}) async {
+  Future<bool> ensureConnectedToSavedPrinter({
+    Duration maxWait = const Duration(seconds: 20),
+  }) async {
     if (_isConnected) return true;
 
     final saved = await PrinterPreferencesService.instance
@@ -232,7 +256,13 @@ class ThermalPrinterService {
       return false;
     }
 
-    for (var attempt = 1; attempt <= retries; attempt++) {
+    // Retry sabar berbasis deadline: bila printer sedang dipakai kasir lain,
+    // perangkat ini MENUNGGU GILIRAN (antrean lintas-device) sampai bebas atau
+    // deadline tercapai — bukan langsung gagal.
+    final deadline = DateTime.now().add(maxWait);
+    var attempt = 0;
+    while (true) {
+      attempt++;
       bool ok = false;
       if (saved.type == SavedPrinterType.network && saved.ipAddress != null) {
         ok = await connectToPrinter(saved.ipAddress!, port: saved.port ?? 9100);
@@ -245,24 +275,39 @@ class ThermalPrinterService {
       }
       if (ok) return true;
 
-      // Gagal — printer mungkin sedang dipakai kasir lain. Tunggu lalu ulang.
-      if (attempt < retries) {
-        debugPrint('ensureConnected: gagal (percobaan $attempt), retry...');
-        await Future.delayed(Duration(milliseconds: 700 * attempt));
+      if (DateTime.now().isAfter(deadline)) {
+        debugPrint('ensureConnected: gagal setelah ${attempt}x, deadline habis');
+        return false;
       }
+
+      // Backoff bertahap (cap 2 dtk) sambil menunggu printer dilepas device lain.
+      final backoffMs = (400 * attempt).clamp(400, 2000);
+      debugPrint('ensureConnected: gagal (percobaan $attempt), tunggu ${backoffMs}ms');
+      await Future.delayed(Duration(milliseconds: backoffMs));
     }
-    return false;
   }
 
   /// Lepas koneksi Bluetooth setelah mencetak agar kasir lain bisa memakai
   /// printer yang sama. Network printer TIDAK dilepas (mendukung multi-koneksi).
   Future<void> _releaseBluetoothAfterPrint() async {
-    if (_connectionType == PrinterConnectionType.bluetooth) {
-      // Jeda agar data ter-flush ke printer sebelum link diputus.
-      await Future.delayed(const Duration(milliseconds: 1000));
-      disconnect();
-      debugPrint('Bluetooth printer dilepas setelah cetak (mode berbagi)');
+    if (_connectionType != PrinterConnectionType.bluetooth) return;
+
+    // Jeda singkat agar sisa byte struk ter-flush ke printer sebelum link
+    // diputus (mencegah cetakan terpotong). Bukan "menahan" koneksi.
+    await Future.delayed(const Duration(milliseconds: 1000));
+
+    // PENTING: await pemutusan link BLE agar printer BENAR-BENAR bebas saat
+    // job ini selesai — job antrean berikutnya / kasir lain bisa langsung
+    // connect tanpa link lama yang masih menggantung.
+    try {
+      await bluetoothPrinter.disconnect();
+    } catch (e) {
+      debugPrint('Error saat melepas Bluetooth: $e');
     }
+    _isConnected = false;
+    _connectionType = null;
+    _currentPrinterInfo = null;
+    debugPrint('Bluetooth printer dilepas (link diputus) setelah cetak');
   }
 
   /// Cek apakah sudah ada printer tersimpan
@@ -291,7 +336,8 @@ class ThermalPrinterService {
     String? notes,
     String? status,
     DateTime? dueDate,
-  }) async {
+  }) {
+    return _enqueuePrint(() async {
     // Pola koneksi sesaat: connect ke printer tersimpan tepat sebelum cetak.
     if (!_isConnected) {
       final ok = await ensureConnectedToSavedPrinter();
@@ -338,6 +384,7 @@ class ThermalPrinterService {
       // Lepas printer Bluetooth agar bisa dipakai kasir lain bergantian.
       await _releaseBluetoothAfterPrint();
     }
+    });
   }
 
   /// Convert API payment method key to display label.
@@ -689,10 +736,15 @@ class ThermalPrinterService {
     required double changeAmount,
     required DateTime paymentDate,
     String? notes,
-  }) async {
+  }) {
+    return _enqueuePrint(() async {
+    // Pola koneksi sesaat: connect ke printer tersimpan tepat sebelum cetak.
     if (!_isConnected) {
-      debugPrint('Printer not connected');
-      return false;
+      final ok = await ensureConnectedToSavedPrinter();
+      if (!ok) {
+        debugPrint('Printer not connected and auto-connect failed');
+        return false;
+      }
     }
 
     try {
@@ -721,7 +773,11 @@ class ThermalPrinterService {
     } catch (e) {
       debugPrint('Error printing payment receipt: $e');
       return false;
+    } finally {
+      // Lepas printer Bluetooth agar bisa dipakai kasir lain bergantian.
+      await _releaseBluetoothAfterPrint();
     }
+    });
   }
 
   /// Membangun byte ESC/POS struk pembayaran hutang. Dipakai bersama oleh
@@ -964,7 +1020,8 @@ class ThermalPrinterService {
   }
 
   /// Test print untuk cek koneksi
-  Future<bool> testPrint() async {
+  Future<bool> testPrint() {
+    return _enqueuePrint(() async {
     // Pola koneksi sesaat: connect ke printer tersimpan bila belum terhubung.
     if (!_isConnected) {
       final ok = await ensureConnectedToSavedPrinter();
@@ -1008,6 +1065,7 @@ class ThermalPrinterService {
     } finally {
       await _releaseBluetoothAfterPrint();
     }
+    });
   }
 
   /// Ubah nama menjadi inisial huruf besar. "Agus Louis" -> "AL".
